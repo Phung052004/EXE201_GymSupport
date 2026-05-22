@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import 'package:gym_support/core/services/backend_api.dart';
+import 'package:gym_support/core/services/session_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_stat_card.dart';
 import '../widgets/muscle_progress_card.dart';
 import '../widgets/nutrition_plan_card.dart';
 import '../widgets/today_plan_card.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final String name;
   final String goal;
   final String schedule;
@@ -20,6 +23,35 @@ class HomeScreen extends StatelessWidget {
     required this.schedule,
     required this.bmi,
   });
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Map<String, dynamic>? _workout;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWorkout();
+  }
+
+  Future<void> _loadWorkout() async {
+    setState(() => _loading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString(SessionStore.emailKey);
+      if (email != null && email.isNotEmpty) {
+        final w = await BackendApi.getWorkoutPlanByEmail(email);
+        setState(() => _workout = w);
+      }
+    } catch (_) {
+      // ignore
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +61,7 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            HomeHeader(name: name, goal: goal),
+            HomeHeader(name: widget.name, goal: widget.goal),
 
             const SizedBox(height: 22),
 
@@ -69,6 +101,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 );
               },
+              workout: _workout,
             ),
 
             const SizedBox(height: 28),
@@ -89,10 +122,10 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 12),
 
             NutritionPlanCard(
-              calories: '2,200',
-              protein: '140g',
+              calories: _workout != null ? '${_workout!['nutrition']?['calories'] ?? '—'}' : '2,200',
+              protein: _workout != null ? '${_workout!['nutrition']?['protein'] ?? '—'}' : '140g',
               water: '2.5L',
-              bmi: bmi,
+              bmi: widget.bmi,
             ),
 
             const SizedBox(height: 18),

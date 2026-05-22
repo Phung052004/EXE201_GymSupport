@@ -127,6 +127,26 @@ class BackendApi {
     return null;
   }
 
+  static Future<Map<String, dynamic>?> getWorkoutPlanByEmail(String email) async {
+    final response = await http.get(
+      _baseUri.resolve('/api/workout-plan/${Uri.encodeComponent(email)}'),
+    );
+
+    if (response.statusCode == 404) return null;
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final decoded = jsonDecode(response.body);
+      final message = decoded is Map<String, dynamic>
+          ? decoded['message']?.toString()
+          : null;
+      throw Exception(message ?? 'Không thể tải workout plan');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is Map<String, dynamic>) return decoded['data'] as Map<String, dynamic>?;
+    return null;
+  }
+
   static Future<Map<String, dynamic>> generatePlan({
     required String name,
     required String gender,

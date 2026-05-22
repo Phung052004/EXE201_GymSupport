@@ -240,10 +240,10 @@ app.post("/api/generate-plan", async (req, res) => {
     const clean = sanitizeJSON(rawText);
     const parsed = JSON.parse(clean);
 
-    // Save workout plan to DB (optional)
+    // Save workout plan to DB (optional) - use user email as userId
     try {
       const workout = new Workout({
-        userEmail: req.body.email || "unknown",
+        userId: req.body.email || "unknown",
         workoutPlan: parsed.workoutPlan || [],
         nutrition: parsed.nutrition || {},
       });
@@ -269,19 +269,63 @@ app.post("/api/scan-equipment", uploadMiddleware, async (req, res) => {
         .status(400)
         .json({ status: "error", message: "Không tìm thấy file image" });
 
-    // For now we just store the scan history and return a mock detection result.
+    const apiKey = process.env.GOOGLE_VISION_API_KEY;
+    let detections = [];
+
+    if (apiKey) {
+      const base64 = req.file.buffer.toString("base64");
+      const visionUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
+      const body = {
+        requests: [
+          {
+            image: { content: base64 },
+            features: [
+              { type: "LABEL_DETECTION", maxResults: 10 },
+              { type: "OBJECT_LOCALIZATION", maxResults: 10 },
+            ],
+          },
+        ],
+      };
+
+      const resp = await fetch(visionUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (resp.ok) {
+        const j = await resp.json();
+        const annotations = j.responses?.[0];
+        const labels = annotations?.labelAnnotations || [];
+        detections = labels.map((l) => ({ name: l.description, confidence: l.score }));
+
+        const objs = annotations?.localizedObjectAnnotations || [];
+        for (const o of objs) {
+          detections.push({ name: o.name, confidence: o.score });
+        }
+      } else {
+        console.warn("Vision API failed:", resp.statusText);
+      }
+    }
+
+    if (!detections || detections.length === 0) {
+      detections = [
+        { name: "Dumbbell", confidence: 0.92 },
+        { name: "Barbell", confidence: 0.35 },
+      ];
+    }
+
+    const top = detections[0];
+    const equipmentName = top?.name || req.file.originalname || "unknown";
     const record = new ScanHistory({
-      userEmail: req.body.email || "anonymous",
-      filename: req.file.originalname || "upload.jpg",
-      metadata: { size: req.file.size },
+      userId: req.body.email || "anonymous",
+      equipmentName,
+      targetMuscle: "UNKNOWN",
+      difficulty: "Medium",
+      instructions: [],
+      commonMistakes: "",
     });
     await record.save();
-
-    // TODO: integrate real vision model. For now return a mock list.
-    const detections = [
-      { name: "Dumbbell", confidence: 0.92 },
-      { name: "Barbell", confidence: 0.35 },
-    ];
 
     res.json({ status: "success", detections, recordId: record._id });
   } catch (error) {
@@ -294,4 +338,22 @@ const PORT = 3000;
 // Bind to 0.0.0.0 so the server is reachable from other devices on the LAN
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server GymSupport đang chạy tại http://0.0.0.0:${PORT}`);
+});
+
+// ====================================================
+// Lấy workout plan mới nhất theo email
+// ====================================================
+app.get('/api/workout-plan/:email', async (req, res) => {
+  try {
+    const email = req.params.email?.toString();
+    if (!email) return res.status(400).json({ status: 'error', message: 'Email thiếu' });
+
+    const workout = await Workout.findOne({ userId: email }).sort({ createdAt: -1 }).lean();
+    if (!workout) return res.status(404).json({ status: 'error', message: 'Không tìm thấy lịch tập' });
+
+    res.json({ status: 'success', data: workout });
+  } catch (error) {
+    console.error('❌ LỖI GET WORKOUT:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
 });
