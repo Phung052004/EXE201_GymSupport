@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_support/core/constants/app_colors.dart';
 import '../models/fitness_goal.dart';
 
 class GoalOptionCard extends StatelessWidget {
@@ -23,7 +24,7 @@ class GoalOptionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? goal.color.withValues(alpha: 0.15)
-              : const Color(0xFF2B2E38),
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? goal.color : Colors.transparent,
@@ -42,7 +43,7 @@ class GoalOptionCard extends StatelessWidget {
               ),
               child: Icon(
                 goal.icon,
-                color: isSelected ? const Color(0xFF111318) : Colors.white70,
+                color: isSelected ? AppColors.textDark : Colors.white70,
                 size: 24,
               ),
             ),

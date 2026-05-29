@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_support/core/constants/app_colors.dart';
 
 class GenderButton extends StatelessWidget {
   final String title;
@@ -23,16 +24,14 @@ class GenderButton extends StatelessWidget {
           duration: const Duration(milliseconds: 220),
           height: 52,
           decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFF12E67F)
-                : const Color(0xFF2B2E38),
+            color: isSelected ? AppColors.primary : AppColors.surface,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Center(
             child: Text(
               title,
               style: TextStyle(
-                color: isSelected ? const Color(0xFF111318) : Colors.white,
+                color: isSelected ? AppColors.textDark : Colors.white,
                 fontWeight: FontWeight.w800,
               ),
             ),

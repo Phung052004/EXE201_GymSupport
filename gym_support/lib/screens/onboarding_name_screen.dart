@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_support/core/constants/app_colors.dart';
 import '../widgets/widgets.dart';
 import 'onboarding_metrics_screen.dart';
 
@@ -63,7 +64,7 @@ class _OnboardingNameScreenState extends State<OnboardingNameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF171A21),
+      backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(

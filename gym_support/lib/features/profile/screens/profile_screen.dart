@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/backend_api.dart';
 import '../../../core/services/session_store.dart';
 import 'package:gym_support/features/ai_coach/screens/generate_plan_screen.dart';
 import 'package:gym_support/features/ai_coach/screens/scan_equipment_screen.dart';
@@ -10,19 +12,38 @@ import '../widgets/profile_header.dart';
 import '../widgets/profile_menu_item.dart';
 import '../widgets/profile_stat_card.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final String name;
   final String goal;
   final String schedule;
   final String bmi;
+  final void Function(String goal, String schedule)? onGoalsUpdated;
 
-  const ProfileScreen({
+  ProfileScreen({
     super.key,
     required this.name,
     required this.goal,
     required this.schedule,
     required this.bmi,
+    this.onGoalsUpdated,
   });
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late String _goal;
+  late String _schedule;
+  late final Future<Map<String, dynamic>> _dashboardFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _goal = widget.goal;
+    _schedule = widget.schedule;
+    _dashboardFuture = _loadDashboard();
+  }
 
   void showComingSoon(BuildContext context, String featureName) {
     ScaffoldMessenger.of(
@@ -36,7 +57,7 @@ class ProfileScreen extends StatelessWidget {
       barrierColor: Colors.black.withValues(alpha: 0.72),
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF20232B),
+          backgroundColor: AppColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -89,6 +110,16 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  Future<Map<String, dynamic>> _loadDashboard() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString(SessionStore.emailKey);
+    if (email == null || email.isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    return BackendApi.getDashboardSummary(email);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -103,28 +134,38 @@ class ProfileScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 18),
-            Center(child: ProfileHeader(name: name)),
+            Center(child: ProfileHeader(name: widget.name)),
             const SizedBox(height: 28),
-            const Row(
-              children: [
-                Expanded(
-                  child: ProfileStatCard(
-                    icon: Icons.emoji_events,
-                    iconColor: AppColors.primary,
-                    value: '0',
-                    label: 'TOTAL WORKOUTS',
-                  ),
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: ProfileStatCard(
-                    icon: Icons.flash_on,
-                    iconColor: Color(0xFFFF7A30),
-                    value: '0h 0m',
-                    label: 'TIME TRAINED',
-                  ),
-                ),
-              ],
+            FutureBuilder<Map<String, dynamic>>(
+              future: _dashboardFuture,
+              builder: (context, snapshot) {
+                final dashboard = snapshot.data ?? const <String, dynamic>{};
+                final workoutCount =
+                    dashboard['workoutCount']?.toString() ?? '0';
+                final scanCount = dashboard['scanCount']?.toString() ?? '0';
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: ProfileStatCard(
+                        icon: Icons.emoji_events,
+                        iconColor: AppColors.primary,
+                        value: workoutCount,
+                        label: 'TOTAL WORKOUTS',
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: ProfileStatCard(
+                        icon: Icons.camera_alt_outlined,
+                        iconColor: const Color(0xFFFF7A30),
+                        value: scanCount,
+                        label: 'SCAN SESSIONS',
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 28),
             Text(
@@ -152,12 +193,12 @@ class ProfileScreen extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (_) => GeneratePlanScreen(
                       email: '',
-                      name: name,
+                      name: widget.name,
                       gender: 'Nam',
                       age: '25',
                       weight: '70',
                       height: '175',
-                      goal: goal,
+                      goal: _goal,
                     ),
                   ),
                 );
@@ -196,7 +237,7 @@ class ProfileScreen extends StatelessWidget {
   void showProfileInfoBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF20232B),
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -204,8 +245,11 @@ class ProfileScreen extends StatelessWidget {
         return ProfileInfoSheet(
           title: 'Personal Information',
           items: [
-            InfoRow(label: 'Name', value: name),
-            InfoRow(label: 'BMI', value: bmi.isEmpty ? '--' : bmi),
+            InfoRow(label: 'Name', value: widget.name),
+            InfoRow(
+              label: 'BMI',
+              value: widget.bmi.isEmpty ? '--' : widget.bmi,
+            ),
           ],
         );
       },
@@ -215,7 +259,7 @@ class ProfileScreen extends StatelessWidget {
   void showWorkoutPreferencesBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF20232B),
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -223,7 +267,7 @@ class ProfileScreen extends StatelessWidget {
         return ProfileInfoSheet(
           title: 'Workout Preferences',
           items: [
-            InfoRow(label: 'Schedule', value: schedule),
+            InfoRow(label: 'Schedule', value: _schedule),
             const InfoRow(label: 'Level', value: 'Beginner'),
           ],
         );
@@ -232,7 +276,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void showGoalsBottomSheet(BuildContext context) {
-    final goals = goal
+    final goals = _goal
         .split(',')
         .map((item) => item.trim())
         .where((item) => item.isNotEmpty)
@@ -240,7 +284,7 @@ class ProfileScreen extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF20232B),
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -258,9 +302,142 @@ class ProfileScreen extends StatelessWidget {
             }),
             const InfoRow(label: 'Weekly Target', value: '3 workouts'),
           ],
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showEditGoalsSheet(context);
+              },
+              child: const Text(
+                'Chỉnh sửa mục tiêu',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
         );
       },
     );
+  }
+
+  void _showEditGoalsSheet(BuildContext context) {
+    final controller = TextEditingController(text: _goal);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            22,
+            22,
+            22,
+            22 + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Chỉnh sửa Goals',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                maxLines: 3,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Ví dụ: Tăng cơ, Giảm mỡ, Cải thiện sức bền',
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.4),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.04),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Hủy'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final value = controller.text.trim();
+                        if (value.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Vui lòng nhập mục tiêu'),
+                            ),
+                          );
+                          return;
+                        }
+                        Navigator.pop(context);
+                        _saveGoals(value);
+                      },
+                      child: const Text('Lưu'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    ).whenComplete(controller.dispose);
+  }
+
+  Future<void> _saveGoals(String updatedGoals) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString(SessionStore.emailKey);
+      if (email == null || email.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không tìm thấy email đăng nhập')),
+        );
+        return;
+      }
+
+      await BackendApi.updateOnboardingProfile(
+        email: email,
+        goal: updatedGoals,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _goal = updatedGoals;
+      });
+      widget.onGoalsUpdated?.call(_goal, _schedule);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã cập nhật mục tiêu')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Không thể cập nhật: $error')));
+    }
   }
 }
 
@@ -299,8 +476,14 @@ class ProfileTopBar extends StatelessWidget {
 class ProfileInfoSheet extends StatelessWidget {
   final String title;
   final List<InfoRow> items;
+  final List<Widget> actions;
 
-  const ProfileInfoSheet({super.key, required this.title, required this.items});
+  const ProfileInfoSheet({
+    super.key,
+    required this.title,
+    required this.items,
+    this.actions = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -329,6 +512,14 @@ class ProfileInfoSheet extends StatelessWidget {
               ),
             ),
           ),
+          if (actions.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: actions
+                  .map((action) => Expanded(child: action))
+                  .toList(),
+            ),
+          ],
           const SizedBox(height: 18),
           ...items,
           const SizedBox(height: 8),

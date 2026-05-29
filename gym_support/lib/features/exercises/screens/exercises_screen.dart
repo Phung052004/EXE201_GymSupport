@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/exercise_data.dart';
+import 'package:gym_support/core/services/backend_api.dart';
 import '../../../models/exercise.dart';
 import '../widgets/exercise_header.dart';
 import '../widgets/exercise_list_item.dart';
@@ -31,6 +31,8 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
 
   String searchText = '';
   String selectedFilter = 'All';
+  bool _loadingCatalog = false;
+  String? _catalogError;
 
   final List<String> filters = const [
     'All',
@@ -41,12 +43,45 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     'Arms',
   ];
 
-  final List<Exercise> exercises = ExerciseData.exercises;
+  List<Exercise> exercises = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExercises();
+  }
 
   @override
   void dispose() {
     searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadExercises() async {
+    setState(() {
+      _loadingCatalog = true;
+      _catalogError = null;
+    });
+
+    try {
+      final catalog = await BackendApi.getExercises();
+      if (!mounted) return;
+      setState(() {
+        if (catalog.isNotEmpty) {
+          exercises = catalog;
+        }
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _catalogError = error.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loadingCatalog = false;
+      });
+    }
   }
 
   List<Exercise> get filteredExercises {
@@ -107,27 +142,44 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
               },
             ),
             const SizedBox(height: 14),
-            Expanded(
-              child: items.isEmpty
-                  ? const EmptyExerciseSearchResult()
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 18),
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final exercise = items[index];
-
-                        return ExerciseListItem(
-                          exercise: exercise,
-                          isSelected: widget.selectedExerciseIds.contains(
-                            exercise.id,
-                          ),
-                          onToggle: () {
-                            widget.onToggleExercise(exercise.id);
-                          },
-                        );
-                      },
+            if (_loadingCatalog)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else if (_catalogError != null)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Không tải được bài tập:\n$_catalogError',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
                     ),
-            ),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: items.isEmpty
+                    ? const EmptyExerciseSearchResult()
+                    : ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 18),
+                        itemCount: items.length,
+                        itemBuilder: (context, index) {
+                          final exercise = items[index];
+
+                          return ExerciseListItem(
+                            exercise: exercise,
+                            isSelected: widget.selectedExerciseIds.contains(
+                              exercise.id,
+                            ),
+                            onToggle: () {
+                              widget.onToggleExercise(exercise.id);
+                            },
+                          );
+                        },
+                      ),
+              ),
           ],
         ),
       ),

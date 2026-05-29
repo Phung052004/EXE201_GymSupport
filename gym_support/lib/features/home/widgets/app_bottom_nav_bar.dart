@@ -31,8 +31,8 @@ class AppBottomNavBar extends StatelessWidget {
         height: 74,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: const BoxDecoration(
-          color: Color(0xFF20232B),
-          border: Border(top: BorderSide(color: Color(0xFF2A2D36), width: 1)),
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: Color(0xFF2F3440), width: 1)),
         ),
         child: Row(
           children: List.generate(items.length, (index) {

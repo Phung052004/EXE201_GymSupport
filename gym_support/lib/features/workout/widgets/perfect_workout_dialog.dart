@@ -23,7 +23,7 @@ class PerfectWorkoutDialog extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          color: const Color(0xFF20232B),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           boxShadow: [

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_support/core/constants/app_colors.dart';
 import '../widgets/widgets.dart';
 import 'onboarding_goal_screen.dart';
 
@@ -102,7 +103,7 @@ class _OnboardingMetricsScreenState extends State<OnboardingMetricsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF171A21),
+      backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
@@ -174,7 +175,7 @@ class _OnboardingMetricsScreenState extends State<OnboardingMetricsScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2B2E38),
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Column(

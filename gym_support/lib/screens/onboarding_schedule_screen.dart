@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:gym_support/core/constants/app_colors.dart';
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/core/services/session_store.dart';
 import 'package:gym_support/models/training_schedule.dart';
@@ -146,6 +147,7 @@ class _OnboardingScheduleScreenState extends State<OnboardingScheduleScreen> {
     );
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

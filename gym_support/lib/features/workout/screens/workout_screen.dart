@@ -10,6 +10,8 @@ class WorkoutScreen extends StatelessWidget {
   final List<Exercise> selectedExercises;
   final VoidCallback onBrowseExercises;
   final ValueChanged<String> onRemoveExercise;
+  final void Function(String exerciseId, String sets, String reps)
+  onUpdateExercise;
   final VoidCallback onFinishWorkout;
 
   const WorkoutScreen({
@@ -17,6 +19,7 @@ class WorkoutScreen extends StatelessWidget {
     required this.selectedExercises,
     required this.onBrowseExercises,
     required this.onRemoveExercise,
+    required this.onUpdateExercise,
     required this.onFinishWorkout,
   });
 
@@ -46,6 +49,7 @@ class WorkoutScreen extends StatelessWidget {
             : ActiveWorkoutView(
                 exercises: selectedExercises,
                 onRemoveExercise: onRemoveExercise,
+                onUpdateExercise: onUpdateExercise,
                 onFinishWorkout: () {
                   showPerfectWorkoutDialog(context);
                 },

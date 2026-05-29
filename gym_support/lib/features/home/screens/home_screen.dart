@@ -29,6 +29,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _workout;
+  Map<String, dynamic>? _home;
   bool _loading = false;
 
   @override
@@ -43,12 +44,23 @@ class _HomeScreenState extends State<HomeScreen> {
       final prefs = await SharedPreferences.getInstance();
       final email = prefs.getString(SessionStore.emailKey);
       if (email != null && email.isNotEmpty) {
-        final w = await BackendApi.getWorkoutPlanByEmail(email);
-        setState(() => _workout = w);
+        final home = await BackendApi.getHomeSummary(email);
+        final todayPlan = home['todayPlan'] as Map<String, dynamic>?;
+        final nutrition = home['nutrition'] as Map<String, dynamic>?;
+        setState(() {
+          _home = home;
+          _workout = todayPlan == null
+              ? null
+              : {
+                  'workoutPlan': [todayPlan],
+                  'nutrition': nutrition,
+                };
+        });
       }
     } catch (_) {
       // ignore
     } finally {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
@@ -65,13 +77,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 22),
 
-            const Row(
+            Row(
               children: [
                 Expanded(
                   child: HomeStatCard(
                     icon: Icons.local_fire_department,
                     iconColor: Color(0xFFFF7A30),
-                    value: '3',
+                    value: '${_home?['streak'] ?? 0}',
                     label: 'DAY STREAK',
                   ),
                 ),
@@ -80,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: HomeStatCard(
                     icon: Icons.emoji_events,
                     iconColor: AppColors.primary,
-                    value: '0',
+                    value: '${_home?['workoutCount'] ?? 0}',
                     label: 'WORKOUTS',
                   ),
                 ),
@@ -94,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
 
             TodayPlanCard(
+              isLoading: _loading,
               onBuildRoutine: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -122,9 +135,15 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
 
             NutritionPlanCard(
-              calories: _workout != null ? '${_workout!['nutrition']?['calories'] ?? '—'}' : '2,200',
-              protein: _workout != null ? '${_workout!['nutrition']?['protein'] ?? '—'}' : '140g',
-              water: '2.5L',
+              calories: _workout != null
+                  ? '${_workout!['nutrition']?['calories'] ?? '—'}'
+                  : '—',
+              protein: _workout != null
+                  ? '${_workout!['nutrition']?['protein'] ?? '—'}'
+                  : '—',
+              water: _workout != null
+                  ? '${_workout!['nutrition']?['water'] ?? '—'}'
+                  : '—',
               bmi: widget.bmi,
             ),
 

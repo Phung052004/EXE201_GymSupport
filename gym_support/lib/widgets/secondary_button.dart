@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_support/core/constants/app_colors.dart';
 
 class SecondaryButton extends StatelessWidget {
   final String text;
@@ -16,7 +17,7 @@ class SecondaryButton extends StatelessWidget {
         child: Container(
           height: 56,
           decoration: BoxDecoration(
-            color: const Color(0xFF2B2E38),
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Center(

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:gym_support/core/services/backend_api.dart';
+import 'package:gym_support/core/services/session_store.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../models/exercise.dart';
+import 'scan_equipment_screen.dart';
 
 class AiCoachScreen extends StatefulWidget {
   final String name;
@@ -20,10 +25,14 @@ class AiCoachScreen extends StatefulWidget {
   State<AiCoachScreen> createState() => _AiCoachScreenState();
 }
 
-class _AiCoachScreenState extends State<AiCoachScreen> {
+class _AiCoachScreenState extends State<AiCoachScreen>
+    with TickerProviderStateMixin {
   final TextEditingController messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   final List<AiChatMessage> messages = [];
+  bool _sending = false;
+  List<Exercise> _suggestions = const [];
 
   @override
   void initState() {
@@ -36,39 +45,194 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
         isUser: false,
       ),
     );
+
+    _loadSuggestions();
   }
 
   @override
   void dispose() {
     messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void sendMessage() {
+  Future<void> _loadSuggestions() async {
+    try {
+      final list = await BackendApi.getExercises();
+      if (!mounted) return;
+      setState(() {
+        _suggestions = list.take(6).toList();
+      });
+    } catch (_) {
+      // Keep suggestions empty when backend is unavailable.
+    }
+  }
+
+  Future<void> sendMessage() async {
     final text = messageController.text.trim();
 
-    if (text.isEmpty) return;
+    if (text.isEmpty || _sending) return;
 
     setState(() {
       messages.add(AiChatMessage(text: text, isUser: true));
-
-      messages.add(AiChatMessage(text: generateDemoReply(text), isUser: false));
+      _sending = true;
     });
+    _scrollToBottom();
 
     messageController.clear();
-    FocusScope.of(context).unfocus();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString(SessionStore.emailKey);
+      final reply = await BackendApi.sendAiCoachMessage(
+        message: text,
+        email: email,
+      );
+      if (!mounted) return;
+      setState(() {
+        messages.add(AiChatMessage(text: reply, isUser: false));
+      });
+      await _tryAddExerciseFromCommand(text);
+      _scrollToBottom();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('AI vừa gửi tin nhắn mới')));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        messages.add(
+          AiChatMessage(
+            text: 'Không thể kết nối AI coach: $error',
+            isUser: false,
+          ),
+        );
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+      });
+      FocusScope.of(context).unfocus();
+    }
   }
 
-  String generateDemoReply(String userMessage) {
-    return '''
-Dựa trên hồ sơ của bạn:
-• Mục tiêu: ${widget.goal}
-• Lịch tập: ${widget.schedule}
-• BMI: ${widget.bmi.isEmpty ? '--' : widget.bmi}
+  Future<void> _tryAddExerciseFromCommand(String text) async {
+    final exerciseName = _extractExerciseName(text);
+    if (exerciseName == null || exerciseName.isEmpty) return;
 
-Gợi ý nhanh:
-Hôm nay bạn có thể tập 45 phút gồm khởi động, bài compound chính và 2 bài phụ. Mình sẽ kết nối AI thật ở bước backend sau.
-''';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString(SessionStore.emailKey);
+      if (email == null || email.isEmpty) return;
+
+      final matches = await BackendApi.getExercises(query: exerciseName);
+      if (matches.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          messages.add(
+            AiChatMessage(
+              text: 'Không tìm thấy bài tập "$exerciseName" trong danh sách.',
+              isUser: false,
+            ),
+          );
+        });
+        return;
+      }
+
+      final picked = matches.first;
+      final session = await BackendApi.getWorkoutSession(email);
+      final current = <Map<String, dynamic>>[];
+      if (session != null && session['exercises'] is List) {
+        for (final item in session['exercises']) {
+          if (item is Map<String, dynamic>) {
+            current.add(item);
+          }
+        }
+      }
+
+      final alreadyExists = current.any((item) {
+        final id = item['exerciseId']?.toString();
+        return id == picked.id;
+      });
+
+      if (!alreadyExists) {
+        current.add({
+          'exerciseId': picked.id,
+          'name': picked.name,
+          'muscleGroup': picked.muscleGroup,
+          'setsAndReps': picked.setsAndReps,
+        });
+      }
+
+      await BackendApi.saveWorkoutSession(email: email, exercises: current);
+
+      if (!mounted) return;
+      setState(() {
+        messages.add(
+          AiChatMessage(
+            text: alreadyExists
+                ? 'Bài tập ${picked.name} đã có trong workout.'
+                : 'Đã thêm ${picked.name} vào workout của bạn.',
+            isUser: false,
+          ),
+        );
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        messages.add(
+          const AiChatMessage(
+            text: 'Không thể thêm bài tập vào workout lúc này.',
+            isUser: false,
+          ),
+        );
+      });
+    }
+  }
+
+  String? _extractExerciseName(String text) {
+    final lower = text.toLowerCase();
+    final regex = RegExp(r'(thêm|add)\s+(.+?)(\s+vào|\s+vao|\s+va)?\s*workout');
+    final match = regex.firstMatch(lower);
+    if (match != null && match.groupCount >= 2) {
+      return match.group(2)?.trim();
+    }
+
+    if (lower.startsWith('thêm ')) {
+      return text.substring(5).trim();
+    }
+
+    return null;
+  }
+
+  Future<void> _openScanEquipment() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString(SessionStore.emailKey);
+    if (!mounted) return;
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ScanEquipmentScreen(email: email)),
+    );
+
+    if (!mounted || result == null) return;
+    if (result is String && result.trim().isNotEmpty) {
+      setState(() {
+        messages.add(AiChatMessage(text: result, isUser: false));
+      });
+      _scrollToBottom();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã thêm kết quả scan vào chat')),
+      );
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 120,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   @override
@@ -140,14 +304,27 @@ Hôm nay bạn có thể tập 45 phút gồm khởi động, bài compound chí
 
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 22),
-              itemCount: messages.length,
+              itemCount: messages.length + (_sending ? 1 : 0),
               itemBuilder: (context, index) {
+                if (_sending && index == messages.length) {
+                  return const _TypingIndicator();
+                }
                 final message = messages[index];
 
                 return AiMessageBubble(message: message);
               },
             ),
+          ),
+
+          _ExerciseSuggestions(
+            suggestions: _suggestions,
+            onTapSuggestion: (exerciseName) {
+              if (_sending) return;
+              messageController.text = 'Thêm $exerciseName vào workout của tôi';
+              FocusScope.of(context).requestFocus(FocusNode());
+            },
           ),
 
           Padding(
@@ -160,6 +337,8 @@ Hôm nay bạn có thể tập 45 phút gồm khởi động, bài compound chí
             child: AiInputBar(
               controller: messageController,
               onSend: sendMessage,
+              onCameraTap: _openScanEquipment,
+              isSending: _sending,
             ),
           ),
         ],
@@ -171,8 +350,16 @@ Hôm nay bạn có thể tập 45 phút gồm khởi động, bài compound chí
 class AiInputBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
+  final VoidCallback onCameraTap;
+  final bool isSending;
 
-  const AiInputBar({super.key, required this.controller, required this.onSend});
+  const AiInputBar({
+    super.key,
+    required this.controller,
+    required this.onSend,
+    required this.onCameraTap,
+    required this.isSending,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -185,6 +372,23 @@ class AiInputBar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          GestureDetector(
+            onTap: onCameraTap,
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.camera_alt_rounded,
+                color: Colors.white,
+                size: 19,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: controller,
@@ -196,7 +400,9 @@ class AiInputBar extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
               decoration: InputDecoration(
-                hintText: 'E.g. Give me a chest workout...',
+                hintText: isSending
+                    ? 'AI is typing...'
+                    : 'E.g. Give me a chest workout...',
                 hintStyle: TextStyle(
                   color: Colors.white.withValues(alpha: 0.28),
                   fontSize: 14,
@@ -208,7 +414,7 @@ class AiInputBar extends StatelessWidget {
           ),
 
           GestureDetector(
-            onTap: onSend,
+            onTap: isSending ? null : onSend,
             child: Container(
               width: 42,
               height: 42,
@@ -266,6 +472,144 @@ class AiMessageBubble extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _TypingIndicator extends StatefulWidget {
+  const _TypingIndicator();
+
+  @override
+  State<_TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<_TypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final t = _controller.value;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _Dot(active: t < 0.33),
+                const SizedBox(width: 6),
+                _Dot(active: t >= 0.33 && t < 0.66),
+                const SizedBox(width: 6),
+                _Dot(active: t >= 0.66),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  final bool active;
+
+  const _Dot({required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      width: active ? 8 : 6,
+      height: active ? 8 : 6,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: active ? 0.9 : 0.4),
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+}
+
+class _ExerciseSuggestions extends StatelessWidget {
+  final List<Exercise> suggestions;
+  final ValueChanged<String> onTapSuggestion;
+
+  const _ExerciseSuggestions({
+    required this.suggestions,
+    required this.onTapSuggestion,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (suggestions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 6, 22, 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Gợi ý bài tập',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.55),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: suggestions
+                  .map(
+                    (exercise) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ActionChip(
+                        label: Text(
+                          exercise.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.18,
+                        ),
+                        onPressed: () => onTapSuggestion(exercise.name),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
       ),
     );
   }

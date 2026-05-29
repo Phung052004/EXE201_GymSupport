@@ -9,12 +9,15 @@ import 'active_workout_exercise_card.dart';
 class ActiveWorkoutView extends StatefulWidget {
   final List<Exercise> exercises;
   final ValueChanged<String> onRemoveExercise;
+  final void Function(String exerciseId, String sets, String reps)
+  onUpdateExercise;
   final VoidCallback onFinishWorkout;
 
   const ActiveWorkoutView({
     super.key,
     required this.exercises,
     required this.onRemoveExercise,
+    required this.onUpdateExercise,
     required this.onFinishWorkout,
   });
 
@@ -116,6 +119,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
                   exercise: exercise,
                   isCompleted: completedExerciseIds.contains(exercise.id),
                   onToggleComplete: () => toggleComplete(exercise.id),
+                  onEdit: () => _showEditSetsReps(context, exercise),
                   onRemove: () {
                     completedExerciseIds.remove(exercise.id);
                     widget.onRemoveExercise(exercise.id);
@@ -169,6 +173,71 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
         ],
       ),
     );
+  }
+
+  void _showEditSetsReps(BuildContext context, Exercise exercise) {
+    final parsed = _parseSetsReps(exercise.setsAndReps);
+    final setsController = TextEditingController(text: parsed.$1);
+    final repsController = TextEditingController(text: parsed.$2);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Update Sets/Reps'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: setsController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Sets'),
+              ),
+              TextField(
+                controller: repsController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Reps'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                final sets = setsController.text.trim();
+                final reps = repsController.text.trim();
+                if (sets.isEmpty || reps.isEmpty) return;
+                Navigator.pop(context);
+                widget.onUpdateExercise(exercise.id, sets, reps);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    ).whenComplete(() {
+      setsController.dispose();
+      repsController.dispose();
+    });
+  }
+
+  (String, String) _parseSetsReps(String raw) {
+    final match = RegExp(
+      r'(\d+)\s*sets?\s*x\s*(\d+)',
+    ).firstMatch(raw.toLowerCase());
+    if (match != null) {
+      return (match.group(1) ?? '3', match.group(2) ?? '10');
+    }
+
+    final alt = RegExp(r'(\d+)x(\d+)').firstMatch(raw.toLowerCase());
+    if (alt != null) {
+      return (alt.group(1) ?? '3', alt.group(2) ?? '10');
+    }
+
+    return ('3', '10');
   }
 }
 

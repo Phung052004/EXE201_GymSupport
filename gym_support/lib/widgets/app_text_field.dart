@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_support/core/constants/app_colors.dart';
 
 class AppTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -40,7 +41,7 @@ class AppTextField extends StatelessWidget {
         ),
         hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
         filled: true,
-        fillColor: const Color(0xFF2B2E38),
+        fillColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,

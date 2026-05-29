@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:gym_support/core/constants/app_colors.dart';
 import '../models/fitness_goal.dart';
 import '../widgets/widgets.dart';
 import 'onboarding_schedule_screen.dart';
@@ -105,7 +106,7 @@ class _OnboardingGoalScreenState extends State<OnboardingGoalScreen> {
         : null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF171A21),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
