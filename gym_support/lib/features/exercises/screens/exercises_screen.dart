@@ -34,16 +34,18 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   bool _loadingCatalog = false;
   String? _catalogError;
 
-  final List<String> filters = const [
-    'All',
-    'Chest',
-    'Legs',
-    'Back',
-    'Shoulders',
-    'Arms',
-  ];
-
   List<Exercise> exercises = const [];
+
+  List<String> get filters {
+    final muscles =
+        exercises
+            .map((exercise) => exercise.muscleGroup.trim())
+            .where((item) => item.isNotEmpty && item != 'Unknown')
+            .toSet()
+            .toList()
+          ..sort();
+    return ['All', ...muscles];
+  }
 
   @override
   void initState() {
@@ -69,6 +71,9 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
       setState(() {
         if (catalog.isNotEmpty) {
           exercises = catalog;
+          if (!filters.contains(selectedFilter)) {
+            selectedFilter = 'All';
+          }
         }
       });
     } catch (error) {
@@ -77,10 +82,11 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
         _catalogError = error.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loadingCatalog = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingCatalog = false;
+        });
+      }
     }
   }
 
@@ -97,12 +103,6 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     }).toList();
   }
 
-  void showAddExerciseMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Tính năng thêm bài tập custom sẽ làm sau')),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final items = filteredExercises;
@@ -113,11 +113,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ExerciseHeader(
-              goal: widget.goal,
-              schedule: widget.schedule,
-              onAdd: showAddExerciseMessage,
-            ),
+            ExerciseHeader(goal: widget.goal, schedule: widget.schedule),
             const SizedBox(height: 10),
             ExerciseInfoChips(goal: widget.goal, schedule: widget.schedule),
             const SizedBox(height: 16),

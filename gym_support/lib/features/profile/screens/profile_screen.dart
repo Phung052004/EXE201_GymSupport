@@ -19,7 +19,7 @@ class ProfileScreen extends StatefulWidget {
   final String bmi;
   final void Function(String goal, String schedule)? onGoalsUpdated;
 
-  ProfileScreen({
+  const ProfileScreen({
     super.key,
     required this.name,
     required this.goal,
@@ -89,9 +89,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
+                final navigator = Navigator.of(context);
                 await SessionStore.clear();
 
-                Navigator.of(context).pushAndRemoveUntil(
+                navigator.pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const AuthScreen()),
                   (route) => false,
                 );
@@ -120,6 +121,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return BackendApi.getDashboardSummary(email);
   }
 
+  Future<String> _currentEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SessionStore.emailKey) ?? '';
+  }
+
+  Future<void> _openGeneratePlan() async {
+    try {
+      final email = await _currentEmail();
+      Map<String, dynamic>? profile;
+      if (email.isNotEmpty) {
+        profile = await BackendApi.getOnboardingProfileByEmail(email);
+      }
+      if (!mounted) return;
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => GeneratePlanScreen(
+            email: email,
+            name: profile?['name']?.toString() ?? widget.name,
+            gender: profile?['gender']?.toString() ?? '',
+            age: profile?['age']?.toString() ?? '',
+            weight: profile?['weight']?.toString() ?? '',
+            height: profile?['height']?.toString() ?? '',
+            goal: profile?['goal']?.toString() ?? _goal,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không tải được hồ sơ AI plan: $error')),
+      );
+    }
+  }
+
+  Future<void> _openScanEquipment() async {
+    final email = await _currentEmail();
+    if (!mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ScanEquipmentScreen(email: email)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -142,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 final dashboard = snapshot.data ?? const <String, dynamic>{};
                 final workoutCount =
                     dashboard['workoutCount']?.toString() ?? '0';
-                final scanCount = dashboard['scanCount']?.toString() ?? '0';
+                final planCount = dashboard['planCount']?.toString() ?? '0';
 
                 return Row(
                   children: [
@@ -159,8 +204,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: ProfileStatCard(
                         icon: Icons.camera_alt_outlined,
                         iconColor: const Color(0xFFFF7A30),
-                        value: scanCount,
-                        label: 'SCAN SESSIONS',
+                        value: planCount,
+                        label: 'WORKOUT PLANS',
                       ),
                     ),
                   ],
@@ -188,21 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ProfileMenuItem(
               icon: Icons.fitness_center,
               title: 'AI Workout Plan',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => GeneratePlanScreen(
-                      email: '',
-                      name: widget.name,
-                      gender: 'Nam',
-                      age: '25',
-                      weight: '70',
-                      height: '175',
-                      goal: _goal,
-                    ),
-                  ),
-                );
-              },
+              onTap: _openGeneratePlan,
             ),
             ProfileMenuItem(
               icon: Icons.local_fire_department_outlined,
@@ -214,13 +245,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ProfileMenuItem(
               icon: Icons.camera_alt_outlined,
               title: 'Scan Equipment',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ScanEquipmentScreen(email: ''),
-                  ),
-                );
-              },
+              onTap: _openScanEquipment,
             ),
             const SizedBox(height: 14),
             LogoutButton(
@@ -300,7 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 value: item,
               );
             }),
-            const InfoRow(label: 'Weekly Target', value: '3 workouts'),
+            InfoRow(label: 'Schedule', value: _schedule),
           ],
           actions: [
             TextButton(

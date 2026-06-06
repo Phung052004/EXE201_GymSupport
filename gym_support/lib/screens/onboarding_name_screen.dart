@@ -5,8 +5,13 @@ import 'onboarding_metrics_screen.dart';
 
 class OnboardingNameScreen extends StatefulWidget {
   final String email;
+  final String? initialName;
 
-  const OnboardingNameScreen({super.key, required this.email});
+  const OnboardingNameScreen({
+    super.key,
+    required this.email,
+    this.initialName,
+  });
 
   @override
   State<OnboardingNameScreen> createState() => _OnboardingNameScreenState();
@@ -17,6 +22,15 @@ class _OnboardingNameScreenState extends State<OnboardingNameScreen> {
   final TextEditingController ageController = TextEditingController();
   String selectedGender = 'Nam';
   bool _isNavigating = false;
+  bool get _hasRegisteredName => (widget.initialName ?? '').trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_hasRegisteredName) {
+      nameController.text = widget.initialName!.trim();
+    }
+  }
 
   @override
   void dispose() {
@@ -108,10 +122,44 @@ class _OnboardingNameScreenState extends State<OnboardingNameScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const InputLabel(text: 'YOUR NAME'),
-                    const SizedBox(height: 8),
-                    AppTextField(controller: nameController, hintText: 'Alex'),
-                    const SizedBox(height: 18),
+                    if (!_hasRegisteredName) ...[
+                      const InputLabel(text: 'YOUR NAME'),
+                      const SizedBox(height: 8),
+                      AppTextField(
+                        controller: nameController,
+                        hintText: 'Alex',
+                      ),
+                      const SizedBox(height: 18),
+                    ] else ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.person_outline,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                nameController.text,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                    ],
                     const InputLabel(text: 'GENDER'),
                     const SizedBox(height: 8),
                     Row(

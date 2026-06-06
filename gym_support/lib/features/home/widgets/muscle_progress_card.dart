@@ -3,42 +3,43 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 
 class MuscleProgressGrid extends StatelessWidget {
-  const MuscleProgressGrid({super.key});
+  final List<MuscleProgressData> items;
+  final bool isLoading;
+
+  const MuscleProgressGrid({
+    super.key,
+    required this.items,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    const items = [
-      MuscleProgressData(
-        name: 'Chest',
-        level: 'Lv 2',
-        progress: 0.42,
-        xp: '60/150 XP',
-      ),
-      MuscleProgressData(
-        name: 'Legs',
-        level: 'Lv 1',
-        progress: 0.78,
-        xp: '80/100 XP',
-      ),
-      MuscleProgressData(
-        name: 'Back',
-        level: 'Lv 2',
-        progress: 0.70,
-        xp: '120/150 XP',
-      ),
-      MuscleProgressData(
-        name: 'Shoulders',
-        level: 'Lv 1',
-        progress: 0.90,
-        xp: '90/100 XP',
-      ),
-      MuscleProgressData(
-        name: 'Arms',
-        level: 'Lv 4',
-        progress: 0.18,
-        xp: '15/100 XP',
-      ),
-    ];
+    if (isLoading) {
+      return const SizedBox(
+        height: 84,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (items.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Text(
+          'Hoàn thành buổi tập đầu tiên để bắt đầu ghi nhận tiến độ nhóm cơ.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.48),
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            height: 1.35,
+          ),
+        ),
+      );
+    }
 
     return GridView.builder(
       itemCount: items.length,

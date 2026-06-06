@@ -110,7 +110,6 @@ class _OnboardingScheduleScreenState extends State<OnboardingScheduleScreen> {
         goal: widget.goal,
         schedule: selectedSchedule,
       );
-      await SessionStore.savePendingEmail(widget.email);
       await SessionStore.markProfileComplete();
     } catch (error) {
       if (!mounted) return;

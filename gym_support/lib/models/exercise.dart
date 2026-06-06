@@ -16,7 +16,7 @@ class Exercise {
   });
 
   factory Exercise.fromJson(Map<String, dynamic> json) {
-    final muscleGroup = json['muscleGroup']?.toString() ?? 'Chest';
+    final muscleGroup = json['muscleGroup']?.toString() ?? 'Unknown';
     return Exercise(
       id: json['id']?.toString() ?? json['name']?.toString() ?? '',
       name: json['name']?.toString() ?? 'Exercise',

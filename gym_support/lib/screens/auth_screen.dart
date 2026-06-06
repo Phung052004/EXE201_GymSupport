@@ -78,33 +78,47 @@ class _AuthScreenState extends State<AuthScreen> {
           email: email,
           password: password,
         );
+        await SessionStore.saveAuth(
+          email: email,
+          token: loginResponse['token']?.toString() ?? '',
+          userId: loginResponse['userId']?.toString(),
+          role: loginResponse['role']?.toString(),
+          profileComplete: false,
+        );
         final profile = await BackendApi.getOnboardingProfileByEmail(email);
         if (!mounted) return;
 
         await SessionStore.saveAuth(
           email: email,
           token: loginResponse['token']?.toString() ?? '',
-          profileComplete: profile != null,
+          userId: loginResponse['userId']?.toString(),
+          role: loginResponse['role']?.toString(),
+          customerId: profile?['id']?.toString(),
+          profileComplete: _isProfileComplete(profile),
         );
 
-        if (profile == null) {
+        if (!_isProfileComplete(profile)) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => OnboardingNameScreen(email: email),
+              builder: (context) => OnboardingNameScreen(
+                email: email,
+                initialName: profile?['name']?.toString(),
+              ),
             ),
           );
           return;
         }
 
+        final completeProfile = profile!;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => MainNavigationScreen(
-              name: profile['name']?.toString() ?? email,
-              goal: profile['goal']?.toString() ?? '',
-              schedule: profile['schedule']?.toString() ?? '',
-              bmi: profile['bmi']?.toString() ?? '--',
+              name: completeProfile['name']?.toString() ?? email,
+              goal: completeProfile['goal']?.toString() ?? '',
+              schedule: completeProfile['schedule']?.toString() ?? '',
+              bmi: completeProfile['bmi']?.toString() ?? '--',
             ),
           ),
         );
@@ -117,10 +131,17 @@ class _AuthScreenState extends State<AuthScreen> {
         );
         await SessionStore.savePendingEmail(email);
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OnboardingNameScreen(email: email),
+        if (!mounted) return;
+        setState(() {
+          isLoginMode = true;
+          passwordController.clear();
+          confirmPasswordController.clear();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Đã tạo tài khoản. Hãy xác minh email rồi đăng nhập.',
+            ),
           ),
         );
       }
@@ -136,6 +157,14 @@ class _AuthScreenState extends State<AuthScreen> {
         });
       }
     }
+  }
+
+  bool _isProfileComplete(Map<String, dynamic>? profile) {
+    if (profile == null) return false;
+    final goal = profile['goal']?.toString().trim() ?? '';
+    final weight = profile['weight']?.toString().trim() ?? '';
+    final height = profile['height']?.toString().trim() ?? '';
+    return goal.isNotEmpty && weight.isNotEmpty && height.isNotEmpty;
   }
 
   @override

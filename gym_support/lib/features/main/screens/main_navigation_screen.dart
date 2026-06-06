@@ -7,6 +7,7 @@ import '../../../core/services/session_store.dart';
 import '../../../models/exercise.dart';
 import '../../ai_coach/screens/ai_coach_screen.dart';
 import '../../exercises/screens/exercises_screen.dart';
+import '../../home/screens/build_routine_screen.dart';
 import '../../home/screens/home_screen.dart';
 import '../../home/widgets/app_bottom_nav_bar.dart';
 import '../../profile/screens/profile_screen.dart';
@@ -32,6 +33,7 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int currentIndex = 0;
+  int _homeRefreshSeed = 0;
 
   final Map<String, Exercise> _selectedExercises = {};
   List<Exercise> _exerciseCatalog = const [];
@@ -150,17 +152,42 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _persistWorkoutSession();
   }
 
+  Future<void> _openBuildRoutine() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => BuildRoutineScreen(goal: _goal, schedule: _schedule),
+      ),
+    );
+
+    if (!mounted || created != true) return;
+    await _loadExerciseCatalog();
+    await _loadWorkoutSession();
+    if (!mounted) return;
+    setState(() {
+      currentIndex = 0;
+      _selectedExercises.clear();
+      _homeRefreshSeed++;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Routine đã được lưu vào backend')),
+    );
+  }
+
   void finishWorkout() {
     setState(() {
       _selectedExercises.clear();
       currentIndex = 0;
     });
 
-    _completeWorkout();
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Workout đã hoàn thành!')));
+    _completeWorkout().then((_) {
+      if (!mounted) return;
+      setState(() {
+        _homeRefreshSeed++;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Workout đã hoàn thành!')));
+    });
   }
 
   Future<void> _persistWorkoutSession() async {
@@ -232,7 +259,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomeScreen(name: _name, goal: _goal, schedule: _schedule, bmi: _bmi),
+      HomeScreen(
+        name: _name,
+        goal: _goal,
+        schedule: _schedule,
+        bmi: _bmi,
+        refreshSeed: _homeRefreshSeed,
+        onBuildRoutine: _openBuildRoutine,
+      ),
 
       AiCoachScreen(name: _name, goal: _goal, schedule: _schedule, bmi: _bmi),
 
@@ -276,6 +310,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           });
           if (index == 2) {
             _loadWorkoutSession();
+          } else if (index == 0) {
+            setState(() {
+              _homeRefreshSeed++;
+            });
           }
         },
       ),

@@ -5,13 +5,13 @@ import '../../../core/constants/app_colors.dart';
 class ExerciseHeader extends StatelessWidget {
   final String goal;
   final String schedule;
-  final VoidCallback onAdd;
+  final VoidCallback? onAdd;
 
   const ExerciseHeader({
     super.key,
     required this.goal,
     required this.schedule,
-    required this.onAdd,
+    this.onAdd,
   });
 
   @override
@@ -28,25 +28,26 @@ class ExerciseHeader extends StatelessWidget {
             ),
           ),
         ),
-        GestureDetector(
-          onTap: onAdd,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.28),
-                  blurRadius: 22,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+        if (onAdd != null)
+          GestureDetector(
+            onTap: onAdd,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.28),
+                    blurRadius: 22,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.add, color: AppColors.textDark, size: 26),
             ),
-            child: const Icon(Icons.add, color: AppColors.textDark, size: 26),
           ),
-        ),
       ],
     );
   }

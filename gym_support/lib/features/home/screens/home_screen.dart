@@ -15,6 +15,8 @@ class HomeScreen extends StatefulWidget {
   final String goal;
   final String schedule;
   final String bmi;
+  final int refreshSeed;
+  final VoidCallback onBuildRoutine;
 
   const HomeScreen({
     super.key,
@@ -22,6 +24,8 @@ class HomeScreen extends StatefulWidget {
     required this.goal,
     required this.schedule,
     required this.bmi,
+    required this.refreshSeed,
+    required this.onBuildRoutine,
   });
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -30,12 +34,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _workout;
   Map<String, dynamic>? _home;
+  List<MuscleProgressData> _muscleProgress = const [];
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
     _loadWorkout();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshSeed != widget.refreshSeed) {
+      _loadWorkout();
+    }
   }
 
   Future<void> _loadWorkout() async {
@@ -47,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final home = await BackendApi.getHomeSummary(email);
         final todayPlan = home['todayPlan'] as Map<String, dynamic>?;
         final nutrition = home['nutrition'] as Map<String, dynamic>?;
+        final progress = home['muscleProgress'];
         setState(() {
           _home = home;
           _workout = todayPlan == null
@@ -55,13 +69,33 @@ class _HomeScreenState extends State<HomeScreen> {
                   'workoutPlan': [todayPlan],
                   'nutrition': nutrition,
                 };
+          _muscleProgress = progress is List
+              ? progress.whereType<Map>().map((item) {
+                  final data = Map<String, dynamic>.from(item);
+                  return MuscleProgressData(
+                    name: data['name']?.toString() ?? 'Unknown',
+                    level: data['level']?.toString() ?? 'Lv 1',
+                    progress: (data['progress'] is num)
+                        ? (data['progress'] as num)
+                              .toDouble()
+                              .clamp(0.0, 1.0)
+                              .toDouble()
+                        : 0,
+                    xp: data['xp']?.toString() ?? '0/100 XP',
+                  );
+                }).toList()
+              : const [];
         });
       }
-    } catch (_) {
-      // ignore
-    } finally {
+    } catch (error) {
       if (!mounted) return;
-      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Không tải được Home: $error')));
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -107,13 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             TodayPlanCard(
               isLoading: _loading,
-              onBuildRoutine: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Màn tạo lịch tập sẽ làm ở bước sau'),
-                  ),
-                );
-              },
+              onBuildRoutine: widget.onBuildRoutine,
               workout: _workout,
             ),
 
@@ -126,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 12),
 
-            const MuscleProgressGrid(),
+            MuscleProgressGrid(items: _muscleProgress, isLoading: _loading),
 
             const SizedBox(height: 28),
 

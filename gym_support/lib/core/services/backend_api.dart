@@ -1,23 +1,209 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/exercise.dart';
+import 'session_store.dart';
 
 class BackendApi {
   static Uri get _baseUri {
     const devHost = String.fromEnvironment(
       'BACKEND_HOST',
-      defaultValue: '10.87.40.163:3000',
+      defaultValue: '192.168.0.112:5028',
     );
 
-    if (kIsWeb) {
-      return Uri.parse('http://localhost:3000');
+    return Uri.parse('http://$devHost');
+  }
+
+  static Future<Map<String, String>> _headers({bool auth = false}) async {
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (!auth) return headers;
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(SessionStore.tokenKey);
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
+  static dynamic _decode(http.Response response) {
+    if (response.body.trim().isEmpty) return null;
+    return jsonDecode(response.body);
+  }
+
+  static String _messageFrom(dynamic decoded, String fallback) {
+    if (decoded is Map<String, dynamic>) {
+      return decoded['message']?.toString() ??
+          decoded['Message']?.toString() ??
+          fallback;
+    }
+    return fallback;
+  }
+
+  static T? _value<T>(Map<String, dynamic> map, String key) {
+    final lowerKey = key.substring(0, 1).toLowerCase() + key.substring(1);
+    final upperKey = key.substring(0, 1).toUpperCase() + key.substring(1);
+    final value = map[lowerKey] ?? map[upperKey] ?? map[key];
+    return value is T ? value : null;
+  }
+
+  static Future<dynamic> _get(String path, {bool auth = false}) async {
+    final response = await http.get(
+      _baseUri.resolve(path),
+      headers: await _headers(auth: auth),
+    );
+    final decoded = _decode(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(_messageFrom(decoded, 'Không thể tải dữ liệu'));
+    }
+    return decoded;
+  }
+
+  static Future<dynamic> _post(
+    String path, {
+    Object? body,
+    bool auth = false,
+  }) async {
+    final response = await http.post(
+      _baseUri.resolve(path),
+      headers: await _headers(auth: auth),
+      body: body == null ? null : jsonEncode(body),
+    );
+    final decoded = _decode(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(_messageFrom(decoded, 'Không thể lưu dữ liệu'));
+    }
+    return decoded;
+  }
+
+  static Future<dynamic> _put(
+    String path, {
+    Object? body,
+    bool auth = false,
+  }) async {
+    final response = await http.put(
+      _baseUri.resolve(path),
+      headers: await _headers(auth: auth),
+      body: body == null ? null : jsonEncode(body),
+    );
+    final decoded = _decode(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(_messageFrom(decoded, 'Không thể cập nhật dữ liệu'));
+    }
+    return decoded;
+  }
+
+  static Future<void> _delete(String path, {bool auth = false}) async {
+    final response = await http.delete(
+      _baseUri.resolve(path),
+      headers: await _headers(auth: auth),
+    );
+    final decoded = _decode(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(_messageFrom(decoded, 'Không thể xóa dữ liệu'));
+    }
+  }
+
+  static Future<String?> currentUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SessionStore.userIdKey);
+  }
+
+  static Future<String?> currentToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SessionStore.tokenKey);
+  }
+
+  static Future<String?> getMeUserId() async {
+    final decoded = await _get('/api/auth/me', auth: true);
+    if (decoded is Map<String, dynamic>) {
+      return _value<String>(decoded, 'userId');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>> registerUser({
+    required String email,
+    required String password,
+    required String confirmPassword,
+    required String name,
+  }) async {
+    if (password != confirmPassword) {
+      throw Exception('Mật khẩu xác nhận không khớp');
     }
 
-    // If you want emulator behavior, change this to 10.0.2.2:3000
-    return Uri.parse('http://$devHost');
+    final decoded = await _post(
+      '/api/auth/register/customer',
+      body: {'email': email, 'password': password, 'fullName': name},
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<Map<String, dynamic>> loginUser({
+    required String email,
+    required String password,
+  }) async {
+    final decoded = await _post(
+      '/api/auth/login',
+      body: {'email': email, 'password': password},
+    );
+
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<Map<String, dynamic>?> getCustomerByUserId(
+    String userId,
+  ) async {
+    try {
+      final decoded = await _get(
+        '/api/Customer/user/${Uri.encodeComponent(userId)}',
+        auth: true,
+      );
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getOnboardingProfileByEmail(
+    String email,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString(SessionStore.userIdKey);
+    if (userId == null || userId.isEmpty) return null;
+
+    final userDecoded = await _get('/api/User/${Uri.encodeComponent(userId)}');
+    final user = userDecoded is Map<String, dynamic>
+        ? userDecoded
+        : <String, dynamic>{};
+    final customer = await getCustomerByUserId(userId);
+    if (customer == null) return null;
+
+    final height = _value<num>(customer, 'heightCm')?.toDouble() ?? 0;
+    final weight = _value<num>(customer, 'weightKg')?.toDouble() ?? 0;
+    final bmi = _value<num>(customer, 'bmi')?.toDouble() ?? 0;
+    final customerId = _value<String>(customer, 'id');
+    if (customerId != null) {
+      await SessionStore.saveCustomerId(customerId);
+    }
+
+    return {
+      'id': customerId,
+      'userId': userId,
+      'email': _value<String>(user, 'email') ?? email,
+      'name': _value<String>(user, 'fullName') ?? email,
+      'gender': _value<String>(customer, 'gender') ?? '',
+      'age': _value<num>(customer, 'age')?.toString() ?? '',
+      'weight': weight == 0 ? '' : weight.toStringAsFixed(0),
+      'height': height == 0 ? '' : height.toStringAsFixed(0),
+      'bmi': bmi == 0 ? '--' : bmi.toStringAsFixed(1),
+      'goal': _value<String>(customer, 'goal') ?? '',
+      'schedule': _value<String>(customer, 'experienceLevel') ?? '',
+      'subscription': _value<String>(customer, 'subscription') ?? 'free',
+    };
   }
 
   static Future<void> saveOnboardingProfile({
@@ -31,108 +217,45 @@ class BackendApi {
     required String goal,
     required String schedule,
   }) async {
-    final response = await http.post(
-      _baseUri.resolve('/api/profiles'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'name': name,
-        'gender': gender,
-        'age': age,
-        'weight': weight,
-        'height': height,
-        'bmi': bmi,
-        'goal': goal,
-        'schedule': schedule,
-      }),
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final decoded = jsonDecode(response.body);
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể lưu hồ sơ người dùng');
-    }
-  }
-
-  static Future<Map<String, dynamic>> registerUser({
-    required String email,
-    required String password,
-    required String confirmPassword,
-    required String name,
-  }) async {
-    final response = await http.post(
-      _baseUri.resolve('/api/auth/register'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-        'confirmPassword': confirmPassword,
-        'name': name,
-      }),
-    );
-
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể đăng ký tài khoản');
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString(SessionStore.userIdKey);
+    if (userId == null || userId.isEmpty) {
+      throw Exception('Vui lòng đăng nhập sau khi xác minh email');
     }
 
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
-  }
+    final payload = {
+      'gender': gender,
+      'age': int.tryParse(age),
+      'bmi': double.tryParse(bmi),
+      'heightCm': int.tryParse(height),
+      'weightKg': int.tryParse(weight),
+      'goal': goal,
+      'experienceLevel': schedule,
+      'subscription': 'free',
+    };
 
-  static Future<Map<String, dynamic>> loginUser({
-    required String email,
-    required String password,
-  }) async {
-    final response = await http.post(
-      _baseUri.resolve('/api/auth/login'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+    await _put('/api/User/$userId', body: {'fullName': name, 'email': email});
 
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể đăng nhập');
-    }
-
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
-  }
-
-  static Future<Map<String, dynamic>?> getOnboardingProfileByEmail(
-    String email,
-  ) async {
-    final response = await http.get(
-      _baseUri.resolve('/api/profiles/${Uri.encodeComponent(email)}'),
-    );
-
-    if (response.statusCode == 404) {
-      return null;
-    }
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final decoded = jsonDecode(response.body);
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể tải hồ sơ người dùng');
-    }
-
-    final decoded = jsonDecode(response.body);
-    if (decoded is Map<String, dynamic>) {
-      final profile = decoded['profile'];
-      if (profile is Map<String, dynamic>) {
-        return profile;
+    final customer = await getCustomerByUserId(userId);
+    if (customer == null) {
+      final created = await _post(
+        '/api/Customer',
+        auth: true,
+        body: {'userId': userId, ...payload},
+      );
+      if (created is Map<String, dynamic>) {
+        final id = _value<String>(created, 'id');
+        if (id != null) await SessionStore.saveCustomerId(id);
       }
+      return;
     }
 
-    return null;
+    final customerId = _value<String>(customer, 'id');
+    if (customerId == null || customerId.isEmpty) {
+      throw Exception('Không tìm thấy hồ sơ customer');
+    }
+    await _put('/api/Customer/$customerId', auth: true, body: payload);
+    await SessionStore.saveCustomerId(customerId);
   }
 
   static Future<Map<String, dynamic>> updateOnboardingProfile({
@@ -140,48 +263,259 @@ class BackendApi {
     String? goal,
     String? schedule,
   }) async {
-    final response = await http.put(
-      _baseUri.resolve('/api/profiles/${Uri.encodeComponent(email)}'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        if (goal != null) 'goal': goal,
-        if (schedule != null) 'schedule': schedule,
-      }),
-    );
-
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể cập nhật hồ sơ');
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString(SessionStore.userIdKey);
+    final customerId = prefs.getString(SessionStore.customerIdKey);
+    if (userId == null || customerId == null) {
+      throw Exception('Không tìm thấy hồ sơ người dùng');
     }
 
+    final payload = <String, dynamic>{};
+    if (goal != null) payload['goal'] = goal;
+    if (schedule != null) payload['experienceLevel'] = schedule;
+
+    await _put('/api/Customer/$customerId', auth: true, body: payload);
+    return {'success': true};
+  }
+
+  static Future<List<Map<String, dynamic>>> getMuscles() async {
+    final decoded = await _get('/api/muscles');
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<List<Exercise>> getExercises({
+    String? query,
+    String? muscle,
+  }) async {
+    final muscles = await getMuscles();
+    final muscleById = {
+      for (final item in muscles)
+        if ((_value<String>(item, 'id') ?? '').isNotEmpty)
+          _value<String>(item, 'id')!: item,
+    };
+
+    final decoded = await _get('/api/exercises');
+    final list = decoded is List ? decoded : const [];
+    final exercises = list.whereType<Map>().map((item) {
+      final json = Map<String, dynamic>.from(item);
+      final impacts = _value<List>(json, 'muscleImpacts') ?? const [];
+      String muscleGroup = 'Unknown';
+      if (impacts.isNotEmpty && impacts.first is Map) {
+        final impact = Map<String, dynamic>.from(impacts.first as Map);
+        final muscleId = _value<String>(impact, 'muscleId');
+        final muscleItem = muscleId == null ? null : muscleById[muscleId];
+        muscleGroup =
+            _value<String>(muscleItem ?? {}, 'category') ??
+            _value<String>(muscleItem ?? {}, 'name') ??
+            'Unknown';
+      }
+
+      return Exercise.fromJson({
+        'id': _value<String>(json, 'id'),
+        'name': _value<String>(json, 'name'),
+        'muscleGroup': muscleGroup,
+        'setsAndReps': '3 sets x 10 reps',
+      });
+    }).toList();
+
+    final normalizedQuery = query?.trim().toLowerCase();
+    final normalizedMuscle = muscle?.trim().toLowerCase();
+    return exercises.where((exercise) {
+      final matchesQuery =
+          normalizedQuery == null ||
+          normalizedQuery.isEmpty ||
+          exercise.name.toLowerCase().contains(normalizedQuery);
+      final matchesMuscle =
+          normalizedMuscle == null ||
+          normalizedMuscle.isEmpty ||
+          exercise.muscleGroup.toLowerCase() == normalizedMuscle;
+      return matchesQuery && matchesMuscle;
+    }).toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> _getExerciseRows() async {
+    final decoded = await _get('/api/exercises');
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<List<Map<String, dynamic>>> getWorkoutPlansByUser([
+    String? userId,
+  ]) async {
+    final resolvedUserId = userId ?? await currentUserId();
+    if (resolvedUserId == null || resolvedUserId.isEmpty) {
+      return <Map<String, dynamic>>[];
+    }
+
+    final decoded = await _get('/api/workoutplans/user/$resolvedUserId');
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<Map<String, dynamic>> createWorkoutPlan({
+    required String name,
+    required String goal,
+    required int daysPerWeek,
+    String? userId,
+  }) async {
+    final resolvedUserId = userId ?? await currentUserId();
+    if (resolvedUserId == null || resolvedUserId.isEmpty) {
+      throw Exception('Không tìm thấy userId');
+    }
+
+    final decoded = await _post(
+      '/api/workoutplans',
+      body: {
+        'userId': resolvedUserId,
+        'name': name,
+        'goal': goal,
+        'daysPerWeek': daysPerWeek,
+      },
+    );
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
 
-  static Future<Map<String, dynamic>?> getWorkoutPlanByEmail(
-    String email,
-  ) async {
-    final response = await http.get(
-      _baseUri.resolve('/api/workout-plan/${Uri.encodeComponent(email)}'),
+  static Future<void> deleteWorkoutPlan(String id) =>
+      _delete('/api/workoutplans/$id');
+
+  static Future<Map<String, dynamic>> addWorkoutPlanSession({
+    required String planId,
+    required String dayOfWeek,
+    required String focus,
+  }) async {
+    final decoded = await _post(
+      '/api/workoutplans/$planId/sessions',
+      body: {'dayOfWeek': dayOfWeek, 'focus': focus},
     );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
 
-    if (response.statusCode == 404) return null;
+  static Future<Map<String, dynamic>> addExerciseToPlanSession({
+    required String planId,
+    required String sessionId,
+    required String exerciseId,
+    required String exerciseName,
+    required int sets,
+    required String reps,
+    String notes = '',
+  }) async {
+    final decoded = await _post(
+      '/api/workoutplans/$planId/sessions/$sessionId/exercises',
+      body: {
+        'exerciseId': exerciseId,
+        'exerciseName': exerciseName,
+        'sets': sets,
+        'reps': reps,
+        'notes': notes,
+      },
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final decoded = jsonDecode(response.body);
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể tải workout plan');
+  static Future<Map<String, dynamic>> createRoutinePlan({
+    required String name,
+    required String goal,
+    required int daysPerWeek,
+    required List<Exercise> exercises,
+  }) async {
+    if (exercises.isEmpty) {
+      throw Exception('Vui lòng chọn ít nhất 1 bài tập');
     }
 
-    final decoded = jsonDecode(response.body);
-    if (decoded is Map<String, dynamic>) {
-      return decoded['data'] as Map<String, dynamic>?;
+    final plan = await createWorkoutPlan(
+      name: name,
+      goal: goal,
+      daysPerWeek: daysPerWeek,
+    );
+    final planId = _value<String>(plan, 'id') ?? '';
+    if (planId.isEmpty) {
+      throw Exception('Không tạo được workout plan');
     }
-    return null;
+
+    final buckets = List.generate(daysPerWeek, (_) => <Exercise>[]);
+    for (var i = 0; i < exercises.length; i += 1) {
+      buckets[i % daysPerWeek].add(exercises[i]);
+    }
+
+    final days = _routineDaysStartingToday(daysPerWeek);
+    for (var i = 0; i < daysPerWeek; i += 1) {
+      final dayExercises = buckets[i];
+      final focus = dayExercises.isEmpty
+          ? 'Recovery'
+          : dayExercises.map((item) => item.muscleGroup).toSet().join(' / ');
+      final updatedPlan = await addWorkoutPlanSession(
+        planId: planId,
+        dayOfWeek: days[i],
+        focus: focus,
+      );
+
+      final sessions = _value<List>(updatedPlan, 'sessions') ?? const [];
+      final session = sessions.isNotEmpty && sessions.last is Map
+          ? Map<String, dynamic>.from(sessions.last as Map)
+          : <String, dynamic>{};
+      final sessionId = _value<String>(session, 'id') ?? '';
+      if (sessionId.isEmpty) continue;
+
+      for (final exercise in dayExercises) {
+        final parts = _splitSetsAndReps(exercise.setsAndReps);
+        await addExerciseToPlanSession(
+          planId: planId,
+          sessionId: sessionId,
+          exerciseId: exercise.id,
+          exerciseName: exercise.name,
+          sets: parts.$1,
+          reps: parts.$2,
+        );
+      }
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('quick_workout_plan_id');
+    await prefs.remove('quick_workout_session_id');
+
+    return plan;
+  }
+
+  static List<String> _routineDaysStartingToday(int daysPerWeek) {
+    const names = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    const offsetsByDays = {
+      1: [0],
+      2: [0, 3],
+      3: [0, 2, 4],
+      4: [0, 2, 4, 6],
+      5: [0, 1, 2, 4, 5],
+      6: [0, 1, 2, 3, 4, 5],
+      7: [0, 1, 2, 3, 4, 5, 6],
+    };
+
+    final todayIndex = DateTime.now().weekday - 1;
+    final safeDays = daysPerWeek.clamp(1, 7);
+    final offsets = offsetsByDays[safeDays] ?? offsetsByDays[3]!;
+    return offsets.map((offset) => names[(todayIndex + offset) % 7]).toList();
   }
 
   static Future<Map<String, dynamic>> generatePlan({
@@ -194,206 +528,127 @@ class BackendApi {
     required int daysPerWeek,
     String? email,
   }) async {
-    final response = await http.post(
-      _baseUri.resolve('/api/generate-plan'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'name': name,
-        'gender': gender,
-        'age': age,
-        'weight': weight,
-        'height': height,
-        'goal': goal,
-        'daysPerWeek': daysPerWeek,
-        if (email != null) 'email': email,
-      }),
+    final reply = await sendAiCoachMessage(
+      message:
+          'Hãy tạo đề xuất lịch tập $daysPerWeek ngày/tuần cho $name. '
+          'Thông tin: giới tính $gender, tuổi $age, cân nặng ${weight}kg, '
+          'chiều cao ${height}cm, mục tiêu $goal. '
+          'Hãy trình bày lịch tập chi tiết theo từng ngày và hỏi tôi xác nhận trước khi lưu.',
     );
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final decoded = jsonDecode(response.body);
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể tạo lịch tập');
-    }
-
-    final decoded = jsonDecode(response.body);
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    return {
+      'data': {'aiResponse': reply},
+    };
   }
 
-  static Future<Map<String, dynamic>> uploadScanImage({
-    required List<int> bytes,
-    required String filename,
-    String? email,
-  }) async {
-    final uri = _baseUri.resolve('/api/scan-equipment');
-    final request = http.MultipartRequest('POST', uri);
-    if (email != null) request.fields['email'] = email;
-    request.files.add(
-      http.MultipartFile.fromBytes('image', bytes, filename: filename),
-    );
-
-    final streamed = await request.send();
-    final resp = await http.Response.fromStream(streamed);
-    final decoded = jsonDecode(resp.body);
-
-    if (resp.statusCode < 200 || resp.statusCode >= 300) {
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể upload ảnh');
-    }
-
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  static Future<Map<String, dynamic>?> getWorkoutPlanByEmail(
+    String email,
+  ) async {
+    final plans = await getWorkoutPlansByUser();
+    return plans.isEmpty ? null : plans.first;
   }
 
-  static Future<List<Exercise>> getExercises({
-    String? query,
-    String? muscle,
-  }) async {
-    final params = <String, String>{};
-    if (query != null && query.trim().isNotEmpty) {
-      params['q'] = query.trim();
-    }
-    if (muscle != null && muscle.trim().isNotEmpty) {
-      params['muscle'] = muscle.trim();
-    }
-
-    final uri = _baseUri.replace(
-      path: '/api/exercises',
-      queryParameters: params.isEmpty ? null : params,
-    );
-    final response = await http.get(uri);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Không thể tải danh sách bài tập');
-    }
-
-    final decoded = jsonDecode(response.body);
-    final exercises = decoded is Map<String, dynamic>
-        ? decoded['exercises']
-        : null;
-    if (exercises is List) {
-      return exercises
-          .whereType<Map>()
-          .map((item) => Exercise.fromJson(Map<String, dynamic>.from(item)))
-          .toList();
-    }
-
-    return const <Exercise>[];
-  }
-
-  static Future<Map<String, dynamic>> getDashboardSummary(String email) async {
-    final response = await http.get(
-      _baseUri.resolve('/api/dashboard/${Uri.encodeComponent(email)}'),
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final decoded = jsonDecode(response.body);
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể tải dữ liệu tổng quan');
-    }
-
-    final decoded = jsonDecode(response.body);
-    if (decoded is Map<String, dynamic>) {
-      final dashboard = decoded['dashboard'];
-      if (dashboard is Map<String, dynamic>) {
-        return dashboard;
+  static Future<Map<String, dynamic>?> _quickPlan() async {
+    final prefs = await SharedPreferences.getInstance();
+    final quickPlanId = prefs.getString('quick_workout_plan_id');
+    final plans = await getWorkoutPlansByUser();
+    if (quickPlanId != null) {
+      for (final plan in plans) {
+        if (_value<String>(plan, 'id') == quickPlanId) return plan;
       }
     }
-
-    return <String, dynamic>{};
-  }
-
-  static Future<String> sendAiCoachMessage({
-    required String message,
-    String? email,
-  }) async {
-    final response = await http.post(
-      _baseUri.resolve('/api/ai/chat'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({'message': message, if (email != null) 'email': email}),
-    );
-
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final messageText = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(messageText ?? 'Không thể kết nối AI coach');
-    }
-
-    if (decoded is Map<String, dynamic>) {
-      return decoded['reply']?.toString() ?? 'Mình có thể giúp gì thêm?';
-    }
-
-    return 'Mình có thể giúp gì thêm?';
-  }
-
-  static Future<Map<String, dynamic>> getHomeSummary(String email) async {
-    final response = await http.get(
-      _baseUri.resolve('/api/home/${Uri.encodeComponent(email)}'),
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final decoded = jsonDecode(response.body);
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể tải dữ liệu home');
-    }
-
-    final decoded = jsonDecode(response.body);
-    if (decoded is Map<String, dynamic>) {
-      final home = decoded['home'];
-      if (home is Map<String, dynamic>) {
-        return home;
+    for (final plan in plans) {
+      if ((_value<String>(plan, 'name') ?? '') == 'Quick Workout') {
+        await prefs.setString(
+          'quick_workout_plan_id',
+          _value<String>(plan, 'id')!,
+        );
+        return plan;
       }
     }
-
-    return <String, dynamic>{};
+    return null;
   }
 
   static Future<Map<String, dynamic>?> getWorkoutSession(String email) async {
-    final response = await http.get(
-      _baseUri.resolve('/api/workout/session/${Uri.encodeComponent(email)}'),
-    );
+    final plan = await _quickPlan();
+    if (plan == null) return null;
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final decoded = jsonDecode(response.body);
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể tải workout session');
-    }
+    final sessions = _value<List>(plan, 'sessions') ?? const [];
+    if (sessions.isEmpty || sessions.first is! Map) return null;
+    final session = Map<String, dynamic>.from(sessions.first as Map);
+    final exercises = (_value<List>(session, 'exercises') ?? const [])
+        .whereType<Map>()
+        .map((item) {
+          final row = Map<String, dynamic>.from(item);
+          return {
+            'exerciseId': _value<String>(row, 'exerciseId'),
+            'name': _value<String>(row, 'exerciseName') ?? 'Exercise',
+            'sets': _value<num>(row, 'sets')?.toString() ?? '3',
+            'reps': _value<String>(row, 'reps') ?? '10',
+          };
+        })
+        .toList();
 
-    final decoded = jsonDecode(response.body);
-    if (decoded is Map<String, dynamic>) {
-      return decoded['session'] as Map<String, dynamic>?;
-    }
-    return null;
+    return {'exercises': exercises};
   }
 
   static Future<Map<String, dynamic>> saveWorkoutSession({
     required String email,
     required List<Map<String, dynamic>> exercises,
   }) async {
-    final response = await http.post(
-      _baseUri.resolve('/api/workout/session'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'exercises': exercises}),
-    );
-
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể lưu workout session');
+    final existing = await _quickPlan();
+    final existingId = existing == null ? null : _value<String>(existing, 'id');
+    if (existingId != null) {
+      await deleteWorkoutPlan(existingId);
     }
 
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    if (exercises.isEmpty) return {'success': true};
+
+    final prefs = await SharedPreferences.getInstance();
+    final plan = await createWorkoutPlan(
+      name: 'Quick Workout',
+      goal: 'Custom',
+      daysPerWeek: 1,
+    );
+    final planId = _value<String>(plan, 'id') ?? '';
+    await prefs.setString('quick_workout_plan_id', planId);
+    final updatedPlan = await addWorkoutPlanSession(
+      planId: planId,
+      dayOfWeek: 'Today',
+      focus: 'Quick Workout',
+    );
+    final sessions = _value<List>(updatedPlan, 'sessions') ?? const [];
+    final session = sessions.isNotEmpty && sessions.last is Map
+        ? Map<String, dynamic>.from(sessions.last as Map)
+        : <String, dynamic>{};
+    final sessionId = _value<String>(session, 'id') ?? '';
+    await prefs.setString('quick_workout_session_id', sessionId);
+
+    for (final exercise in exercises) {
+      final exerciseId = exercise['exerciseId']?.toString() ?? '';
+      if (exerciseId.isEmpty) continue;
+      final parts = _splitSetsAndReps(exercise['setsAndReps']?.toString());
+      await addExerciseToPlanSession(
+        planId: planId,
+        sessionId: sessionId,
+        exerciseId: exerciseId,
+        exerciseName: exercise['name']?.toString() ?? 'Exercise',
+        sets: parts.$1,
+        reps: parts.$2,
+      );
+    }
+
+    return {'success': true};
+  }
+
+  static (int, String) _splitSetsAndReps(String? value) {
+    if (value == null) return (3, '10');
+    final setsMatch = RegExp(r'(\d+)\s*sets?').firstMatch(value);
+    final repsMatch = RegExp(r'x\s*([0-9\-]+)').firstMatch(value);
+    return (
+      int.tryParse(setsMatch?.group(1) ?? '') ?? 3,
+      repsMatch?.group(1) ?? '10',
+    );
   }
 
   static Future<Map<String, dynamic>> updateWorkoutExercise({
@@ -402,74 +657,553 @@ class BackendApi {
     required String sets,
     required String reps,
   }) async {
-    final response = await http.put(
-      _baseUri.resolve(
-        '/api/workout/session/${Uri.encodeComponent(email)}/exercise',
-      ),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({'exerciseId': exerciseId, 'sets': sets, 'reps': reps}),
-    );
-
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể cập nhật bài tập');
+    final session = await getWorkoutSession(email);
+    final exercises = <Map<String, dynamic>>[];
+    for (final item in (session?['exercises'] as List? ?? const [])) {
+      if (item is! Map) continue;
+      final row = Map<String, dynamic>.from(item);
+      exercises.add({
+        'exerciseId': row['exerciseId'],
+        'name': row['name'],
+        'setsAndReps': row['exerciseId'] == exerciseId
+            ? '$sets sets x $reps reps'
+            : '${row['sets'] ?? 3} sets x ${row['reps'] ?? 10} reps',
+      });
     }
-
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    return saveWorkoutSession(email: email, exercises: exercises);
   }
 
   static Future<Map<String, dynamic>> completeWorkout({
     required String email,
   }) async {
-    final response = await http.post(
-      _baseUri.resolve('/api/workout/complete'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email}),
-    );
-
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể hoàn tất workout');
+    final prefs = await SharedPreferences.getInstance();
+    final planId = prefs.getString('quick_workout_plan_id');
+    final sessionId = prefs.getString('quick_workout_session_id');
+    final userId = prefs.getString(SessionStore.userIdKey);
+    if (userId == null || userId.isEmpty) {
+      return {'success': true};
     }
 
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    String? logId;
+    try {
+      if (planId != null && sessionId != null) {
+        final started = await _post(
+          '/api/workout-session-logs/start',
+          body: {
+            'userId': userId,
+            'workoutPlanId': planId,
+            'planSessionId': sessionId,
+          },
+        );
+        logId = started is Map<String, dynamic>
+            ? _value<String>(started, 'id')
+            : null;
+      }
+    } catch (_) {
+      try {
+        final active = await _get('/api/workout-session-logs/active/$userId');
+        logId = active is Map<String, dynamic>
+            ? _value<String>(active, 'id')
+            : null;
+      } catch (_) {
+        logId = null;
+      }
+    }
+
+    try {
+      if (logId != null && logId.isNotEmpty) {
+        await _put('/api/workout-session-logs/$logId/finish');
+      }
+    } catch (_) {
+      // Keep the user's UI flow moving if a stale session cannot be finished.
+    }
+
+    if (planId != null && planId.isNotEmpty) {
+      try {
+        await deleteWorkoutPlan(planId);
+      } catch (_) {
+        // The history log already keeps the workout snapshot.
+      }
+    }
+
+    await prefs.remove('quick_workout_plan_id');
+    await prefs.remove('quick_workout_session_id');
+    return {'success': true};
   }
 
   static Future<List<Map<String, dynamic>>> getWorkoutHistory({
     required String email,
     int limit = 20,
   }) async {
-    final response = await http.get(
-      _baseUri.resolve(
-        '/api/workout/history/${Uri.encodeComponent(email)}?limit=$limit',
+    final userId = await currentUserId();
+    if (userId == null || userId.isEmpty) return <Map<String, dynamic>>[];
+    final decoded = await _get(
+      '/api/workout-session-logs/user/$userId/history',
+    );
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .take(limit)
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<Map<String, dynamic>> _exerciseDetailMaps() async {
+    final muscles = await getMuscles();
+    final muscleById = {
+      for (final item in muscles)
+        if ((_value<String>(item, 'id') ?? '').isNotEmpty)
+          _value<String>(item, 'id')!: item,
+    };
+
+    final exercises = await _getExerciseRows();
+    final exerciseById = <String, Map<String, dynamic>>{};
+    final primaryMuscleByExerciseId = <String, String>{};
+
+    for (final exercise in exercises) {
+      final id = _value<String>(exercise, 'id');
+      if (id == null || id.isEmpty) continue;
+      exerciseById[id] = exercise;
+
+      final impacts = _value<List>(exercise, 'muscleImpacts') ?? const [];
+      if (impacts.isEmpty || impacts.first is! Map) continue;
+
+      final impact = Map<String, dynamic>.from(impacts.first as Map);
+      final muscleId = _value<String>(impact, 'muscleId');
+      final muscle = muscleId == null ? null : muscleById[muscleId];
+      primaryMuscleByExerciseId[id] =
+          _value<String>(muscle ?? {}, 'name') ??
+          _value<String>(muscle ?? {}, 'category') ??
+          'Unknown';
+    }
+
+    return {
+      'exerciseById': exerciseById,
+      'muscleById': muscleById,
+      'primaryMuscleByExerciseId': primaryMuscleByExerciseId,
+    };
+  }
+
+  static Future<Map<String, dynamic>> uploadScanImage({
+    required List<int> bytes,
+    required String filename,
+    String? email,
+    String mode = 'equipment_info',
+  }) async {
+    final request = http.MultipartRequest(
+      'POST',
+      _baseUri.resolve('/api/ai/analyze-image'),
+    );
+    request.fields['mode'] = mode;
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'image',
+        bytes,
+        filename: filename,
+        contentType: _contentTypeFor(filename),
       ),
     );
 
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    final decoded = _decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final decoded = jsonDecode(response.body);
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw Exception(message ?? 'Không thể tải lịch sử workout');
+      throw Exception(_messageFrom(decoded, 'Không thể phân tích ảnh'));
     }
 
-    final decoded = jsonDecode(response.body);
+    final data = decoded is Map<String, dynamic>
+        ? decoded
+        : <String, dynamic>{};
+    final detectedItems = _value<List>(data, 'detectedItems') ?? const [];
+    return {
+      'raw': data,
+      'detections': detectedItems.map((item) {
+        return {'name': item.toString(), 'confidence': ''};
+      }).toList(),
+      'enriched': {
+        'targetMuscle': (_value<List>(data, 'muscles') ?? const []).join(', '),
+        'difficulty': mode,
+        'instructions':
+            _value<List>(data, 'trainingAdvice') ??
+            _value<List>(data, 'formFeedback') ??
+            [_value<String>(data, 'summary') ?? 'Không có hướng dẫn cụ thể.'],
+        'commonMistakes': (_value<List>(data, 'warnings') ?? const []).join(
+          ', ',
+        ),
+      },
+    };
+  }
+
+  static MediaType _contentTypeFor(String filename) {
+    final lower = filename.toLowerCase();
+    if (lower.endsWith('.png')) return MediaType('image', 'png');
+    if (lower.endsWith('.webp')) return MediaType('image', 'webp');
+    return MediaType('image', 'jpeg');
+  }
+
+  static Future<String> sendAiCoachMessage({
+    required String message,
+    String? email,
+  }) async {
+    final userId = await currentUserId();
+    if (userId == null || userId.isEmpty) {
+      throw Exception('Vui lòng đăng nhập để sử dụng AI Coach');
+    }
+
+    final decoded = await _post(
+      '/api/ai/chat',
+      body: {'userId': userId, 'message': message},
+    );
+
     if (decoded is Map<String, dynamic>) {
-      final history = decoded['history'];
-      if (history is List) {
-        return history
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList();
+      return _value<String>(decoded, 'response') ??
+          _value<String>(decoded, 'reply') ??
+          'Mình có thể giúp gì thêm?';
+    }
+    return 'Mình có thể giúp gì thêm?';
+  }
+
+  static Future<List<Map<String, dynamic>>> getAiHistory() async {
+    final userId = await currentUserId();
+    if (userId == null || userId.isEmpty) return <Map<String, dynamic>>[];
+    final decoded = await _get('/api/ai/history/$userId');
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<Map<String, dynamic>> getDashboardSummary(String email) async {
+    final history = await getWorkoutHistory(email: email, limit: 100);
+    final plans = await getWorkoutPlansByUser();
+    return {'workoutCount': history.length, 'planCount': plans.length};
+  }
+
+  static Future<Map<String, dynamic>> getHomeSummary(String email) async {
+    final userId = await currentUserId();
+    if (userId == null || userId.isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    final decoded = await _get('/api/home/$userId', auth: true);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    final history = await getWorkoutHistory(email: email, limit: 120);
+    final plans = await getWorkoutPlansByUser(userId);
+    final customer = await getCustomerByUserId(userId);
+    final exerciseMaps = await _exerciseDetailMaps();
+    final todayPlan = _todaySessionFromPlans(plans, exerciseMaps);
+    final nutrition = _nutritionFromCustomer(customer);
+    final muscleProgress = _muscleProgressFromData(
+      history: history,
+      exerciseMaps: exerciseMaps,
+    );
+
+    return {
+      'history': history,
+      'plans': plans,
+      'todayPlan': todayPlan,
+      'nutrition': nutrition,
+      'muscleProgress': muscleProgress,
+      'streak': _calculateStreak(history),
+      'workoutCount': _completedWorkoutCount(history),
+    };
+  }
+
+  static int _completedWorkoutCount(List<Map<String, dynamic>> history) {
+    return history.where((item) {
+      final status = (_value<String>(item, 'status') ?? '').toUpperCase();
+      return status == 'COMPLETED';
+    }).length;
+  }
+
+  static int _calculateStreak(List<Map<String, dynamic>> history) {
+    final completedDays = <DateTime>{};
+    for (final item in history) {
+      final status = (_value<String>(item, 'status') ?? '').toUpperCase();
+      if (status != 'COMPLETED') continue;
+
+      final rawDate =
+          _value<String>(item, 'endTime') ?? _value<String>(item, 'startTime');
+      final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
+      if (parsed == null) continue;
+
+      final local = parsed.toLocal();
+      completedDays.add(DateTime(local.year, local.month, local.day));
+    }
+
+    var streak = 0;
+    final now = DateTime.now();
+    var cursor = DateTime(now.year, now.month, now.day);
+    if (!completedDays.contains(cursor)) {
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    while (completedDays.contains(cursor)) {
+      streak += 1;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    return streak;
+  }
+
+  static Map<String, dynamic>? _todaySessionFromPlans(
+    List<Map<String, dynamic>> plans,
+    Map<String, dynamic> exerciseMaps,
+  ) {
+    final activePlans = plans.where((plan) {
+      final isActive = _value<bool>(plan, 'isActive');
+      return isActive ?? true;
+    }).toList();
+
+    final usablePlans = activePlans.isEmpty ? plans : activePlans;
+    if (usablePlans.isEmpty) return null;
+
+    final today = _todayName();
+    final exerciseById =
+        exerciseMaps['exerciseById'] as Map<String, Map<String, dynamic>>;
+    final primaryMuscleByExerciseId =
+        exerciseMaps['primaryMuscleByExerciseId'] as Map<String, String>;
+
+    Map<String, dynamic>? selectedSession;
+    for (final plan in usablePlans) {
+      final sessions = _value<List>(plan, 'sessions') ?? const [];
+      for (final rawSession in sessions.whereType<Map>()) {
+        final session = Map<String, dynamic>.from(rawSession);
+        final dayOfWeek = (_value<String>(session, 'dayOfWeek') ?? '').trim();
+        if (_matchesToday(dayOfWeek, today)) {
+          selectedSession = session;
+          break;
+        }
+      }
+      if (selectedSession != null) break;
+    }
+
+    if (selectedSession == null) {
+      for (final plan in usablePlans) {
+        final sessions = _value<List>(plan, 'sessions') ?? const [];
+        if (sessions.length == 1 && sessions.first is Map) {
+          final session = Map<String, dynamic>.from(sessions.first as Map);
+          final dayOfWeek = (_value<String>(session, 'dayOfWeek') ?? '')
+              .trim()
+              .toLowerCase();
+          if (dayOfWeek == 'today') {
+            selectedSession = session;
+            break;
+          }
+        }
       }
     }
 
-    return <Map<String, dynamic>>[];
+    if (selectedSession == null) return null;
+
+    final exercises = (_value<List>(selectedSession, 'exercises') ?? const [])
+        .whereType<Map>()
+        .map((item) {
+          final row = Map<String, dynamic>.from(item);
+          final exerciseId = _value<String>(row, 'exerciseId') ?? '';
+          final catalog = exerciseById[exerciseId];
+          return {
+            'id': exerciseId,
+            'name':
+                _value<String>(row, 'exerciseName') ??
+                _value<String>(catalog ?? {}, 'name') ??
+                'Exercise',
+            'muscle': primaryMuscleByExerciseId[exerciseId] ?? 'Unknown',
+            'sets': _value<num>(row, 'sets')?.toString() ?? '3',
+            'reps': _value<String>(row, 'reps') ?? '10',
+            'notes': _value<String>(row, 'notes') ?? '',
+          };
+        })
+        .toList();
+
+    return {
+      'day': _displayDay(_value<String>(selectedSession, 'dayOfWeek') ?? today),
+      'focus': _value<String>(selectedSession, 'focus') ?? '',
+      'exercises': exercises,
+    };
+  }
+
+  static bool _matchesToday(String dayOfWeek, String today) {
+    final normalized = dayOfWeek.trim().toLowerCase();
+    if (normalized.isEmpty) return false;
+    if (normalized == 'today') return true;
+    return normalized == today.toLowerCase() ||
+        normalized == _englishDayToVietnamese(today).toLowerCase() ||
+        normalized == _englishDayToVietnameseNoAccent(today).toLowerCase();
+  }
+
+  static String _todayName() {
+    switch (DateTime.now().weekday) {
+      case DateTime.monday:
+        return 'Monday';
+      case DateTime.tuesday:
+        return 'Tuesday';
+      case DateTime.wednesday:
+        return 'Wednesday';
+      case DateTime.thursday:
+        return 'Thursday';
+      case DateTime.friday:
+        return 'Friday';
+      case DateTime.saturday:
+        return 'Saturday';
+      case DateTime.sunday:
+      default:
+        return 'Sunday';
+    }
+  }
+
+  static String _englishDayToVietnamese(String day) {
+    switch (day.toLowerCase()) {
+      case 'monday':
+        return 'Thứ 2';
+      case 'tuesday':
+        return 'Thứ 3';
+      case 'wednesday':
+        return 'Thứ 4';
+      case 'thursday':
+        return 'Thứ 5';
+      case 'friday':
+        return 'Thứ 6';
+      case 'saturday':
+        return 'Thứ 7';
+      case 'sunday':
+      default:
+        return 'Chủ nhật';
+    }
+  }
+
+  static String _englishDayToVietnameseNoAccent(String day) {
+    switch (day.toLowerCase()) {
+      case 'monday':
+        return 'Thu 2';
+      case 'tuesday':
+        return 'Thu 3';
+      case 'wednesday':
+        return 'Thu 4';
+      case 'thursday':
+        return 'Thu 5';
+      case 'friday':
+        return 'Thu 6';
+      case 'saturday':
+        return 'Thu 7';
+      case 'sunday':
+      default:
+        return 'Chu nhat';
+    }
+  }
+
+  static String _displayDay(String day) {
+    if (day.toLowerCase() == 'today') return 'Today';
+    return '${_englishDayToVietnamese(day)} - $day';
+  }
+
+  static Map<String, dynamic> _nutritionFromCustomer(
+    Map<String, dynamic>? customer,
+  ) {
+    if (customer == null) {
+      return {'calories': '—', 'protein': '—', 'water': '—'};
+    }
+
+    final weight = _value<num>(customer, 'weightKg')?.toDouble() ?? 0;
+    final height = _value<num>(customer, 'heightCm')?.toDouble() ?? 0;
+    final age = _value<num>(customer, 'age')?.toDouble() ?? 0;
+    final gender = (_value<String>(customer, 'gender') ?? '').toLowerCase();
+    final goal = (_value<String>(customer, 'goal') ?? '').toLowerCase();
+
+    if (weight <= 0 || height <= 0 || age <= 0) {
+      return {
+        'calories': '—',
+        'protein': weight > 0 ? '${(weight * 1.8).round()}g' : '—',
+        'water': weight > 0
+            ? '${(weight * 35 / 1000).toStringAsFixed(1)}L'
+            : '—',
+      };
+    }
+
+    final bmr = gender.contains('nữ') || gender.contains('female')
+        ? 10 * weight + 6.25 * height - 5 * age - 161
+        : 10 * weight + 6.25 * height - 5 * age + 5;
+    var calories = bmr * 1.45;
+    if (goal.contains('giảm') || goal.contains('lose')) {
+      calories -= 300;
+    } else if (goal.contains('tăng cơ') ||
+        goal.contains('strength') ||
+        goal.contains('muscle')) {
+      calories += 250;
+    }
+
+    return {
+      'calories': '${calories.round()} kcal',
+      'protein': '${(weight * 1.8).round()}g',
+      'water': '${(weight * 35 / 1000).toStringAsFixed(1)}L',
+    };
+  }
+
+  static List<Map<String, dynamic>> _muscleProgressFromData({
+    required List<Map<String, dynamic>> history,
+    required Map<String, dynamic> exerciseMaps,
+  }) {
+    final expByMuscle = <String, int>{};
+
+    for (final log in history) {
+      final gains = _value<List>(log, 'muscleExpGains') ?? const [];
+      for (final rawGain in gains.whereType<Map>()) {
+        final gain = Map<String, dynamic>.from(rawGain);
+        final name = _value<String>(gain, 'muscleName');
+        if (name == null || name.isEmpty) continue;
+        expByMuscle[name] =
+            (expByMuscle[name] ?? 0) +
+            (_value<num>(gain, 'expGained')?.toInt() ?? 0);
+      }
+    }
+
+    if (expByMuscle.isEmpty) {
+      final primaryMuscleByExerciseId =
+          exerciseMaps['primaryMuscleByExerciseId'] as Map<String, String>;
+      final exerciseCounts = <String, int>{};
+      for (final log in history) {
+        final status = (_value<String>(log, 'status') ?? '').toUpperCase();
+        if (status != 'COMPLETED') continue;
+
+        final exercises = _value<List>(log, 'exercises') ?? const [];
+        for (final rawExercise in exercises.whereType<Map>()) {
+          final exercise = Map<String, dynamic>.from(rawExercise);
+          final exerciseId = _value<String>(exercise, 'exerciseId');
+          final muscle = exerciseId == null
+              ? null
+              : primaryMuscleByExerciseId[exerciseId];
+          if (muscle == null || muscle == 'Unknown') continue;
+          exerciseCounts[muscle] = (exerciseCounts[muscle] ?? 0) + 1;
+        }
+      }
+      exerciseCounts.forEach((muscle, count) {
+        expByMuscle[muscle] = count * 25;
+      });
+    }
+
+    final items =
+        expByMuscle.entries.map((entry) {
+          final exp = entry.value;
+          final level = (exp ~/ 100) + 1;
+          final progressXp = exp % 100;
+          return {
+            'name': entry.key,
+            'level': 'Lv $level',
+            'progress': progressXp / 100,
+            'xp': '$progressXp/100 XP',
+          };
+        }).toList()..sort((a, b) {
+          final axp = int.tryParse(a['xp'].toString().split('/').first) ?? 0;
+          final bxp = int.tryParse(b['xp'].toString().split('/').first) ?? 0;
+          return bxp.compareTo(axp);
+        });
+
+    return items;
   }
 }

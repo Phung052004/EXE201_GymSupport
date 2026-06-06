@@ -38,14 +38,7 @@ class _AiCoachScreenState extends State<AiCoachScreen>
   void initState() {
     super.initState();
 
-    messages.add(
-      AiChatMessage(
-        text:
-            'Hi ${widget.name}! I am your GymSupport AI. Want me to generate a workout plan for you today?',
-        isUser: false,
-      ),
-    );
-
+    _loadHistory();
     _loadSuggestions();
   }
 
@@ -65,6 +58,55 @@ class _AiCoachScreenState extends State<AiCoachScreen>
       });
     } catch (_) {
       // Keep suggestions empty when backend is unavailable.
+    }
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      final history = await BackendApi.getAiHistory();
+      if (!mounted) return;
+      if (history.isEmpty) {
+        setState(() {
+          messages.add(
+            AiChatMessage(
+              text:
+                  'Hi ${widget.name}! I am your GymSupport AI. Want me to generate a workout plan for you today?',
+              isUser: false,
+            ),
+          );
+        });
+        return;
+      }
+
+      setState(() {
+        messages.addAll(
+          history.map((item) {
+            final role =
+                item['role']?.toString().toLowerCase() ??
+                item['Role']?.toString().toLowerCase() ??
+                '';
+            return AiChatMessage(
+              text:
+                  item['content']?.toString() ??
+                  item['Content']?.toString() ??
+                  '',
+              isUser: role == 'user',
+            );
+          }),
+        );
+      });
+      _scrollToBottom();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        messages.add(
+          AiChatMessage(
+            text:
+                'Hi ${widget.name}! I am your GymSupport AI. Want me to generate a workout plan for you today?',
+            isUser: false,
+          ),
+        );
+      });
     }
   }
 
@@ -91,7 +133,6 @@ class _AiCoachScreenState extends State<AiCoachScreen>
       setState(() {
         messages.add(AiChatMessage(text: reply, isUser: false));
       });
-      await _tryAddExerciseFromCommand(text);
       _scrollToBottom();
       ScaffoldMessenger.of(
         context,
@@ -113,95 +154,6 @@ class _AiCoachScreenState extends State<AiCoachScreen>
       });
       FocusScope.of(context).unfocus();
     }
-  }
-
-  Future<void> _tryAddExerciseFromCommand(String text) async {
-    final exerciseName = _extractExerciseName(text);
-    if (exerciseName == null || exerciseName.isEmpty) return;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString(SessionStore.emailKey);
-      if (email == null || email.isEmpty) return;
-
-      final matches = await BackendApi.getExercises(query: exerciseName);
-      if (matches.isEmpty) {
-        if (!mounted) return;
-        setState(() {
-          messages.add(
-            AiChatMessage(
-              text: 'Không tìm thấy bài tập "$exerciseName" trong danh sách.',
-              isUser: false,
-            ),
-          );
-        });
-        return;
-      }
-
-      final picked = matches.first;
-      final session = await BackendApi.getWorkoutSession(email);
-      final current = <Map<String, dynamic>>[];
-      if (session != null && session['exercises'] is List) {
-        for (final item in session['exercises']) {
-          if (item is Map<String, dynamic>) {
-            current.add(item);
-          }
-        }
-      }
-
-      final alreadyExists = current.any((item) {
-        final id = item['exerciseId']?.toString();
-        return id == picked.id;
-      });
-
-      if (!alreadyExists) {
-        current.add({
-          'exerciseId': picked.id,
-          'name': picked.name,
-          'muscleGroup': picked.muscleGroup,
-          'setsAndReps': picked.setsAndReps,
-        });
-      }
-
-      await BackendApi.saveWorkoutSession(email: email, exercises: current);
-
-      if (!mounted) return;
-      setState(() {
-        messages.add(
-          AiChatMessage(
-            text: alreadyExists
-                ? 'Bài tập ${picked.name} đã có trong workout.'
-                : 'Đã thêm ${picked.name} vào workout của bạn.',
-            isUser: false,
-          ),
-        );
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        messages.add(
-          const AiChatMessage(
-            text: 'Không thể thêm bài tập vào workout lúc này.',
-            isUser: false,
-          ),
-        );
-      });
-    }
-  }
-
-  String? _extractExerciseName(String text) {
-    final lower = text.toLowerCase();
-    final regex = RegExp(r'(thêm|add)\s+(.+?)(\s+vào|\s+vao|\s+va)?\s*workout');
-    final match = regex.firstMatch(lower);
-    if (match != null && match.groupCount >= 2) {
-      return match.group(2)?.trim();
-    }
-
-    if (lower.startsWith('thêm ')) {
-      return text.substring(5).trim();
-    }
-
-    return null;
   }
 
   Future<void> _openScanEquipment() async {

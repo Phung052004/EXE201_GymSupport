@@ -31,6 +31,7 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
   Map<String, dynamic>? _result;
   String? _error;
   int _daysPerWeek = 4;
+  bool _applying = false;
 
   Future<void> _generate() async {
     setState(() {
@@ -56,6 +57,27 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
       setState(() => _error = e.toString());
     } finally {
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _applyPlan() async {
+    setState(() {
+      _applying = true;
+      _error = null;
+    });
+
+    try {
+      final reply = await BackendApi.sendAiCoachMessage(
+        message:
+            'Đồng ý. Hãy tạo và lưu lịch tập vừa đề xuất vào hệ thống cho tôi.',
+      );
+      setState(() {
+        _result = {'aiResponse': reply};
+      });
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      setState(() => _applying = false);
     }
   }
 
@@ -93,7 +115,23 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
             if (_error != null)
               Text('Error: $_error', style: const TextStyle(color: Colors.red)),
             if (_result != null)
-              Expanded(child: ListView(children: _buildPlanWidgets(_result!))),
+              Expanded(
+                child: ListView(
+                  children: [
+                    ..._buildPlanWidgets(_result!),
+                    if ((_result?['aiResponse'] ?? '').toString().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: ElevatedButton(
+                          onPressed: _applying ? null : _applyPlan,
+                          child: Text(
+                            _applying ? 'Đang lưu...' : 'Lưu lịch này',
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -102,6 +140,26 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
 
   List<Widget> _buildPlanWidgets(Map<String, dynamic> result) {
     final widgets = <Widget>[];
+
+    final aiResponse = result['aiResponse']?.toString();
+    if (aiResponse != null && aiResponse.isNotEmpty) {
+      widgets.add(_sectionTitle('AI Coach'));
+      widgets.add(
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Text(
+            aiResponse,
+            style: const TextStyle(fontSize: 13, height: 1.45),
+          ),
+        ),
+      );
+      return widgets;
+    }
 
     final nutrition = result['nutrition'];
     if (nutrition is Map<String, dynamic>) {

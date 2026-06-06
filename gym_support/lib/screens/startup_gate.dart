@@ -28,6 +28,7 @@ class _StartupGateState extends State<StartupGate> {
     final prefs = await SharedPreferences.getInstance();
     final email = prefs.getString(SessionStore.emailKey);
     final token = prefs.getString(SessionStore.tokenKey);
+    var userId = prefs.getString(SessionStore.userIdKey);
     final profileComplete =
         prefs.getBool(SessionStore.profileCompleteKey) ?? false;
 
@@ -40,22 +41,42 @@ class _StartupGateState extends State<StartupGate> {
     }
 
     try {
-      final profile = await BackendApi.getOnboardingProfileByEmail(email);
-      if (profile == null) {
-        return OnboardingNameScreen(email: email);
+      if ((userId == null || userId.isEmpty) &&
+          token != null &&
+          token.isNotEmpty) {
+        userId = await BackendApi.getMeUserId();
+        if (userId != null && userId.isNotEmpty) {
+          await SessionStore.saveAuth(
+            email: email,
+            token: token,
+            userId: userId,
+            profileComplete: profileComplete,
+          );
+        }
       }
 
+      final profile = await BackendApi.getOnboardingProfileByEmail(email);
+      if (!_isProfileComplete(profile)) {
+        return OnboardingNameScreen(
+          email: email,
+          initialName: profile?['name']?.toString(),
+        );
+      }
+
+      final completeProfile = profile!;
       await SessionStore.saveAuth(
         email: email,
         token: token ?? '',
+        userId: userId,
+        customerId: completeProfile['id']?.toString(),
         profileComplete: true,
       );
 
       return MainNavigationScreen(
-        name: profile['name']?.toString() ?? email,
-        goal: profile['goal']?.toString() ?? '',
-        schedule: profile['schedule']?.toString() ?? '',
-        bmi: profile['bmi']?.toString() ?? '--',
+        name: completeProfile['name']?.toString() ?? email,
+        goal: completeProfile['goal']?.toString() ?? '',
+        schedule: completeProfile['schedule']?.toString() ?? '',
+        bmi: completeProfile['bmi']?.toString() ?? '--',
       );
     } catch (_) {
       if (token != null && token.isNotEmpty) {
@@ -64,6 +85,14 @@ class _StartupGateState extends State<StartupGate> {
 
       return const AuthScreen();
     }
+  }
+
+  bool _isProfileComplete(Map<String, dynamic>? profile) {
+    if (profile == null) return false;
+    final goal = profile['goal']?.toString().trim() ?? '';
+    final weight = profile['weight']?.toString().trim() ?? '';
+    final height = profile['height']?.toString().trim() ?? '';
+    return goal.isNotEmpty && weight.isNotEmpty && height.isNotEmpty;
   }
 
   @override
