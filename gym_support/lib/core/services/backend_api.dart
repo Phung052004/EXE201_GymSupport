@@ -42,9 +42,15 @@ class BackendApi {
 
   static String _messageFrom(dynamic decoded, String fallback) {
     if (decoded is Map<String, dynamic>) {
-      return decoded['message']?.toString() ??
-          decoded['Message']?.toString() ??
-          fallback;
+      if (decoded.containsKey('message')) return decoded['message'].toString();
+      if (decoded.containsKey('Message')) return decoded['Message'].toString();
+      if (decoded.containsKey('error')) return decoded['error'].toString();
+      if (decoded.containsKey('errors')) {
+        final errs = decoded['errors'];
+        if (errs is Map) return errs.values.first.toString();
+        if (errs is List) return errs.first.toString();
+        return errs.toString();
+      }
     }
     return fallback;
   }
@@ -80,7 +86,8 @@ class BackendApi {
     );
     final decoded = _decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(_messageFrom(decoded, 'Không thể lưu dữ liệu'));
+      final msg = _messageFrom(decoded, 'Lỗi ${response.statusCode}');
+      throw Exception(msg);
     }
     return decoded;
   }
@@ -145,7 +152,15 @@ class BackendApi {
       '/api/auth/register/customer',
       body: {'email': email, 'password': password, 'fullName': name},
     );
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    
+    if (decoded is Map<String, dynamic>) {
+      return {
+        ...decoded,
+        'userId': _value<String>(decoded, 'userId'),
+        'token': _value<String>(decoded, 'token'),
+      };
+    }
+    return <String, dynamic>{};
   }
 
   static Future<Map<String, dynamic>> loginUser({
@@ -157,7 +172,17 @@ class BackendApi {
       body: {'email': email, 'password': password},
     );
 
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    if (decoded is Map<String, dynamic>) {
+      // Normalize common keys
+      return {
+        ...decoded,
+        'userId': _value<String>(decoded, 'userId'),
+        'token': _value<String>(decoded, 'token'),
+        'role': _value<String>(decoded, 'role'),
+      };
+    }
+
+    return <String, dynamic>{};
   }
 
   static Future<Map<String, dynamic>?> getCustomerByUserId(
@@ -448,18 +473,25 @@ class BackendApi {
     if (userId == null) return null;
     try {
       final decoded = await _get('/api/workoutplans/user/$userId/active', auth: true);
-      return decoded is Map<String, dynamic> ? decoded : null;
-    } catch (_) {
-      return null;
-    }
+      if (decoded is Map<String, dynamic>) return decoded;
+    } catch (_) {}
+
+    try {
+      final plans = await getWorkoutPlansByUser(userId);
+      for (final plan in plans) {
+        if (_value<bool>(plan, 'isActive') == true) return plan;
+      }
+      if (plans.isNotEmpty) return plans.first;
+    } catch (_) {}
+    return null;
   }
 
   static Future<void> activateWorkoutPlan(String planId) async {
-    await _post('/api/workoutplans/$planId/activate', auth: true);
+    await _post('/api/workoutplans/$planId/activate', auth: true, body: {});
   }
 
   static Future<void> deactivateWorkoutPlan(String planId) async {
-    await _post('/api/workoutplans/$planId/deactivate', auth: true);
+    await _post('/api/workoutplans/$planId/deactivate', auth: true, body: {});
   }
 
   static Future<Map<String, dynamic>> getWorkoutPlanById(String id) async {
@@ -1075,27 +1107,8 @@ class BackendApi {
       throw Exception(_messageFrom(decoded, 'Không thể phân tích ảnh'));
     }
 
-    final data = decoded is Map<String, dynamic>
-        ? decoded
-        : <String, dynamic>{};
-    final detectedItems = _value<List>(data, 'detectedItems') ?? const [];
-    return {
-      'raw': data,
-      'detections': detectedItems.map((item) {
-        return {'name': item.toString(), 'confidence': ''};
-      }).toList(),
-      'enriched': {
-        'targetMuscle': (_value<List>(data, 'muscles') ?? const []).join(', '),
-        'difficulty': mode,
-        'instructions':
-            _value<List>(data, 'trainingAdvice') ??
-            _value<List>(data, 'formFeedback') ??
-            [_value<String>(data, 'summary') ?? 'Không có hướng dẫn cụ thể.'],
-        'commonMistakes': (_value<List>(data, 'warnings') ?? const []).join(
-          ', ',
-        ),
-      },
-    };
+    final data = decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    return data;
   }
 
   static MediaType _contentTypeFor(String filename) {

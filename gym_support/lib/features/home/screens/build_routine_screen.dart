@@ -100,7 +100,12 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
     setState(() => _isSaving = true);
     try {
       final userId = await BackendApi.currentUserId();
+      if (userId == null || userId.isEmpty) {
+        throw Exception('Vui lòng đăng nhập để lưu routine');
+      }
+
       final payload = {
+        "id": "", // Bổ sung ID cho Plan
         "userId": userId,
         "name": name,
         "goal": _goalController.text.trim(),
@@ -108,13 +113,7 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
         "daysPerWeek": _daysPerWeek,
         "description": _descController.text.trim(),
         "isActive": false,
-        "workoutDays": _dayDataList.map((d) => {
-          "dayNumber": d.dayNumber,
-          "weekday": d.weekday,
-          "dayName": d.dayName,
-          "targetMuscleGroups": d.exercises.map((e) => "Unknown").toSet().toList(), // Simplification
-          "exercises": d.exercises.map((e) => e.toJson()).toList(),
-        }).toList(),
+        "sessions": _dayDataList.map((d) => d.toJson()).toList(),
       };
 
       await BackendApi.createWorkoutPlan(payload);
@@ -295,4 +294,16 @@ class WorkoutDayData {
   List<WorkoutExercise> exercises = [];
 
   WorkoutDayData({required this.dayNumber, required this.weekday, required this.dayName});
+
+  Map<String, dynamic> toJson() {
+    return {
+      "id": "", // Bổ sung ID cho Session
+      "dayNumber": dayNumber,
+      "dayOfWeek": weekday,
+      "dayName": dayName,
+      "focus": dayName.isEmpty ? "Workout Session" : dayName,
+      "targetMuscleGroups": exercises.map((e) => e.muscleGroup).toSet().toList(),
+      "exercises": exercises.map((e) => e.toJson()).toList(),
+    };
+  }
 }

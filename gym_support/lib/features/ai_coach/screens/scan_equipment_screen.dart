@@ -19,12 +19,31 @@ class ScanEquipmentScreen extends StatefulWidget {
 }
 
 class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
-  bool _loading = false;
-  List<dynamic>? _detections;
-  Map<String, dynamic>? _enriched;
-  String? _error;
-  XFile? _picked;
   late String _currentMode;
+
+  final Map<String, Map<String, dynamic>?> _resultsByMode = {
+    'body_check': null,
+    'form_check': null,
+    'equipment_info': null,
+  };
+
+  final Map<String, bool> _loadingByMode = {
+    'body_check': false,
+    'form_check': false,
+    'equipment_info': false,
+  };
+
+  final Map<String, String?> _errorsByMode = {
+    'body_check': null,
+    'form_check': null,
+    'equipment_info': null,
+  };
+
+  final Map<String, XFile?> _imagesByMode = {
+    'body_check': null,
+    'form_check': null,
+    'equipment_info': null,
+  };
 
   @override
   void initState() {
@@ -32,42 +51,56 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     _currentMode = widget.initialMode;
   }
 
-  Future<void> _pickAndUpload(ImageSource src) async {
+  Future<void> _pickImage(ImageSource src) async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: src,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      imageQuality: 80,
+    );
+
+    if (file != null) {
+      setState(() {
+        _imagesByMode[_currentMode] = file;
+        _resultsByMode[_currentMode] = null; // Clear previous result for this mode
+        _errorsByMode[_currentMode] = null;
+      });
+    }
+  }
+
+  Future<void> _analyzeImage() async {
+    final image = _imagesByMode[_currentMode];
+    if (image == null) {
+      setState(() => _errorsByMode[_currentMode] = 'Vui lòng chọn ảnh trước khi phân tích.');
+      return;
+    }
+
     setState(() {
-      _loading = true;
-      _error = null;
-      _detections = null;
-      _enriched = null;
+      _loadingByMode[_currentMode] = true;
+      _errorsByMode[_currentMode] = null;
     });
 
     try {
-      final picker = ImagePicker();
-      final file = await picker.pickImage(
-        source: src,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 80,
-      );
-      if (file == null) {
-        setState(() => _loading = false);
-        return;
-      }
-      _picked = file;
-      final bytes = await file.readAsBytes();
+      final bytes = await image.readAsBytes();
       final res = await BackendApi.uploadScanImage(
         bytes: bytes,
-        filename: file.name,
+        filename: image.name,
         email: widget.email,
         mode: _currentMode,
       );
+
       setState(() {
-        _detections = res['detections'] as List<dynamic>? ?? [];
-        _enriched = res['enriched'] as Map<String, dynamic>?;
+        _resultsByMode[_currentMode] = res;
       });
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() {
+        _errorsByMode[_currentMode] = 'Không thể phân tích ảnh. Vui lòng thử lại.';
+      });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loadingByMode[_currentMode] = false);
+      }
     }
   }
 
@@ -76,112 +109,38 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(_getTitle()),
+        title: const Text('AI Analysis', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildModeSelector(),
-            const SizedBox(height: 20),
-            if (_picked != null)
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.file(
-                    File(_picked!.path),
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+      body: Column(
+        children: [
+          _buildModeSelector(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildGuideText(),
+                  const SizedBox(height: 20),
+                  _buildImagePreview(),
+                  const SizedBox(height: 20),
+                  _buildActionButtons(),
+                  const SizedBox(height: 24),
+                  _buildContent(),
+                ],
               ),
-            Row(
-              children: [
-                Expanded(
-                  child: _ActionButton(
-                    onPressed: _loading ? null : () => _pickAndUpload(ImageSource.camera),
-                    icon: Icons.camera_alt_rounded,
-                    label: 'Camera',
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _ActionButton(
-                    onPressed: _loading ? null : () => _pickAndUpload(ImageSource.gallery),
-                    icon: Icons.photo_library_rounded,
-                    label: 'Gallery',
-                    color: Colors.white.withOpacity(0.1),
-                    textColor: Colors.white,
-                  ),
-                ),
-              ],
             ),
-            const SizedBox(height: 20),
-            if (_loading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-              ),
-            if (_error != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.redAccent.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Error: $_error',
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 13),
-                ),
-              ),
-            if (_enriched != null || (_detections != null && _detections!.isNotEmpty))
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      if (_enriched != null) _buildResultContent(),
-                      if (_detections != null && _detections!.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        ..._detections!.map((d) => _buildDetectionTile(d)).toList(),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  String _getTitle() {
-    switch (_currentMode) {
-      case 'form_check': return 'Form Check';
-      case 'body_check': return 'Body Composition';
-      default: return 'Equipment Scan';
-    }
-  }
-
   Widget _buildModeSelector() {
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -190,9 +149,9 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
       child: Row(
         children: [
           _ModeTab(
-            label: 'Equipment',
-            isActive: _currentMode == 'equipment_info',
-            onTap: () => setState(() => _currentMode = 'equipment_info'),
+            label: 'Body',
+            isActive: _currentMode == 'body_check',
+            onTap: () => setState(() => _currentMode = 'body_check'),
           ),
           _ModeTab(
             label: 'Form',
@@ -200,178 +159,346 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
             onTap: () => setState(() => _currentMode = 'form_check'),
           ),
           _ModeTab(
-            label: 'Body',
-            isActive: _currentMode == 'body_check',
-            onTap: () => setState(() => _currentMode = 'body_check'),
+            label: 'Equipment',
+            isActive: _currentMode == 'equipment_info',
+            onTap: () => setState(() => _currentMode = 'equipment_info'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildResultContent() {
-    final title = _currentMode == 'form_check' 
-        ? 'Phân tích tư thế' 
-        : (_currentMode == 'body_check' ? 'Phân tích vóc dáng' : 'AI Hướng dẫn sử dụng');
+  Widget _buildGuideText() {
+    String guide = '';
+    switch (_currentMode) {
+      case 'body_check':
+        guide = 'Chụp ảnh toàn thân hoặc nửa thân rõ ràng, đủ sáng. Kết quả chỉ mang tính tham khảo, không phải chẩn đoán y tế.';
+        break;
+      case 'form_check':
+        guide = 'Chụp rõ toàn bộ động tác, tốt nhất từ bên hông hoặc góc 45 độ. Nếu đang đau, hãy dừng tập và hỏi chuyên gia.';
+        break;
+      case 'equipment_info':
+        guide = 'Chụp rõ máy tập hoặc dụng cụ, tránh ảnh quá gần làm mất toàn cảnh máy.';
+        break;
+    }
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blueAccent.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Colors.blueAccent, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              guide,
+              style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePreview() {
+    final image = _imagesByMode[_currentMode];
+    return GestureDetector(
+      onTap: () => _showPickOptions(),
+      child: Container(
+        height: 220,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          boxShadow: [
+            if (image != null) BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: image != null
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.file(File(image.path), fit: BoxFit.cover, width: double.infinity),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_a_photo_outlined, size: 48, color: Colors.white.withOpacity(0.2)),
+                  const SizedBox(height: 12),
+                  Text('Bấm để chọn ảnh', style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14)),
+                ],
+              ),
+      ),
+    );
+  }
+
+  void _showPickOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Colors.white),
+              title: const Text('Máy ảnh', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Colors.white),
+              title: const Text('Thư viện', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    final isLoading = _loadingByMode[_currentMode] ?? false;
+    final hasImage = _imagesByMode[_currentMode] != null;
+
+    return Row(
+      children: [
+        if (hasImage)
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: isLoading ? null : _analyzeImage,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textDark,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: isLoading 
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textDark))
+                : const Icon(Icons.auto_awesome, size: 20),
+              label: Text(isLoading ? 'Đang phân tích...' : 'Bắt đầu Analyze', style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+        if (hasImage && !isLoading) ...[
+          const SizedBox(width: 12),
+          IconButton(
+            onPressed: () => setState(() => _imagesByMode[_currentMode] = null),
+            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.redAccent.withOpacity(0.1),
+              padding: const EdgeInsets.all(12),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildContent() {
+    final isLoading = _loadingByMode[_currentMode] ?? false;
+    final error = _errorsByMode[_currentMode];
+    final result = _resultsByMode[_currentMode];
+
+    if (isLoading) return const SizedBox.shrink();
+
+    if (error != null) {
+      return Center(
+        child: Text(error, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+      );
+    }
+
+    if (result == null) {
+      return _buildEmptyState();
+    }
+
+    switch (_currentMode) {
+      case 'body_check':
+        return _buildBodyCheckResult(result);
+      case 'form_check':
+        return _buildFormCheckResult(result);
+      case 'equipment_info':
+        return _buildEquipmentInfoResult(result);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildEmptyState() {
+    String msg = '';
+    switch (_currentMode) {
+      case 'body_check': msg = 'Bạn chưa phân tích vóc dáng.\nHãy chọn ảnh cơ thể rõ ràng rồi bấm Analyze.'; break;
+      case 'form_check': msg = 'Bạn chưa kiểm tra form tập.\nHãy chọn ảnh tư thế tập luyện rồi bấm Analyze.'; break;
+      case 'equipment_info': msg = 'Bạn chưa phân tích máy tập.\nHãy chọn ảnh máy tập hoặc dụng cụ rồi bấm Analyze.'; break;
+    }
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Text(
+          msg,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13, height: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBodyCheckResult(Map<String, dynamic> data) {
+    return Column(
+      children: [
+        _buildSummaryCard(data),
+        _buildListSection('Nhận xét vóc dáng', data['bodyObservations'], Icons.visibility_outlined),
+        _buildListSection('Nhóm cơ nên ưu tiên', data['priorityMuscles'], Icons.star_outline, isPrimary: true),
+        _buildListSection('Nhóm cơ liên quan', data['muscles'], Icons.fitness_center),
+        _buildListSection('Bài tập gợi ý', data['suggestedExercises'], Icons.directions_run),
+        _buildListSection('Lời khuyên tập luyện', data['trainingAdvice'], Icons.lightbulb_outline),
+        _buildListSection('Cảnh báo', data['warnings'], Icons.warning_amber_rounded, color: Colors.orangeAccent),
+        const SizedBox(height: 20),
+        _buildSendToChatButton(data),
+      ],
+    );
+  }
+
+  Widget _buildFormCheckResult(Map<String, dynamic> data) {
+    return Column(
+      children: [
+        _buildSummaryCard(data),
+        _buildListSection('Vật thể phát hiện', data['detectedItems'], Icons.search),
+        _buildListSection('Nhận xét tư thế', data['bodyObservations'], Icons.accessibility_new),
+        _buildListSection('Feedback về form', data['formFeedback'], Icons.check_circle_outline, color: AppColors.primary),
+        _buildListSection('Cơ tham gia', data['muscles'], Icons.fitness_center),
+        _buildListSection('Lời khuyên kỹ thuật', data['trainingAdvice'], Icons.build_circle_outlined),
+        _buildListSection('Cảnh báo an toàn', data['warnings'], Icons.security, color: Colors.redAccent),
+        const SizedBox(height: 20),
+        _buildSendToChatButton(data),
+      ],
+    );
+  }
+
+  Widget _buildEquipmentInfoResult(Map<String, dynamic> data) {
+    return Column(
+      children: [
+        _buildSummaryCard(data),
+        _buildListSection('Vật thể phát hiện', data['detectedItems'], Icons.category_outlined),
+        _buildListSection('Nhóm cơ tác động', data['muscles'], Icons.bolt, isPrimary: true),
+        _buildListSection('Bài tập thực hiện', data['suggestedExercises'], Icons.play_circle_outline),
+        _buildListSection('Cách dùng / Lời khuyên', data['trainingAdvice'], Icons.help_outline),
+        _buildListSection('Cảnh báo an toàn', data['warnings'], Icons.warning_amber_rounded, color: Colors.orangeAccent),
+        const SizedBox(height: 20),
+        _buildSendToChatButton(data),
+      ],
+    );
+  }
+
+  Widget _buildSummaryCard(Map<String, dynamic> data) {
+    final title = data['title']?.toString() ?? 'Kết quả phân tích';
+    final summary = data['summary']?.toString() ?? '';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title.toUpperCase(), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 16)),
+          if (summary.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(summary, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.5)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListSection(String title, dynamic list, IconData icon, {bool isPrimary = false, Color? color}) {
+    if (list == null || (list is List && list.isEmpty)) return const SizedBox.shrink();
+    
+    final items = list is List ? list : [list];
+    final themeColor = color ?? (isPrimary ? AppColors.primary : Colors.white70);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.03)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
-              ),
+              Icon(icon, color: themeColor, size: 18),
+              const SizedBox(width: 10),
+              Text(title, style: TextStyle(color: themeColor, fontWeight: FontWeight.w900, fontSize: 13)),
             ],
           ),
-          const Divider(height: 24, color: Colors.white10),
-          
-          if (_currentMode == 'equipment_info') ...[
-            _buildInfoRow('Nhóm cơ', _enriched?['targetMuscle'] ?? '--'),
-            _buildInfoRow('Độ khó', _enriched?['difficulty'] ?? '--'),
-          ],
-          
-          const Text(
-            'Kết luận AI:',
-            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 13),
-          ),
-          const SizedBox(height: 8),
-          ..._buildInstructionLines(_enriched?['instructions']),
-          
-          if ((_enriched?['commonMistakes'] ?? '').toString().isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Text(
-              'Lưu ý quan trọng:',
-              style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.w800, fontSize: 13),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _enriched?['commonMistakes'],
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 13, height: 1.4),
-            ),
-          ],
-          
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop({
-                  'text': _buildChatSummaryMessage(),
-                  'imagePath': _picked?.path,
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                foregroundColor: AppColors.primary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              icon: const Icon(Icons.chat_bubble_outline, size: 18),
-              label: const Text('Gửi vào Chat AI', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetectionTile(dynamic d) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.fitness_center, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+          const SizedBox(height: 12),
+          ...items.map((item) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  d['name']?.toString() ?? 'Unknown',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Confidence: ${d['confidence'] ?? ''}',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-                ),
+                const Text('• ', style: TextStyle(color: Colors.white24)),
+                Expanded(child: Text(item.toString(), style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4))),
               ],
             ),
-          ),
+          )).toList(),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Text('$label: ', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13)),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-        ],
+  Widget _buildSendToChatButton(Map<String, dynamic> data) {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.of(context).pop({
+            'text': _buildChatSummaryMessage(data),
+            'imagePath': _imagesByMode[_currentMode]?.path,
+          });
+        },
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppColors.primary),
+          foregroundColor: AppColors.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        icon: const Icon(Icons.chat_bubble_outline, size: 18),
+        label: const Text('Gửi vào Chat AI', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  List<Widget> _buildInstructionLines(dynamic instructions) {
-    if (instructions is List) {
-      return instructions
-          .whereType<dynamic>()
-          .map((step) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text('• ${step.toString()}', style: TextStyle(color: Colors.white.withValues(alpha: 0.8))),
-              ))
-          .toList();
-    }
-    if (instructions != null && instructions.toString().isNotEmpty) {
-      return [Text(instructions.toString(), style: TextStyle(color: Colors.white.withValues(alpha: 0.8)))];
-    }
-    return [Text('Chưa có hướng dẫn cụ thể.', style: TextStyle(color: Colors.white.withValues(alpha: 0.6)))];
-  }
-
-  String _buildChatSummaryMessage() {
+  String _buildChatSummaryMessage(Map<String, dynamic> data) {
     final buffer = StringBuffer();
-    String prefix = 'Scan Equipment';
+    String prefix = 'Analyze Result';
     if (_currentMode == 'form_check') prefix = 'Form Check';
     if (_currentMode == 'body_check') prefix = 'Body Analysis';
+    if (_currentMode == 'equipment_info') prefix = 'Equipment Scan';
 
-    buffer.writeln('[$prefix Result]');
-    if (_currentMode == 'equipment_info') {
-      final equipmentName = _detections?.isNotEmpty == true ? _detections!.first['name']?.toString() : 'Thiết bị không xác định';
-      buffer.writeln('Thiết bị: $equipmentName');
+    buffer.writeln('[$prefix]');
+    buffer.writeln('Title: ${data['title'] ?? 'N/A'}');
+    buffer.writeln('Summary: ${data['summary'] ?? ''}');
+    
+    // Add a few highlights based on mode
+    if (_currentMode == 'form_check' && data['formFeedback'] != null) {
+      buffer.writeln('Feedback: ${data['formFeedback']}');
     }
-    final instructions = _enriched?['instructions'];
-    if (instructions is List && instructions.isNotEmpty) {
-      for (final step in instructions) {
-        buffer.writeln('- ${step.toString()}');
-      }
-    } else if (instructions != null && instructions.toString().isNotEmpty) {
-      buffer.writeln('- ${instructions.toString()}');
-    }
-    final mistakes = _enriched?['commonMistakes']?.toString() ?? '';
-    if (mistakes.isNotEmpty) {
-      buffer.writeln('Lưu ý: $mistakes');
-    }
+    
     return buffer.toString().trim();
   }
 }
@@ -397,40 +524,6 @@ class _ModeTab extends StatelessWidget {
             style: TextStyle(color: isActive ? AppColors.textDark : Colors.white60, fontWeight: FontWeight.w900, fontSize: 12),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final VoidCallback? onPressed;
-  final IconData icon;
-  final String label;
-  final Color color;
-  final Color textColor;
-
-  const _ActionButton({
-    required this.onPressed,
-    required this.icon,
-    required this.label,
-    required this.color,
-    this.textColor = AppColors.textDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: textColor,
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        ),
-        icon: Icon(icon, size: 20),
-        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
       ),
     );
   }

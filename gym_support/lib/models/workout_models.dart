@@ -64,7 +64,7 @@ class WorkoutDay {
     return WorkoutDay(
       id: json['id']?.toString() ?? '',
       dayNumber: json['dayNumber'] is int ? json['dayNumber'] : 0,
-      weekday: json['weekday']?.toString() ?? json['dayOfWeek']?.toString() ?? '',
+      weekday: json['dayOfWeek']?.toString() ?? json['weekday']?.toString() ?? '',
       dayName: json['dayName']?.toString() ?? json['dayOfWeek']?.toString() ?? '',
       focus: json['focus']?.toString() ?? '',
       targetMuscleGroups: muscles.map((m) => m.toString()).toList(),
@@ -74,10 +74,8 @@ class WorkoutDay {
 
   Map<String, dynamic> toJson() {
     return {
-      'dayNumber': dayNumber,
-      'weekday': weekday,
-      'dayName': dayName,
-      'targetMuscleGroups': targetMuscleGroups,
+      'dayOfWeek': weekday,
+      'focus': focus.isEmpty ? dayName : focus,
       'exercises': exercises.map((e) => e.toJson()).toList(),
     };
   }
@@ -90,6 +88,7 @@ class WorkoutExercise {
   final String reps;
   final int restTime;
   final String note;
+  final String muscleGroup;
 
   WorkoutExercise({
     required this.exerciseId,
@@ -98,6 +97,7 @@ class WorkoutExercise {
     required this.reps,
     required this.restTime,
     required this.note,
+    this.muscleGroup = 'Unknown',
   });
 
   factory WorkoutExercise.fromJson(Map<String, dynamic> json) {
@@ -108,6 +108,7 @@ class WorkoutExercise {
       reps: json['reps']?.toString() ?? '10',
       restTime: json['restTime'] is int ? json['restTime'] : 60,
       note: json['notes']?.toString() ?? json['note']?.toString() ?? '',
+      muscleGroup: json['muscleGroup']?.toString() ?? 'Unknown',
     );
   }
 
@@ -117,8 +118,7 @@ class WorkoutExercise {
       'exerciseName': exerciseName,
       'sets': sets,
       'reps': reps,
-      'restTime': restTime,
-      'note': note,
+      'notes': note,
     };
   }
 }

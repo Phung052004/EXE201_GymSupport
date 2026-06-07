@@ -129,6 +129,7 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
                 reps: reps,
                 restTime: int.tryParse(restController.text) ?? 60,
                 note: noteController.text.trim(),
+                muscleGroup: ex.muscleGroup,
               );
               Navigator.pop(ctx);
               Navigator.pop(context, workoutEx);
