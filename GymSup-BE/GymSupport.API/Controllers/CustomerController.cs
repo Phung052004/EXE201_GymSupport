@@ -33,9 +33,30 @@ namespace GymSupport.API.Controllers
 
             var customer = await _customerRepository.GetByUserIdAsync(userId);
             if (customer == null)
-                return NotFound();
+                return NotFound(new { message = "Customer profile not found" });
 
-            return Ok(customer);
+            var user = await _userRepository.GetByIdAsync(userId);
+
+            var response = new CustomerProfileResponseDto
+            {
+                Id = customer.Id,
+                UserId = customer.UserId,
+
+                FullName = user?.FullName ?? "",
+                Email = user?.Email ?? "",
+
+                Gender = customer.Gender,
+                Age = customer.Age,
+                Bmi = customer.Bmi,
+                HeightCm = customer.HeightCm,
+                WeightKg = customer.WeightKg,
+                Goal = customer.Goal,
+                ExperienceLevel = customer.ExperienceLevel,
+                InjuryNotes = customer.InjuryNotes,
+                Subscription = customer.Subscription
+            };
+
+            return Ok(response);
         }
 
         [HttpPost]

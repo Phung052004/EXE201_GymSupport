@@ -57,19 +57,25 @@ public class OpenAIService : IAIService
     private readonly IChatRepository _chatRepository;
     private readonly IWorkoutPlanRepository _workoutRepository;
     private readonly IExerciseRepository _exerciseRepository;
+    private readonly ICustomerRepository _customerRepository;
+    private readonly IUserRepository _userRepository;
 
     public OpenAIService(
-        HttpClient httpClient,
-        IConfiguration configuration,
-        IChatRepository chatRepository,
-        IWorkoutPlanRepository workoutRepository,
-        IExerciseRepository exerciseRepository)
+     HttpClient httpClient,
+     IConfiguration configuration,
+     IChatRepository chatRepository,
+     IWorkoutPlanRepository workoutRepository,
+     IExerciseRepository exerciseRepository,
+     ICustomerRepository customerRepository,
+     IUserRepository userRepository)
     {
         _httpClient = httpClient;
         _configuration = configuration;
         _chatRepository = chatRepository;
         _workoutRepository = workoutRepository;
         _exerciseRepository = exerciseRepository;
+        _customerRepository = customerRepository;
+        _userRepository = userRepository;
     }
 
     public async Task ApplySuggestionsAsync(ApplySuggestionsRequestDto dto)
@@ -255,7 +261,57 @@ public class OpenAIService : IAIService
         }
 
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        // ==========================
+        // Customer Profile
+        // ==========================
+        var customer = await _customerRepository.GetByUserIdAsync(userId);
+        var user = await _userRepository.GetByIdAsync(userId);
 
+        if (customer == null)
+        {
+            var responseText = "Bạn cần tạo hồ sơ cá nhân trước khi dùng AI Coach để mình có thể tư vấn chính xác theo thể trạng, mục tiêu và kinh nghiệm tập luyện của bạn.";
+
+            await _chatRepository.CreateAsync(new ChatMessage
+            {
+                UserId = userId,
+                Role = "user",
+                Content = message
+            });
+
+            await _chatRepository.CreateAsync(new ChatMessage
+            {
+                UserId = userId,
+                Role = "assistant",
+                Content = responseText
+            });
+
+            return new ChatResponseDto
+            {
+                Response = responseText,
+                Suggestions = new List<AISuggestionDto>()
+            };
+        }
+
+        var customerProfile = new
+        {
+            customer.Id,
+            customer.UserId,
+            FullName = user?.FullName ?? "",
+            Email = user?.Email ?? "",
+            customer.Gender,
+            customer.Age,
+            customer.Bmi,
+            customer.HeightCm,
+            customer.WeightKg,
+            customer.Goal,
+            customer.ExperienceLevel,
+            customer.InjuryNotes,
+            customer.Subscription
+        };
+
+        var customerJson = JsonSerializer.Serialize(
+            customerProfile,
+            new JsonSerializerOptions { WriteIndented = true });
         // ==========================
         // Workout Plans
         // ==========================
@@ -320,12 +376,21 @@ QUY TẮC ĐỒNG BỘ NGÔN NGỮ NGÀY THÁNG (BẮT BUỘC):
 
 =========================================
 DỮ LIỆU THỰC TẾ HIỆN TẠI TỪ DATABASE CẤP CHO BẠN:
+- THÔNG TIN CUSTOMER PROFILE CỦA USER: {{customerJson}}
 - WORKOUT PLAN ĐANG KÍCH HOẠT CỦA USER: {{workoutJson}}
 - DANH SÁCH BÀI TẬP HỢP LỆ TRONG HỆ THỐNG: {{exerciseJson}}
 
 =========================================
-LUỒNG TƯ VẤN VÀ QUY TẮC SINH HÀNH ĐỘNG (QUAN TRỌNG NHẤT):
 
+QUY TẮC CÁ NHÂN HÓA THEO CUSTOMER PROFILE:
+- Bạn phải đọc thông tin customer profile để cá nhân hóa câu trả lời.
+- Dựa vào gender, age, heightCm, weightKg, bmi, goal, experienceLevel, injuryNotes để tư vấn.
+- Nếu injuryNotes có dữ liệu, phải ưu tiên cảnh báo an toàn và tránh bài tập có thể làm nặng chấn thương.
+- Nếu goal là tăng cơ, ưu tiên lời khuyên về progressive overload, protein, phục hồi và lịch tập phù hợp.
+- Nếu goal là giảm mỡ, ưu tiên lời khuyên về calo, cardio, tập kháng lực và duy trì cơ.
+- Không chẩn đoán y tế. Nếu người dùng đau nặng, đau kéo dài hoặc có dấu hiệu bất thường, khuyên họ gặp bác sĩ/chuyên gia y tế.
+LUỒNG TƯ VẤN VÀ QUY TẮC SINH HÀNH ĐỘNG (QUAN TRỌNG NHẤT):
+=========================================
 TRƯỜNG HỢP 1: TRONG DỮ LIỆU "WORKOUT PLAN ĐANG KÍCH HOẠT" ĐANG TRỐNG RỖNG (HOẶC BẰNG NULL)
 - GIAI ĐOẠN THẢO LUẬN: Khi user yêu cầu lên lịch tập mới, gợi ý giáo án, hoặc yêu cầu "lên danh sách bài tập cụ thể cho từng ngày"... Bạn CHỈ ĐƯỢC PHÉP liệt kê và phân tích chi tiết giáo án bằng văn bản thuần (text) ở trường `response`.
   --> TUYỆT ĐỐI KHÔNG ĐƯỢC sinh bất kỳ hành động nào vào mảng `suggestions`. Mảng `suggestions` lúc này bắt buộc phải để rỗng `[]`.
