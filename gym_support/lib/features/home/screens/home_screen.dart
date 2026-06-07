@@ -10,6 +10,8 @@ import '../widgets/muscle_progress_card.dart';
 import '../widgets/nutrition_plan_card.dart';
 import '../widgets/today_plan_card.dart';
 
+import 'package:gym_support/features/workout/screens/workout_history_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   final String name;
   final String goal;
@@ -123,11 +125,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(width: 14),
                 Expanded(
-                  child: HomeStatCard(
-                    icon: Icons.emoji_events,
-                    iconColor: AppColors.primary,
-                    value: '${_home?['workoutCount'] ?? 0}',
-                    label: 'WORKOUTS',
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const WorkoutHistoryScreen()),
+                      );
+                    },
+                    child: HomeStatCard(
+                      icon: Icons.emoji_events,
+                      iconColor: AppColors.primary,
+                      value: '${_home?['workoutCount'] ?? 0}',
+                      label: 'WORKOUTS',
+                    ),
                   ),
                 ),
               ],

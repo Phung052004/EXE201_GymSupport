@@ -10,7 +10,7 @@ import '../../home/screens/build_routine_screen.dart';
 import '../../home/screens/home_screen.dart';
 import '../../home/widgets/app_bottom_nav_bar.dart';
 import '../../profile/screens/profile_screen.dart';
-import '../../workout/screens/workout_screen.dart';
+import '../../workout/screens/today_workout_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final String name;
@@ -294,20 +294,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
       AiCoachScreen(name: _name, goal: _goal, schedule: _schedule, bmi: _bmi),
 
-      WorkoutScreen(
-        selectedExercises: selectedExercises,
-        dayLabel: _workoutDayLabel,
-        focus: _workoutFocus,
-        onBuildRoutine: () {
-          setState(() {
-            currentIndex = 3;
-          });
-        },
-        onRemoveExercise: removeExercise,
-        onUpdateExercise: updateExerciseSetsReps,
-        onFinishWorkout: _completeWorkout,
-        onGoHomeAfterFinish: finishWorkoutGoHome,
-      ),
+      const TodayWorkoutScreen(),
 
       BuildRoutineScreen(
         goal: _goal,

@@ -17,7 +17,7 @@ class BackendApi {
   static Uri get _baseUri {
     const devHost = String.fromEnvironment(
       'BACKEND_HOST',
-      defaultValue: '192.168.0.112:5028',
+      defaultValue: '10.0.2.2:5028',
     );
 
     return Uri.parse('http://$devHost');
@@ -350,54 +350,68 @@ class BackendApi {
     return <Map<String, dynamic>>[];
   }
 
+  static Future<List<String>> getMuscleCategories() async {
+    final decoded = await _get('/api/muscles/categories');
+    if (decoded is List) {
+      return decoded.map((e) => e.toString()).toList();
+    }
+    return [];
+  }
+
+  static Future<List<Map<String, dynamic>>> getMusclesByCategory(String category) async {
+    final decoded = await _get('/api/muscles/by-category?category=${Uri.encodeComponent(category)}');
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return [];
+  }
+
+  static Future<Map<String, dynamic>> getMuscleById(String id) async {
+    final decoded = await _get('/api/muscles/$id');
+    return decoded is Map<String, dynamic> ? decoded : {};
+  }
+
   static Future<List<Exercise>> getExercises({
     String? query,
-    String? muscle,
+    String? muscleId,
+    String? category,
   }) async {
-    final muscles = await getMuscles();
-    final muscleById = {
-      for (final item in muscles)
-        if ((_value<String>(item, 'id') ?? '').isNotEmpty)
-          _value<String>(item, 'id')!: item,
-    };
+    final Map<String, String> queryParams = {};
+    if (category != null) queryParams['category'] = category;
+    if (muscleId != null) queryParams['muscleId'] = muscleId;
+    
+    final uri = _baseUri.resolve('/api/exercises').replace(queryParameters: queryParams);
+    
+    final response = await http.get(
+      uri,
+      headers: await _headers(auth: false),
+    );
+    
+    final decoded = _decode(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(_messageFrom(decoded, 'Không thể tải bài tập'));
+    }
 
-    final decoded = await _get('/api/exercises');
     final list = decoded is List ? decoded : const [];
     final exercises = list.whereType<Map>().map((item) {
       final json = Map<String, dynamic>.from(item);
-      final impacts = _value<List>(json, 'muscleImpacts') ?? const [];
-      String muscleGroup = 'Unknown';
-      if (impacts.isNotEmpty && impacts.first is Map) {
-        final impact = Map<String, dynamic>.from(impacts.first as Map);
-        final muscleId = _value<String>(impact, 'muscleId');
-        final muscleItem = muscleId == null ? null : muscleById[muscleId];
-        muscleGroup =
-            _value<String>(muscleItem ?? {}, 'category') ??
-            _value<String>(muscleItem ?? {}, 'name') ??
-            'Unknown';
-      }
-
-      return Exercise.fromJson({
-        'id': _value<String>(json, 'id'),
-        'name': _value<String>(json, 'name'),
-        'muscleGroup': muscleGroup,
-        'setsAndReps': '3 sets x 10 reps',
-      });
+      return Exercise.fromJson(json);
     }).toList();
 
-    final normalizedQuery = query?.trim().toLowerCase();
-    final normalizedMuscle = muscle?.trim().toLowerCase();
-    return exercises.where((exercise) {
-      final matchesQuery =
-          normalizedQuery == null ||
-          normalizedQuery.isEmpty ||
-          exercise.name.toLowerCase().contains(normalizedQuery);
-      final matchesMuscle =
-          normalizedMuscle == null ||
-          normalizedMuscle.isEmpty ||
-          exercise.muscleGroup.toLowerCase() == normalizedMuscle;
-      return matchesQuery && matchesMuscle;
-    }).toList();
+    if (query != null && query.isNotEmpty) {
+      final q = query.toLowerCase();
+      return exercises.where((e) => e.name.toLowerCase().contains(q)).toList();
+    }
+    
+    return exercises;
+  }
+
+  static Future<Map<String, dynamic>> getExerciseById(String id) async {
+    final decoded = await _get('/api/exercises/$id');
+    return decoded is Map<String, dynamic> ? decoded : {};
   }
 
   static Future<List<Map<String, dynamic>>> _getExerciseRows() async {
@@ -419,7 +433,7 @@ class BackendApi {
       return <Map<String, dynamic>>[];
     }
 
-    final decoded = await _get('/api/workoutplans/user/$resolvedUserId');
+    final decoded = await _get('/api/workoutplans/user/$resolvedUserId', auth: true);
     if (decoded is List) {
       return decoded
           .whereType<Map>()
@@ -429,25 +443,35 @@ class BackendApi {
     return <Map<String, dynamic>>[];
   }
 
-  static Future<Map<String, dynamic>> createWorkoutPlan({
-    required String name,
-    required String goal,
-    required int daysPerWeek,
-    String? userId,
-  }) async {
-    final resolvedUserId = userId ?? await currentUserId();
-    if (resolvedUserId == null || resolvedUserId.isEmpty) {
-      throw Exception('Không tìm thấy userId');
+  static Future<Map<String, dynamic>?> getActiveWorkoutPlan() async {
+    final userId = await currentUserId();
+    if (userId == null) return null;
+    try {
+      final decoded = await _get('/api/workoutplans/user/$userId/active', auth: true);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
     }
+  }
 
+  static Future<void> activateWorkoutPlan(String planId) async {
+    await _post('/api/workoutplans/$planId/activate', auth: true);
+  }
+
+  static Future<void> deactivateWorkoutPlan(String planId) async {
+    await _post('/api/workoutplans/$planId/deactivate', auth: true);
+  }
+
+  static Future<Map<String, dynamic>> getWorkoutPlanById(String id) async {
+    final decoded = await _get('/api/workoutplans/$id', auth: true);
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<Map<String, dynamic>> createWorkoutPlan(Map<String, dynamic> payload) async {
     final decoded = await _post(
       '/api/workoutplans',
-      body: {
-        'userId': resolvedUserId,
-        'name': name,
-        'goal': goal,
-        'daysPerWeek': daysPerWeek,
-      },
+      auth: true,
+      body: payload,
     );
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
@@ -487,6 +511,50 @@ class BackendApi {
       },
     );
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<Map<String, dynamic>> startWorkout({
+    required String planId,
+    required String sessionId,
+  }) async {
+    final userId = await currentUserId();
+    if (userId == null) throw Exception('Vui lòng đăng nhập');
+    final decoded = await _post(
+      '/api/workout-session-logs/start',
+      auth: true,
+      body: {
+        'userId': userId,
+        'workoutPlanId': planId,
+        'planSessionId': sessionId,
+      },
+    );
+    return decoded is Map<String, dynamic> ? decoded : {};
+  }
+
+  static Future<Map<String, dynamic>> getWorkoutSessionDetail(String logId) async {
+    final decoded = await _get('/api/workout-session-logs/$logId', auth: true);
+    return decoded is Map<String, dynamic> ? decoded : {};
+  }
+
+  static Future<Map<String, dynamic>> saveSetLog({
+    required String logId,
+    required String exerciseId,
+    required int setNumber,
+    required int reps,
+    required double weight,
+    String? note,
+  }) async {
+    final decoded = await _post(
+      '/api/workout-session-logs/$logId/exercises/$exerciseId/sets',
+      auth: true,
+      body: {
+        'setNumber': setNumber,
+        'reps': reps,
+        'weight': weight,
+        'note': note,
+      },
+    );
+    return decoded is Map<String, dynamic> ? decoded : {};
   }
 
   static Future<Map<String, dynamic>> createRoutinePlan({
@@ -535,11 +603,12 @@ class BackendApi {
       throw Exception('Vui lòng chọn ít nhất 1 bài tập');
     }
 
-    final plan = await createWorkoutPlan(
-      name: name,
-      goal: goal,
-      daysPerWeek: safeDays,
-    );
+    final plan = await createWorkoutPlan({
+      'userId': await currentUserId(),
+      'name': name,
+      'goal': goal,
+      'daysPerWeek': safeDays,
+    });
     final planId = _value<String>(plan, 'id') ?? '';
     if (planId.isEmpty) {
       throw Exception('Không tạo được workout plan');
@@ -678,7 +747,7 @@ class BackendApi {
   static Map<String, dynamic>? _selectWorkoutSession(
     Map<String, dynamic> plan,
   ) {
-    final sessions = _value<List>(plan, 'sessions') ?? const [];
+    final sessions = _value<List>(plan, 'sessions') ?? _value<List>(plan, 'workoutDays') ?? const [];
     final sessionMaps = sessions
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
@@ -687,7 +756,7 @@ class BackendApi {
 
     final today = _todayName();
     for (final session in sessionMaps) {
-      final dayOfWeek = (_value<String>(session, 'dayOfWeek') ?? '').trim();
+      final dayOfWeek = (_value<String>(session, 'dayOfWeek') ?? _value<String>(session, 'weekday') ?? '').trim();
       final exercises = _value<List>(session, 'exercises') ?? const [];
       if (_matchesToday(dayOfWeek, today) && exercises.isNotEmpty) {
         return session;
@@ -770,11 +839,12 @@ class BackendApi {
     if (exercises.isEmpty) return {'success': true};
 
     final prefs = await SharedPreferences.getInstance();
-    final plan = await createWorkoutPlan(
-      name: 'Quick Workout',
-      goal: 'Custom',
-      daysPerWeek: 1,
-    );
+    final plan = await createWorkoutPlan({
+      'userId': await currentUserId(),
+      'name': 'Quick Workout',
+      'goal': 'Custom',
+      'daysPerWeek': 1,
+    });
     final planId = _value<String>(plan, 'id') ?? '';
     await prefs.setString(_quickWorkoutPlanKey, planId);
     final updatedPlan = await addWorkoutPlanSession(

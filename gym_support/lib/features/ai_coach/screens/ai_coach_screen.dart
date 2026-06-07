@@ -163,8 +163,32 @@ class _AiCoachScreenState extends State<AiCoachScreen>
     final prefs = await SharedPreferences.getInstance();
     final email = prefs.getString(SessionStore.emailKey);
     if (!mounted) return;
+
+    final String? mode = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('AI ANALYSIS MODES', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+            const SizedBox(height: 20),
+            _buildModeItem(ctx, 'Equipment Scan', 'Identify gym gear & get guides', Icons.fitness_center_rounded, 'equipment_info'),
+            _buildModeItem(ctx, 'Form Check', 'Analyze your exercise posture', Icons.accessibility_new_rounded, 'form_check'),
+            _buildModeItem(ctx, 'Body Analysis', 'Check body shape & progress', Icons.person_search_rounded, 'body_check'),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted || mode == null) return;
+
     final result = await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ScanEquipmentScreen(email: email)),
+      MaterialPageRoute(builder: (_) => ScanEquipmentScreen(email: email, initialMode: mode)),
     );
 
     if (!mounted || result == null) return;
@@ -179,17 +203,47 @@ class _AiCoachScreenState extends State<AiCoachScreen>
       });
       _scrollToBottom();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã thêm kết quả scan vào chat')),
+        const SnackBar(content: Text('Đã thêm kết quả phân tích vào chat')),
       );
-      return;
     }
+  }
 
-    if (result is String && result.trim().isNotEmpty) {
-      setState(() {
-        messages.add(AiChatMessage(text: result, isUser: false));
-      });
-      _scrollToBottom();
-    }
+  Widget _buildModeItem(BuildContext context, String title, String sub, IconData icon, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => Navigator.pop(context, value),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, color: AppColors.primary, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text(sub, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 14),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _scrollToBottom() {
