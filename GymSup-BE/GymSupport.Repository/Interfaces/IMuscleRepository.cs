@@ -18,5 +18,8 @@ namespace GymSupport.Repository.Interfaces
         Task UpdateAsync(Muscle muscle);
 
         Task DeleteAsync(string id);
+
+        Task<List<Muscle>> GetByCategoryAsync(string category);
+
     }
 }

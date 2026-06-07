@@ -1,7 +1,9 @@
 ﻿using GymCoach.Api.Config;
 using GymSupport.Repository.Interfaces;
 using GymSupport.Repository.Models.Entities;
+using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Text.RegularExpressions;
 
 namespace GymSupport.Repository.Repositories;
 
@@ -52,5 +54,22 @@ public class MuscleRepository : IMuscleRepository
     {
         await _collection.DeleteOneAsync(
             x => x.Id == id);
+    }
+
+    public async Task<List<Muscle>> GetByCategoryAsync(string category)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+            return new List<Muscle>();
+
+        var normalizedCategory = category.Trim();
+
+        var escapedCategory = Regex.Escape(normalizedCategory);
+
+        var filter = Builders<Muscle>.Filter.Regex(
+            x => x.Category,
+            new BsonRegularExpression($"^{escapedCategory}$", "i")
+        );
+
+        return await _collection.Find(filter).ToListAsync();
     }
 }

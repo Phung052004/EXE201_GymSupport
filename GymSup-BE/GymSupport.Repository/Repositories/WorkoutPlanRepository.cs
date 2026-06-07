@@ -59,5 +59,22 @@ namespace GymSupport.Repository.Repositories
                 x => x.Id == plan.Id,
                 plan);
         }
+
+        public async Task<WorkoutPlan?> GetActiveByUserIdAsync(string userId)
+        {
+            return await _collection
+                .Find(x => x.UserId == userId && x.IsActive)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task DeactivateAllByUserIdAsync(string userId)
+        {
+            var update = Builders<WorkoutPlan>.Update
+                .Set(x => x.IsActive, false);
+
+            await _collection.UpdateManyAsync(
+                x => x.UserId == userId,
+                update);
+        }
     }
 }

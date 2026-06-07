@@ -1,265 +1,125 @@
-using GymSupport.Repository.Models.Entities;
 using GymSupport.Repository.Interfaces;
-using GymSupport.Repository.Models.DTOs.WorkoutPlan;
+using GymSupport.Repository.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GymSupport.API.Controllers
+namespace GymSupport.API.Controllers;
+
+[ApiController]
+[Route("api/workoutplans")]
+public class WorkoutPlansController : ControllerBase
 {
-    [Route("api/workoutplans")]
-    [ApiController]
-    public class WorkoutPlansController : ControllerBase
+    private readonly IWorkoutPlanRepository _repository;
+
+    public WorkoutPlansController(IWorkoutPlanRepository repository)
     {
-        private readonly IWorkoutPlanRepository _repository;
-
-        public WorkoutPlansController(
-            IWorkoutPlanRepository repository)
-        {
-            _repository = repository;
-        }
-
-        #region WorkoutPlan
-
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var plans = await _repository.GetAllAsync();
-
-            return Ok(plans);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(string id)
-        {
-            var plan = await _repository.GetByIdAsync(id);
-
-            if (plan == null)
-                return NotFound("Workout plan not found");
-
-            return Ok(plan);
-        }
-
-        [HttpGet("user/{userId}")]
-        public async Task<IActionResult> GetByUser(string userId)
-        {
-            var plans = await _repository.GetByUserIdAsync(userId);
-
-            return Ok(plans);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Create(
-            [FromBody] CreateWorkoutPlanDto dto)
-        {
-            if (!string.Equals(dto.Name, "Quick Workout", StringComparison.OrdinalIgnoreCase))
-            {
-                var currentPlans = await _repository.GetByUserIdAsync(dto.UserId);
-                foreach (var currentPlan in currentPlans.Where(x => x.IsActive))
-                {
-                    currentPlan.IsActive = false;
-                    await _repository.UpdateAsync(currentPlan);
-                }
-            }
+        _repository = repository;
+    }
 
-            var plan = new WorkoutPlan
-            {
-                UserId = dto.UserId,
-                Name = dto.Name,
-                Goal = dto.Goal,
-                DaysPerWeek = dto.DaysPerWeek,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var plans = await _repository.GetAllAsync();
+        return Ok(plans);
+    }
 
-            await _repository.CreateAsync(plan);
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(string id)
+    {
+        var plan = await _repository.GetByIdAsync(id);
 
-            return Ok(plan);
-        }
+        if (plan == null)
+            return NotFound("Workout plan not found");
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(string id)
-        {
-            var plan = await _repository.GetByIdAsync(id);
+        return Ok(plan);
+    }
 
-            if (plan == null)
-                return NotFound("Workout plan not found");
+    [HttpGet("user/{userId}")]
+    public async Task<IActionResult> GetByUser(string userId)
+    {
+        var plans = await _repository.GetByUserIdAsync(userId);
+        return Ok(plans);
+    }
 
-            await _repository.DeleteAsync(id);
+    [HttpGet("user/{userId}/active")]
+    public async Task<IActionResult> GetActiveByUser(string userId)
+    {
+        var plan = await _repository.GetActiveByUserIdAsync(userId);
 
-            return NoContent();
-        }
+        if (plan == null)
+            return NotFound("No active workout plan found");
 
-        #endregion
+        return Ok(plan);
+    }
 
-        #region Session
-
-        [HttpPost("{planId}/sessions")]
-        public async Task<IActionResult> AddSession(
-            string planId,
-            [FromBody] CreateSessionDto dto)
-        {
-            var plan = await _repository.GetByIdAsync(planId);
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] WorkoutPlan plan)
+    {
+        await _repository.DeactivateAllByUserIdAsync(plan.UserId);
 
-            if (plan == null)
-                return NotFound("Workout plan not found");
+        plan.IsActive = true;
 
-            plan.Sessions.Add(new WorkoutSession
-            {
-                Id = Guid.NewGuid().ToString(),
-                DayOfWeek = dto.DayOfWeek,
-                Focus = dto.Focus
-            });
-
-            await _repository.UpdateAsync(plan);
+        await _repository.CreateAsync(plan);
 
-            return Ok(plan);
-        }
+        return Ok(plan);
+    }
 
-        [HttpPut("{planId}/sessions/{sessionId}")]
-        public async Task<IActionResult> UpdateSession(
-            string planId,
-            string sessionId,
-            [FromBody] UpdateSessionDto dto)
-        {
-            var plan = await _repository.GetByIdAsync(planId);
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(string id, [FromBody] WorkoutPlan request)
+    {
+        var plan = await _repository.GetByIdAsync(id);
 
-            if (plan == null)
-                return NotFound("Workout plan not found");
+        if (plan == null)
+            return NotFound("Workout plan not found");
 
-            var session = plan.Sessions
-                .FirstOrDefault(x => x.Id == sessionId);
+        request.Id = id;
 
-            if (session == null)
-                return NotFound("Session not found");
+        await _repository.UpdateAsync(request);
 
-            session.DayOfWeek = dto.DayOfWeek;
-            session.Focus = dto.Focus;
+        return Ok(request);
+    }
 
-            await _repository.UpdateAsync(plan);
+    [HttpPut("{id}/activate")]
+    public async Task<IActionResult> Activate(string id)
+    {
+        var plan = await _repository.GetByIdAsync(id);
 
-            return Ok(session);
-        }
+        if (plan == null)
+            return NotFound("Workout plan not found");
 
-        [HttpDelete("{planId}/sessions/{sessionId}")]
-        public async Task<IActionResult> DeleteSession(
-            string planId,
-            string sessionId)
-        {
-            var plan = await _repository.GetByIdAsync(planId);
+        await _repository.DeactivateAllByUserIdAsync(plan.UserId);
 
-            if (plan == null)
-                return NotFound("Workout plan not found");
+        plan.IsActive = true;
 
-            var session = plan.Sessions
-                .FirstOrDefault(x => x.Id == sessionId);
+        await _repository.UpdateAsync(plan);
 
-            if (session == null)
-                return NotFound("Session not found");
+        return Ok(plan);
+    }
 
-            plan.Sessions.Remove(session);
+    [HttpPut("{id}/deactivate")]
+    public async Task<IActionResult> Deactivate(string id)
+    {
+        var plan = await _repository.GetByIdAsync(id);
 
-            await _repository.UpdateAsync(plan);
+        if (plan == null)
+            return NotFound("Workout plan not found");
 
-            return NoContent();
-        }
+        plan.IsActive = false;
 
-        #endregion
+        await _repository.UpdateAsync(plan);
 
-        #region Exercise In Session
+        return Ok(plan);
+    }
 
-        [HttpPost("{planId}/sessions/{sessionId}/exercises")]
-        public async Task<IActionResult> AddExercise(
-            string planId,
-            string sessionId,
-            [FromBody] AddExerciseToSessionDto dto)
-        {
-            var plan = await _repository.GetByIdAsync(planId);
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(string id)
+    {
+        var plan = await _repository.GetByIdAsync(id);
 
-            if (plan == null)
-                return NotFound("Workout plan not found");
+        if (plan == null)
+            return NotFound("Workout plan not found");
 
-            var session = plan.Sessions
-                .FirstOrDefault(x => x.Id == sessionId);
+        await _repository.DeleteAsync(id);
 
-            if (session == null)
-                return NotFound("Session not found");
-
-            session.Exercises.Add(new ExerciseInSession
-            {
-                ExerciseId = dto.ExerciseId,
-                ExerciseName = dto.ExerciseName ?? string.Empty,
-                Sets = dto.Sets,
-                Reps = dto.Reps,
-                Notes = dto.Notes
-            });
-
-            await _repository.UpdateAsync(plan);
-
-            return Ok(session);
-        }
-
-        [HttpPut("{planId}/sessions/{sessionId}/exercises/{exerciseId}")]
-        public async Task<IActionResult> UpdateExercise(
-            string planId,
-            string sessionId,
-            string exerciseId,
-            [FromBody] UpdateExerciseInSessionDto dto)
-        {
-            var plan = await _repository.GetByIdAsync(planId);
-
-            if (plan == null)
-                return NotFound("Workout plan not found");
-
-            var session = plan.Sessions
-                .FirstOrDefault(x => x.Id == sessionId);
-
-            if (session == null)
-                return NotFound("Session not found");
-
-            var exercise = session.Exercises
-                .FirstOrDefault(x => x.ExerciseId == exerciseId);
-
-            if (exercise == null)
-                return NotFound("Exercise not found");
-
-            exercise.Sets = dto.Sets;
-            exercise.Reps = dto.Reps;
-            exercise.Notes = dto.Notes;
-
-            await _repository.UpdateAsync(plan);
-
-            return Ok(exercise);
-        }
-
-        [HttpDelete("{planId}/sessions/{sessionId}/exercises/{exerciseId}")]
-        public async Task<IActionResult> DeleteExercise(
-            string planId,
-            string sessionId,
-            string exerciseId)
-        {
-            var plan = await _repository.GetByIdAsync(planId);
-
-            if (plan == null)
-                return NotFound("Workout plan not found");
-
-            var session = plan.Sessions
-                .FirstOrDefault(x => x.Id == sessionId);
-
-            if (session == null)
-                return NotFound("Session not found");
-
-            var exercise = session.Exercises
-                .FirstOrDefault(x => x.ExerciseId == exerciseId);
-
-            if (exercise == null)
-                return NotFound("Exercise not found");
-
-            session.Exercises.Remove(exercise);
-
-            await _repository.UpdateAsync(plan);
-
-            return NoContent();
-        }
-
-        #endregion
+        return NoContent();
     }
 }

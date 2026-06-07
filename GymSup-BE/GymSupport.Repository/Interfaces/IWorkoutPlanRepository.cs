@@ -15,4 +15,8 @@ public interface IWorkoutPlanRepository
     Task UpdateAsync(WorkoutPlan plan);
 
     Task DeleteAsync(string id);
+
+    Task<WorkoutPlan?> GetActiveByUserIdAsync(string userId);
+
+    Task DeactivateAllByUserIdAsync(string userId);
 }

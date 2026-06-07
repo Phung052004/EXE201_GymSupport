@@ -10,18 +10,45 @@ namespace GymSupport.API.Controllers;
 public class ExercisesController : ControllerBase
 {
     private readonly IExerciseRepository _repository;
-
+    private readonly IMuscleRepository _muscleRepository;
     public ExercisesController(
-        IExerciseRepository repository)
+       IExerciseRepository repository,
+       IMuscleRepository muscleRepository)
     {
         _repository = repository;
+        _muscleRepository = muscleRepository;
     }
-
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? category,
+        [FromQuery] string? muscleId)
     {
-        var exercises =
-            await _repository.GetAllAsync();
+        var exercises = (await _repository.GetAllAsync()).ToList();
+
+        if (!string.IsNullOrWhiteSpace(muscleId))
+        {
+            exercises = exercises
+                .Where(e => e.MuscleImpacts.Any(mi => mi.MuscleId == muscleId))
+                .ToList();
+
+            return Ok(exercises);
+        }
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            var muscles = await _muscleRepository.GetAllAsync();
+
+            var muscleIds = muscles
+                .Where(m => string.Equals(m.Category, category, StringComparison.OrdinalIgnoreCase))
+                .Select(m => m.Id)
+                .ToHashSet();
+
+            exercises = exercises
+                .Where(e => e.MuscleImpacts.Any(mi => muscleIds.Contains(mi.MuscleId)))
+                .ToList();
+
+            return Ok(exercises);
+        }
 
         return Ok(exercises);
     }
