@@ -76,9 +76,11 @@ public class AIController : ControllerBase
     [HttpPost("analyze-image")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> AnalyzeImage(
-    [FromForm] IFormFile? image,
-    [FromForm] string? mode)
+    [FromForm] AnalyzeImageRequest request)
     {
+        var image = request.Image;
+        var mode = request.Mode;
+
         if (image == null || image.Length == 0)
         {
             return BadRequest(new
@@ -144,4 +146,11 @@ public class AIController : ControllerBase
             });
         }
     }
+}
+
+public class AnalyzeImageRequest
+{
+    public IFormFile? Image { get; set; }
+
+    public string? Mode { get; set; }
 }

@@ -57,7 +57,6 @@ namespace GymSupport.API.Controllers
                 UserId = request.UserId,
                 Gender = request.Gender,
                 Age = request.Age ?? 0,
-                Bmi = request.Bmi ?? 0,
                 HeightCm = request.HeightCm ?? 0,
                 WeightKg = request.WeightKg ?? 0,
                 Goal = request.Goal,
@@ -65,6 +64,7 @@ namespace GymSupport.API.Controllers
                 InjuryNotes = request.InjuryNotes,
                 Subscription = string.IsNullOrWhiteSpace(request.Subscription) ? "free" : request.Subscription
             };
+            customer.Bmi = CalculateBmi(customer.WeightKg, customer.HeightCm);
 
             await _customerRepository.CreateAsync(customer);
             return CreatedAtAction(nameof(GetByUserId), new { userId = customer.UserId }, customer);
@@ -90,14 +90,13 @@ namespace GymSupport.API.Controllers
             if (request.Age.HasValue)
                 customer.Age = request.Age.Value;
 
-            if (request.Bmi.HasValue)
-                customer.Bmi = request.Bmi.Value;
-
             if (request.HeightCm.HasValue)
                 customer.HeightCm = request.HeightCm.Value;
 
             if (request.WeightKg.HasValue)
                 customer.WeightKg = request.WeightKg.Value;
+
+            customer.Bmi = CalculateBmi(customer.WeightKg, customer.HeightCm);
 
             if (request.Goal != null)
                 customer.Goal = request.Goal;
@@ -128,6 +127,15 @@ namespace GymSupport.API.Controllers
                 return null;
 
             return currentUser;
+        }
+
+        private static double CalculateBmi(int weightKg, int heightCm)
+        {
+            if (weightKg <= 0 || heightCm <= 0)
+                return 0;
+
+            var heightM = heightCm / 100.0;
+            return Math.Round(weightKg / (heightM * heightM), 1);
         }
     }
 }

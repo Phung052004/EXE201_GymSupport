@@ -12,6 +12,46 @@ namespace GymSupport.Service.Services;
 
 public class OpenAIService : IAIService
 {
+    private const string OutOfScopeResponse =
+        "Mình là GymSupport AI Coach nên chỉ có thể hỗ trợ các câu hỏi về gym, fitness, sức khỏe, dinh dưỡng và lịch tập. Bạn muốn mình giúp gì về tập luyện hôm nay?";
+
+    private static readonly string[] FitnessScopeTerms =
+    {
+        "gym", "fitness", "workout", "exercise", "training", "coach", "pt",
+        "tập", "tap", "tập luyện", "tap luyen", "bài tập", "bai tap", "lịch tập", "lich tap",
+        "sức khỏe", "suc khoe", "dinh dưỡng", "dinh duong", "nutrition", "diet", "meal",
+        "ăn", "an ", "calo", "calorie", "protein", "carb", "fat", "macro", "whey", "creatine",
+        "bmi", "cân nặng", "can nang", "chiều cao", "chieu cao", "giảm cân", "giam can",
+        "giảm mỡ", "giam mo", "tăng cơ", "tang co", "siết cơ", "siet co", "bulk", "cut",
+        "cardio", "hiit", "chạy bộ", "chay bo", "đi bộ", "di bo", "yoga", "stretch",
+        "khởi động", "khoi dong", "giãn cơ", "gian co", "phục hồi", "phuc hoi", "ngủ", "ngu",
+        "chấn thương", "chan thuong", "đau", "dau", "form", "tư thế", "tu the",
+        "cơ", "co ", "ngực", "nguc", "lưng", "lung", "vai", "tay", "chân", "chan",
+        "bụng", "bung", "mông", "mong", "đùi", "dui", "bench press", "squat", "deadlift",
+        "push up", "pull up", "plank", "reps", "sets", "hiệp", "hiep",
+        "thứ 2", "thu 2", "thứ 3", "thu 3", "thứ 4", "thu 4", "thứ 5", "thu 5",
+        "thứ 6", "thu 6", "thứ 7", "thu 7", "chủ nhật", "chu nhat",
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
+    };
+
+    private static readonly string[] HardOutOfScopeTerms =
+    {
+        "viết code", "viet code", "lập trình", "lap trinh", "python", "javascript",
+        "typescript", "java", "c#", "sql", "html", "css", "debug", "bug", "api",
+        "chứng khoán", "chung khoan", "crypto", "bitcoin", "xổ số", "xo so",
+        "chính trị", "chinh tri", "bầu cử", "bau cu", "tin tức", "tin tuc",
+        "làm văn", "lam van", "giải toán", "giai toan", "toán", "toan",
+        "vật lý", "vat ly", "hóa học", "hoa hoc", "tiếng anh", "tieng anh",
+        "dịch bài", "dich bai", "homework", "essay"
+    };
+
+    private static readonly string[] ConfirmationTerms =
+    {
+        "ok", "okay", "oke", "đồng ý", "dong y", "lưu đi", "luu di", "lưu lịch",
+        "luu lich", "tạo đi", "tao di", "tạo lịch", "tao lich", "áp dụng",
+        "ap dung", "chốt", "chot", "yes", "agree"
+    };
+
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly IChatRepository _chatRepository;
@@ -190,6 +230,24 @@ public class OpenAIService : IAIService
 
     public async Task<ChatResponseDto> ChatAsync(string userId, string message)
     {
+        // ==========================
+        // Chat History
+        // ==========================
+        var history = await _chatRepository.GetRecentMessagesAsync(userId, 20);
+        history.Reverse();
+
+        if (!IsFitnessScopeMessage(message, history))
+        {
+            await _chatRepository.CreateAsync(new ChatMessage { UserId = userId, Role = "user", Content = message });
+            await _chatRepository.CreateAsync(new ChatMessage { UserId = userId, Role = "assistant", Content = OutOfScopeResponse });
+
+            return new ChatResponseDto
+            {
+                Response = OutOfScopeResponse,
+                Suggestions = new List<AISuggestionDto>()
+            };
+        }
+
         var apiKey = _configuration["OpenAI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
@@ -197,12 +255,6 @@ public class OpenAIService : IAIService
         }
 
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-
-        // ==========================
-        // Chat History
-        // ==========================
-        var history = await _chatRepository.GetRecentMessagesAsync(userId, 20);
-        history.Reverse();
 
         // ==========================
         // Workout Plans
@@ -231,6 +283,13 @@ public class OpenAIService : IAIService
             content =
 $$"""
 Bạn là GymSupport AI Coach - Trợ lý huấn luyện viên thể hình chuyên nghiệp. Bạn có nhiệm vụ quản lý lịch tập (Workout Plan) cho người dùng giống như một Thời khóa biểu tuần.
+
+=========================================
+GIỚI HẠN PHẠM VI TRẢ LỜI (BẮT BUỘC):
+- Bạn CHỈ được trả lời các câu hỏi liên quan đến gym, fitness, tập luyện, phục hồi, sức khỏe thể chất, vóc dáng, dinh dưỡng, thực phẩm bổ trợ hợp pháp, thói quen sinh hoạt hỗ trợ tập luyện, an toàn khi tập và quản lý workout plan trong GymSupport.
+- Nếu người dùng hỏi chủ đề ngoài phạm vi như lập trình, chính trị, tài chính, giải trí, bài tập ở trường, tin tức, thời tiết, chuyện cá nhân không liên quan sức khỏe/tập luyện... bạn KHÔNG được trả lời nội dung đó.
+- Với câu hỏi ngoài phạm vi, trả về `suggestions: []` và `response` ngắn gọn: "Mình là GymSupport AI Coach nên chỉ có thể hỗ trợ các câu hỏi về gym, fitness, sức khỏe, dinh dưỡng và lịch tập. Bạn muốn mình giúp gì về tập luyện hôm nay?"
+- Không được cố gắng trả lời một phần câu hỏi ngoài phạm vi rồi mới chuyển chủ đề.
 
 =========================================
 KIẾN TRÚC DỮ LIỆU CỦA HỆ THỐNG:
@@ -444,6 +503,45 @@ QUY TẮC CẤU TRÚC JSON CHO TỪNG HÀNH ĐỘNG (BẮT BUỘC TUÂN THỦ):
 
         return aiResult ?? new ChatResponseDto { Response = "Không nhận được phản hồi." };
     }
+
+    private static bool IsFitnessScopeMessage(
+        string message,
+        IEnumerable<ChatMessage> history)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return false;
+        }
+
+        var normalized = message.Trim().ToLowerInvariant();
+
+        if (ContainsAny(normalized, HardOutOfScopeTerms))
+        {
+            return false;
+        }
+
+        if (ContainsAny(normalized, FitnessScopeTerms))
+        {
+            return true;
+        }
+
+        if (ContainsAny(normalized, ConfirmationTerms))
+        {
+            return history
+                .Where(x => string.Equals(x.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+                .TakeLast(4)
+                .Any(x => ContainsAny(x.Content.ToLowerInvariant(), FitnessScopeTerms));
+        }
+
+        return false;
+    }
+
+    private static bool ContainsAny(string value, IEnumerable<string> terms)
+    {
+        return terms.Any(term =>
+            value.Contains(term, StringComparison.OrdinalIgnoreCase));
+    }
+
     public async Task<ImageAnalyzeResponseDto> AnalyzeImageAsync(
     Stream imageStream,
     string contentType,
