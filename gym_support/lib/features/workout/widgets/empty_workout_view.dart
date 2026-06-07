@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 
 class EmptyWorkoutView extends StatelessWidget {
-  final VoidCallback onBrowseExercises;
+  final VoidCallback onBuildRoutine;
 
-  const EmptyWorkoutView({super.key, required this.onBrowseExercises});
+  const EmptyWorkoutView({super.key, required this.onBuildRoutine});
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +47,7 @@ class EmptyWorkoutView extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Your workout queue is currently empty.\nHead over to Exercises to build your routine.',
+              'Your workout queue is currently empty.\nBuild a routine to plan your training days.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.42),
@@ -58,7 +58,7 @@ class EmptyWorkoutView extends StatelessWidget {
             ),
             const SizedBox(height: 26),
             GestureDetector(
-              onTap: onBrowseExercises,
+              onTap: onBuildRoutine,
               child: Container(
                 height: 52,
                 padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -75,7 +75,7 @@ class EmptyWorkoutView extends StatelessWidget {
                 ),
                 child: const Center(
                   child: Text(
-                    'Browse Exercises',
+                    'Build Routine',
                     style: TextStyle(
                       color: AppColors.textDark,
                       fontSize: 15,

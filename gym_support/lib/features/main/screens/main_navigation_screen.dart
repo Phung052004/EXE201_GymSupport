@@ -6,7 +6,6 @@ import '../../../core/services/backend_api.dart';
 import '../../../core/services/session_store.dart';
 import '../../../models/exercise.dart';
 import '../../ai_coach/screens/ai_coach_screen.dart';
-import '../../exercises/screens/exercises_screen.dart';
 import '../../home/screens/build_routine_screen.dart';
 import '../../home/screens/home_screen.dart';
 import '../../home/widgets/app_bottom_nav_bar.dart';
@@ -36,12 +35,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _homeRefreshSeed = 0;
 
   final Map<String, Exercise> _selectedExercises = {};
-  List<Exercise> _exerciseCatalog = const [];
 
   late String _name;
   late String _goal;
   late String _schedule;
   late String _bmi;
+  String _workoutDayLabel = 'Today';
+  String _workoutFocus = '';
 
   @override
   void initState() {
@@ -50,7 +50,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _goal = widget.goal;
     _schedule = widget.schedule;
     _bmi = widget.bmi;
-    _loadExerciseCatalog();
     _loadWorkoutSession();
   }
 
@@ -61,16 +60,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-  Future<void> _loadExerciseCatalog() async {
-    try {
-      final catalog = await BackendApi.getExercises();
-      if (!mounted) return;
-      setState(() {
-        _exerciseCatalog = catalog;
-      });
-    } catch (_) {
-      // Keep empty catalog when backend is unavailable.
-    }
+  void _updateBmi(String bmi) {
+    setState(() {
+      _bmi = bmi;
+    });
   }
 
   Future<void> _loadWorkoutSession() async {
@@ -96,6 +89,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         _selectedExercises
           ..clear()
           ..addAll(mapped);
+        _workoutDayLabel = session['day']?.toString() ?? 'Today';
+        _workoutFocus = session['focus']?.toString() ?? '';
       });
     } catch (_) {
       // Ignore when backend unavailable.
@@ -105,8 +100,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   List<Exercise> get selectedExercises {
     return _selectedExercises.values.toList();
   }
-
-  Set<String> get selectedExerciseIds => _selectedExercises.keys.toSet();
 
   Exercise _exerciseFromSession(Map<String, dynamic> item) {
     final id = item['exerciseId']?.toString() ?? item['name']?.toString() ?? '';
@@ -120,28 +113,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       'muscleGroup': muscle,
       'setsAndReps': '$sets sets x $reps reps',
     });
-  }
-
-  void toggleExercise(String exerciseId) {
-    setState(() {
-      if (_selectedExercises.containsKey(exerciseId)) {
-        _selectedExercises.remove(exerciseId);
-        return;
-      }
-
-      final catalogExercise = _exerciseCatalog.firstWhere(
-        (exercise) => exercise.id == exerciseId,
-        orElse: () => Exercise.fromJson({
-          'id': exerciseId,
-          'name': 'Exercise',
-          'muscleGroup': 'Unknown',
-          'setsAndReps': '3 sets x 10 reps',
-        }),
-      );
-      _selectedExercises[exerciseId] = catalogExercise;
-    });
-
-    _persistWorkoutSession();
   }
 
   void removeExercise(String exerciseId) {
@@ -160,34 +131,27 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
 
     if (!mounted || created != true) return;
-    await _loadExerciseCatalog();
     await _loadWorkoutSession();
     if (!mounted) return;
     setState(() {
-      currentIndex = 0;
-      _selectedExercises.clear();
+      currentIndex = 2;
       _homeRefreshSeed++;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Routine đã được lưu vào backend')),
+      const SnackBar(content: Text('Routine đã được chuyển sang Workout')),
     );
   }
 
-  void finishWorkout() {
+  void finishWorkoutGoHome() {
     setState(() {
       _selectedExercises.clear();
       currentIndex = 0;
+      _homeRefreshSeed++;
     });
 
-    _completeWorkout().then((_) {
-      if (!mounted) return;
-      setState(() {
-        _homeRefreshSeed++;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Workout đã hoàn thành!')));
-    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Workout đã hoàn thành!')));
   }
 
   Future<void> _persistWorkoutSession() async {
@@ -213,15 +177,75 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
   }
 
-  Future<void> _completeWorkout() async {
+  Future<Map<String, dynamic>> _completeWorkout({
+    required int completedCount,
+    required int completedSets,
+    required int elapsedSeconds,
+    required int totalExercises,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final email = prefs.getString(SessionStore.emailKey);
-      if (email == null || email.isEmpty) return;
-      await BackendApi.completeWorkout(email: email);
+      if (email == null || email.isEmpty) {
+        return _finishSummary(
+          completedCount: completedCount,
+          completedSets: completedSets,
+          elapsedSeconds: elapsedSeconds,
+          totalExercises: totalExercises,
+        );
+      }
+      final backendResult = await BackendApi.completeWorkout(email: email);
+      return _finishSummary(
+        completedCount: completedCount,
+        completedSets: completedSets,
+        elapsedSeconds: elapsedSeconds,
+        totalExercises: totalExercises,
+        backendResult: backendResult,
+      );
     } catch (_) {
-      // Ignore completion errors for now.
+      return _finishSummary(
+        completedCount: completedCount,
+        completedSets: completedSets,
+        elapsedSeconds: elapsedSeconds,
+        totalExercises: totalExercises,
+      );
     }
+  }
+
+  Map<String, dynamic> _finishSummary({
+    required int completedCount,
+    required int completedSets,
+    required int elapsedSeconds,
+    required int totalExercises,
+    Map<String, dynamic>? backendResult,
+  }) {
+    final backendSeconds = backendResult?['totalDurationSeconds'];
+    final durationSeconds = elapsedSeconds > 0
+        ? elapsedSeconds
+        : int.tryParse(backendSeconds?.toString() ?? '') ?? 0;
+    final backendSets = int.tryParse(
+      backendResult?['totalSets']?.toString() ?? '',
+    );
+    final backendExp = int.tryParse(
+      backendResult?['totalExpGained']?.toString() ?? '',
+    );
+
+    if (mounted) {
+      setState(() {
+        _selectedExercises.clear();
+        _homeRefreshSeed++;
+      });
+    }
+
+    return {
+      'day': _workoutDayLabel,
+      'focus': _workoutFocus,
+      'completedCount': completedCount,
+      'totalExercises': totalExercises,
+      'durationSeconds': durationSeconds,
+      'totalSets': (backendSets ?? 0) > 0 ? backendSets : completedSets,
+      'totalExpGained': backendExp ?? 0,
+    };
   }
 
   Future<void> updateExerciseSetsReps(
@@ -272,21 +296,35 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
       WorkoutScreen(
         selectedExercises: selectedExercises,
-        onBrowseExercises: () {
+        dayLabel: _workoutDayLabel,
+        focus: _workoutFocus,
+        onBuildRoutine: () {
           setState(() {
             currentIndex = 3;
           });
         },
         onRemoveExercise: removeExercise,
         onUpdateExercise: updateExerciseSetsReps,
-        onFinishWorkout: finishWorkout,
+        onFinishWorkout: _completeWorkout,
+        onGoHomeAfterFinish: finishWorkoutGoHome,
       ),
 
-      ExercisesScreen(
+      BuildRoutineScreen(
         goal: _goal,
         schedule: _schedule,
-        selectedExerciseIds: selectedExerciseIds,
-        onToggleExercise: toggleExercise,
+        onRoutineSaved: () async {
+          await _loadWorkoutSession();
+          if (!context.mounted) return;
+          setState(() {
+            currentIndex = 2;
+            _homeRefreshSeed++;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Routine đã được chuyển sang Workout'),
+            ),
+          );
+        },
       ),
 
       ProfileScreen(
@@ -295,6 +333,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         schedule: _schedule,
         bmi: _bmi,
         onGoalsUpdated: _updateGoals,
+        onBmiUpdated: _updateBmi,
       ),
     ];
 

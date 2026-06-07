@@ -18,6 +18,7 @@ class ProfileScreen extends StatefulWidget {
   final String schedule;
   final String bmi;
   final void Function(String goal, String schedule)? onGoalsUpdated;
+  final ValueChanged<String>? onBmiUpdated;
 
   const ProfileScreen({
     super.key,
@@ -26,6 +27,7 @@ class ProfileScreen extends StatefulWidget {
     required this.schedule,
     required this.bmi,
     this.onGoalsUpdated,
+    this.onBmiUpdated,
   });
 
   @override
@@ -35,6 +37,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late String _goal;
   late String _schedule;
+  late String _bmi;
   late final Future<Map<String, dynamic>> _dashboardFuture;
 
   @override
@@ -42,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _goal = widget.goal;
     _schedule = widget.schedule;
+    _bmi = widget.bmi;
     _dashboardFuture = _loadDashboard();
   }
 
@@ -263,22 +267,180 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
-        return ProfileInfoSheet(
-          title: 'Personal Information',
-          items: [
-            InfoRow(label: 'Name', value: widget.name),
-            InfoRow(
-              label: 'BMI',
-              value: widget.bmi.isEmpty ? '--' : widget.bmi,
-            ),
-          ],
+        return FutureBuilder<Map<String, dynamic>?>(
+          future: _loadProfileInfo(),
+          builder: (context, snapshot) {
+            final profile = snapshot.data;
+            return ProfileInfoSheet(
+              title: 'Personal Information',
+              items: [
+                InfoRow(label: 'Name', value: widget.name),
+                InfoRow(
+                  label: 'Weight',
+                  value: '${profile?['weight'] ?? '--'} kg',
+                ),
+                InfoRow(
+                  label: 'Height',
+                  value: '${profile?['height'] ?? '--'} cm',
+                ),
+                InfoRow(label: 'BMI', value: _bmi.isEmpty ? '--' : _bmi),
+              ],
+              actions: [
+                TextButton(
+                  onPressed: snapshot.connectionState == ConnectionState.waiting
+                      ? null
+                      : () {
+                          Navigator.pop(context);
+                          _showEditBodyMetricsSheet(profile);
+                        },
+                  child: const Text(
+                    'Chỉnh sửa cân nặng/chiều cao',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
+  }
+
+  Future<Map<String, dynamic>?> _loadProfileInfo() async {
+    final email = await _currentEmail();
+    if (email.isEmpty) return null;
+    return BackendApi.getOnboardingProfileByEmail(email);
+  }
+
+  void _showEditBodyMetricsSheet(Map<String, dynamic>? profile) {
+    final weightController = TextEditingController(
+      text: profile?['weight']?.toString() ?? '',
+    );
+    final heightController = TextEditingController(
+      text: profile?['height']?.toString() ?? '',
+    );
+
+    double? currentBmi() {
+      final weight = double.tryParse(weightController.text.trim());
+      final heightCm = double.tryParse(heightController.text.trim());
+      if (weight == null || heightCm == null || weight <= 0 || heightCm <= 0) {
+        return null;
+      }
+      final heightM = heightCm / 100;
+      return weight / (heightM * heightM);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final bmi = currentBmi();
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                22,
+                22,
+                22,
+                22 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Chỉnh sửa chỉ số cơ thể',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _MetricField(
+                    controller: weightController,
+                    label: 'Weight',
+                    suffix: 'kg',
+                    onChanged: (_) => setSheetState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  _MetricField(
+                    controller: heightController,
+                    label: 'Height',
+                    suffix: 'cm',
+                    onChanged: (_) => setSheetState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  InfoRow(
+                    label: 'BMI',
+                    value: bmi == null ? '--' : bmi.toStringAsFixed(1),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Hủy'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _saveBodyMetrics(
+                              weightController.text.trim(),
+                              heightController.text.trim(),
+                            );
+                          },
+                          child: const Text('Lưu'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      weightController.dispose();
+      heightController.dispose();
+    });
+  }
+
+  Future<void> _saveBodyMetrics(String weight, String height) async {
+    try {
+      final result = await BackendApi.updateBodyMetrics(
+        weight: weight,
+        height: height,
+      );
+      final updatedBmi = result['bmi']?.toString() ?? '--';
+      if (!mounted) return;
+      setState(() {
+        _bmi = updatedBmi;
+      });
+      widget.onBmiUpdated?.call(updatedBmi);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã cập nhật BMI')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Không thể cập nhật: $error')));
+    }
   }
 
   void showWorkoutPreferencesBottomSheet(BuildContext context) {
@@ -601,6 +763,42 @@ class InfoRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MetricField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String suffix;
+  final ValueChanged<String> onChanged;
+
+  const _MetricField({
+    required this.controller,
+    required this.label,
+    required this.suffix,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      onChanged: onChanged,
+      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+      decoration: InputDecoration(
+        labelText: label,
+        suffixText: suffix,
+        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+        suffixStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.04),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
       ),
     );
   }

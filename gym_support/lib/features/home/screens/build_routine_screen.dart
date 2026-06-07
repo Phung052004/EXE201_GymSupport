@@ -7,11 +7,13 @@ import 'package:gym_support/models/exercise.dart';
 class BuildRoutineScreen extends StatefulWidget {
   final String goal;
   final String schedule;
+  final Future<void> Function()? onRoutineSaved;
 
   const BuildRoutineScreen({
     super.key,
     required this.goal,
     required this.schedule,
+    this.onRoutineSaved,
   });
 
   @override
@@ -21,10 +23,11 @@ class BuildRoutineScreen extends StatefulWidget {
 class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
-  final Set<String> _selectedIds = {};
+  final Map<int, Set<String>> _selectedIdsByDay = {0: <String>{}};
 
   List<Exercise> _exercises = const [];
   int _daysPerWeek = 3;
+  int _activeDayIndex = 0;
   bool _loading = false;
   bool _saving = false;
   String? _error;
@@ -78,30 +81,61 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
     }).toList();
   }
 
-  List<Exercise> get _selectedExercises {
-    return _exercises
-        .where((exercise) => _selectedIds.contains(exercise.id))
-        .toList();
+  Set<String> get _activeSelectedIds {
+    return _selectedIdsByDay.putIfAbsent(_activeDayIndex, () => <String>{});
+  }
+
+  int get _selectedCount {
+    return _selectedIdsByDay.values.fold<int>(
+      0,
+      (total, ids) => total + ids.length,
+    );
+  }
+
+  List<int> get _dayExerciseCounts {
+    return List.generate(
+      _daysPerWeek,
+      (index) => _selectedIdsByDay[index]?.length ?? 0,
+    );
+  }
+
+  List<List<Exercise>> get _selectedExercisesByDay {
+    return List.generate(_daysPerWeek, (dayIndex) {
+      final ids = _selectedIdsByDay[dayIndex] ?? <String>{};
+      return _exercises.where((exercise) => ids.contains(exercise.id)).toList();
+    });
   }
 
   void _toggleExercise(Exercise exercise) {
     setState(() {
-      if (_selectedIds.contains(exercise.id)) {
-        _selectedIds.remove(exercise.id);
+      final ids = _activeSelectedIds;
+      if (ids.contains(exercise.id)) {
+        ids.remove(exercise.id);
       } else {
-        _selectedIds.add(exercise.id);
+        ids.add(exercise.id);
       }
     });
   }
 
+  void _changeDaysPerWeek(int value) {
+    setState(() {
+      _daysPerWeek = value;
+      if (_activeDayIndex >= value) {
+        _activeDayIndex = value - 1;
+      }
+      _selectedIdsByDay.removeWhere((dayIndex, _) => dayIndex >= value);
+      _selectedIdsByDay.putIfAbsent(_activeDayIndex, () => <String>{});
+    });
+  }
+
   Future<void> _saveRoutine() async {
-    final selectedExercises = _selectedExercises;
+    final selectedExercisesByDay = _selectedExercisesByDay;
     final name = _nameController.text.trim().isEmpty
         ? 'My Routine'
         : _nameController.text.trim();
     final goal = widget.goal.trim().isEmpty ? 'Custom' : widget.goal.trim();
 
-    if (selectedExercises.isEmpty) {
+    if (_selectedCount == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Chọn ít nhất 1 bài tập để tạo routine')),
       );
@@ -113,14 +147,25 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
     });
 
     try {
-      await BackendApi.createRoutinePlan(
+      await BackendApi.createRoutinePlanByDays(
         name: name,
         goal: goal,
         daysPerWeek: _daysPerWeek,
-        exercises: selectedExercises,
+        exercisesByDay: selectedExercisesByDay,
       );
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      if (widget.onRoutineSaved != null) {
+        setState(() {
+          _selectedIdsByDay
+            ..clear()
+            ..[0] = <String>{};
+          _activeDayIndex = 0;
+          _searchController.clear();
+        });
+        await widget.onRoutineSaved!();
+      } else {
+        Navigator.of(context).pop(true);
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -138,6 +183,7 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
   @override
   Widget build(BuildContext context) {
     final items = _filteredExercises;
+    final activeSelectedIds = _activeSelectedIds;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -159,14 +205,21 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
                 nameController: _nameController,
                 searchController: _searchController,
                 daysPerWeek: _daysPerWeek,
-                selectedCount: _selectedIds.length,
+                selectedCount: _selectedCount,
                 schedule: widget.schedule,
-                onDaysChanged: (value) {
+                onDaysChanged: _changeDaysPerWeek,
+                onSearchChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              _RoutineDaySelector(
+                activeDayIndex: _activeDayIndex,
+                counts: _dayExerciseCounts,
+                onDaySelected: (index) {
                   setState(() {
-                    _daysPerWeek = value;
+                    _activeDayIndex = index;
+                    _selectedIdsByDay.putIfAbsent(index, () => <String>{});
                   });
                 },
-                onSearchChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 14),
               Expanded(
@@ -187,7 +240,9 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
                         itemCount: items.length,
                         itemBuilder: (context, index) {
                           final exercise = items[index];
-                          final selected = _selectedIds.contains(exercise.id);
+                          final selected = activeSelectedIds.contains(
+                            exercise.id,
+                          );
                           return _RoutineExerciseTile(
                             exercise: exercise,
                             selected: selected,
@@ -225,6 +280,75 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RoutineDaySelector extends StatelessWidget {
+  final int activeDayIndex;
+  final List<int> counts;
+  final ValueChanged<int> onDaySelected;
+
+  const _RoutineDaySelector({
+    required this.activeDayIndex,
+    required this.counts,
+    required this.onDaySelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 50,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: counts.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final selected = index == activeDayIndex;
+          return ChoiceChip(
+            selected: selected,
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.event_available_rounded,
+                  size: 16,
+                  color: selected
+                      ? AppColors.textDark
+                      : Colors.white.withValues(alpha: 0.62),
+                ),
+                const SizedBox(width: 6),
+                Text('Day ${index + 1}'),
+                const SizedBox(width: 6),
+                Text(
+                  '${counts[index]}',
+                  style: TextStyle(
+                    color: selected
+                        ? AppColors.textDark.withValues(alpha: 0.72)
+                        : AppColors.primary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            selectedColor: AppColors.primary,
+            backgroundColor: AppColors.surface,
+            side: BorderSide(
+              color: selected
+                  ? AppColors.primary
+                  : Colors.white.withValues(alpha: 0.08),
+            ),
+            labelStyle: TextStyle(
+              color: selected ? AppColors.textDark : Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            onSelected: (_) => onDaySelected(index),
+          );
+        },
       ),
     );
   }

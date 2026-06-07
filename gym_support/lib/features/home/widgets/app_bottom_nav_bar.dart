@@ -21,7 +21,10 @@ class AppBottomNavBar extends StatelessWidget {
         icon: Icons.fitness_center_rounded,
         label: 'Workout',
       ),
-      const BottomNavItemData(icon: Icons.list_alt_rounded, label: 'Exercises'),
+      const BottomNavItemData(
+        icon: Icons.calendar_month_rounded,
+        label: 'Routine',
+      ),
       const BottomNavItemData(icon: Icons.person_rounded, label: 'Profile'),
     ];
 

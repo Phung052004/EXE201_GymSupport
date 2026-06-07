@@ -172,7 +172,10 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          Navigator.of(context).pop(_buildChatSummaryMessage());
+                          Navigator.of(context).pop({
+                            'text': _buildChatSummaryMessage(),
+                            'imagePath': _picked?.path,
+                          });
                         },
                         icon: const Icon(Icons.chat_bubble_outline),
                         label: const Text('Gửi vào chat AI'),
