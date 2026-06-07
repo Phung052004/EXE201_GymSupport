@@ -3,19 +3,29 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 
 class PerfectWorkoutDialog extends StatelessWidget {
-  final int exerciseCount;
+  final Map<String, dynamic> result;
   final VoidCallback onGoHome;
 
   const PerfectWorkoutDialog({
     super.key,
-    required this.exerciseCount,
+    required this.result,
     required this.onGoHome,
   });
 
   @override
   Widget build(BuildContext context) {
-    final calories = exerciseCount * 12;
-    final minutes = exerciseCount * 5;
+    final completedCount = _intValue('completedCount');
+    final totalExercises = _intValue('totalExercises');
+    final totalSets = _intValue('totalSets');
+    final expGained = _intValue('totalExpGained');
+    final durationSeconds = _intValue('durationSeconds');
+    final minutes = (durationSeconds / 60).ceil();
+    final calories = completedCount * 12;
+    final completionPercent = totalExercises == 0
+        ? 0
+        : ((completedCount / totalExercises) * 100).round().clamp(0, 100);
+    final day = result['day']?.toString() ?? 'Today';
+    final focus = result['focus']?.toString() ?? '';
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -79,10 +89,12 @@ class PerfectWorkoutDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            const Text(
-              '🎉 Perfect Workout!',
+            Text(
+              completionPercent == 100
+                  ? 'Perfect Workout!'
+                  : 'Workout Finished',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 25,
                 fontWeight: FontWeight.w900,
@@ -90,7 +102,7 @@ class PerfectWorkoutDialog extends StatelessWidget {
             ),
             const SizedBox(height: 7),
             Text(
-              'Amazing job! You crushed every single exercise!',
+              focus.trim().isEmpty ? day : '$day • $focus',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.45),
@@ -105,7 +117,7 @@ class PerfectWorkoutDialog extends StatelessWidget {
                   child: DialogStatCard(
                     icon: Icons.bolt,
                     label: 'EXERCISES',
-                    value: '$exerciseCount/$exerciseCount',
+                    value: '$completedCount/$totalExercises',
                     iconColor: AppColors.primary,
                   ),
                 ),
@@ -125,19 +137,19 @@ class PerfectWorkoutDialog extends StatelessWidget {
               children: [
                 Expanded(
                   child: DialogStatCard(
-                    icon: Icons.local_fire_department,
-                    label: 'CALORIES',
-                    value: '$calories',
+                    icon: Icons.format_list_numbered_rounded,
+                    label: 'SETS',
+                    value: '$totalSets',
                     iconColor: const Color(0xFFFF7A30),
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: DialogStatCard(
                     icon: Icons.star,
                     label: 'COMPLETION',
-                    value: '100%',
-                    iconColor: Color(0xFFFFD43B),
+                    value: '$completionPercent%',
+                    iconColor: const Color(0xFFFFD43B),
                   ),
                 ),
               ],
@@ -170,9 +182,9 @@ class PerfectWorkoutDialog extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  const Text(
-                    '+80 XP',
-                    style: TextStyle(
+                  Text(
+                    '+$expGained XP',
+                    style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 13,
                       fontWeight: FontWeight.w900,
@@ -218,7 +230,9 @@ class PerfectWorkoutDialog extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Keep making progress, no matter how small!',
+              calories > 0
+                  ? 'Estimated calories burned: $calories kcal'
+                  : 'Keep making progress, no matter how small!',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.35),
@@ -230,6 +244,10 @@ class PerfectWorkoutDialog extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  int _intValue(String key) {
+    return int.tryParse(result[key]?.toString() ?? '') ?? 0;
   }
 }
 

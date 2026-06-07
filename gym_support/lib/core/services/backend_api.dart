@@ -8,6 +8,12 @@ import '../../models/exercise.dart';
 import 'session_store.dart';
 
 class BackendApi {
+  static const String _quickWorkoutPlanKey = 'quick_workout_plan_id';
+  static const String _quickWorkoutSessionKey = 'quick_workout_session_id';
+  static const String _currentWorkoutPlanKey = 'current_workout_plan_id';
+  static const String _currentWorkoutSessionKey = 'current_workout_session_id';
+  static const String _currentWorkoutIsQuickKey = 'current_workout_is_quick';
+
   static Uri get _baseUri {
     const devHost = String.fromEnvironment(
       'BACKEND_HOST',
@@ -184,7 +190,8 @@ class BackendApi {
 
     final height = _value<num>(customer, 'heightCm')?.toDouble() ?? 0;
     final weight = _value<num>(customer, 'weightKg')?.toDouble() ?? 0;
-    final bmi = _value<num>(customer, 'bmi')?.toDouble() ?? 0;
+    final storedBmi = _value<num>(customer, 'bmi')?.toDouble() ?? 0;
+    final bmi = storedBmi > 0 ? storedBmi : _calculateBmi(weight, height);
     final customerId = _value<String>(customer, 'id');
     if (customerId != null) {
       await SessionStore.saveCustomerId(customerId);
@@ -226,7 +233,10 @@ class BackendApi {
     final payload = {
       'gender': gender,
       'age': int.tryParse(age),
-      'bmi': double.tryParse(bmi),
+      'bmi': _calculateBmi(
+        double.tryParse(weight) ?? 0,
+        double.tryParse(height) ?? 0,
+      ),
       'heightCm': int.tryParse(height),
       'weightKg': int.tryParse(weight),
       'goal': goal,
@@ -258,6 +268,51 @@ class BackendApi {
     await SessionStore.saveCustomerId(customerId);
   }
 
+  static Future<Map<String, dynamic>> updateBodyMetrics({
+    required String weight,
+    required String height,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString(SessionStore.userIdKey);
+    var customerId = prefs.getString(SessionStore.customerIdKey);
+    if (userId == null || userId.isEmpty) {
+      throw Exception('Không tìm thấy hồ sơ người dùng');
+    }
+
+    if (customerId == null || customerId.isEmpty) {
+      final customer = await getCustomerByUserId(userId);
+      customerId = customer == null ? null : _value<String>(customer, 'id');
+      if (customerId != null) await SessionStore.saveCustomerId(customerId);
+    }
+
+    if (customerId == null || customerId.isEmpty) {
+      throw Exception('Không tìm thấy hồ sơ customer');
+    }
+
+    final weightKg = int.tryParse(weight);
+    final heightCm = int.tryParse(height);
+    if (weightKg == null ||
+        weightKg <= 0 ||
+        heightCm == null ||
+        heightCm <= 0) {
+      throw Exception('Vui lòng nhập cân nặng và chiều cao hợp lệ');
+    }
+
+    final bmi = _calculateBmi(weightKg.toDouble(), heightCm.toDouble());
+    await _put(
+      '/api/Customer/$customerId',
+      auth: true,
+      body: {'heightCm': heightCm, 'weightKg': weightKg, 'bmi': bmi},
+    );
+
+    return {
+      'success': true,
+      'weight': weightKg.toString(),
+      'height': heightCm.toString(),
+      'bmi': bmi == 0 ? '--' : bmi.toStringAsFixed(1),
+    };
+  }
+
   static Future<Map<String, dynamic>> updateOnboardingProfile({
     required String email,
     String? goal,
@@ -276,6 +331,12 @@ class BackendApi {
 
     await _put('/api/Customer/$customerId', auth: true, body: payload);
     return {'success': true};
+  }
+
+  static double _calculateBmi(double weightKg, double heightCm) {
+    if (weightKg <= 0 || heightCm <= 0) return 0;
+    final heightM = heightCm / 100;
+    return weightKg / (heightM * heightM);
   }
 
   static Future<List<Map<String, dynamic>>> getMuscles() async {
@@ -438,24 +499,55 @@ class BackendApi {
       throw Exception('Vui lòng chọn ít nhất 1 bài tập');
     }
 
+    final safeDays = daysPerWeek.clamp(1, 7);
+    final buckets = List.generate(safeDays, (_) => <Exercise>[]);
+    for (var i = 0; i < exercises.length; i += 1) {
+      buckets[i % safeDays].add(exercises[i]);
+    }
+
+    return createRoutinePlanByDays(
+      name: name,
+      goal: goal,
+      daysPerWeek: safeDays,
+      exercisesByDay: buckets,
+    );
+  }
+
+  static Future<Map<String, dynamic>> createRoutinePlanByDays({
+    required String name,
+    required String goal,
+    required int daysPerWeek,
+    required List<List<Exercise>> exercisesByDay,
+  }) async {
+    final safeDays = daysPerWeek.clamp(1, 7);
+    final normalizedDays = List.generate(
+      safeDays,
+      (index) => index < exercisesByDay.length
+          ? List<Exercise>.from(exercisesByDay[index])
+          : <Exercise>[],
+    );
+
+    final totalExercises = normalizedDays.fold<int>(
+      0,
+      (total, dayExercises) => total + dayExercises.length,
+    );
+    if (totalExercises == 0) {
+      throw Exception('Vui lòng chọn ít nhất 1 bài tập');
+    }
+
     final plan = await createWorkoutPlan(
       name: name,
       goal: goal,
-      daysPerWeek: daysPerWeek,
+      daysPerWeek: safeDays,
     );
     final planId = _value<String>(plan, 'id') ?? '';
     if (planId.isEmpty) {
       throw Exception('Không tạo được workout plan');
     }
 
-    final buckets = List.generate(daysPerWeek, (_) => <Exercise>[]);
-    for (var i = 0; i < exercises.length; i += 1) {
-      buckets[i % daysPerWeek].add(exercises[i]);
-    }
-
-    final days = _routineDaysStartingToday(daysPerWeek);
-    for (var i = 0; i < daysPerWeek; i += 1) {
-      final dayExercises = buckets[i];
+    final days = _routineDaysStartingToday(safeDays);
+    for (var i = 0; i < safeDays; i += 1) {
+      final dayExercises = normalizedDays[i];
       final focus = dayExercises.isEmpty
           ? 'Recovery'
           : dayExercises.map((item) => item.muscleGroup).toSet().join(' / ');
@@ -486,8 +578,11 @@ class BackendApi {
     }
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('quick_workout_plan_id');
-    await prefs.remove('quick_workout_session_id');
+    await prefs.remove(_quickWorkoutPlanKey);
+    await prefs.remove(_quickWorkoutSessionKey);
+    await prefs.remove(_currentWorkoutPlanKey);
+    await prefs.remove(_currentWorkoutSessionKey);
+    await prefs.remove(_currentWorkoutIsQuickKey);
 
     return plan;
   }
@@ -550,7 +645,7 @@ class BackendApi {
 
   static Future<Map<String, dynamic>?> _quickPlan() async {
     final prefs = await SharedPreferences.getInstance();
-    final quickPlanId = prefs.getString('quick_workout_plan_id');
+    final quickPlanId = prefs.getString(_quickWorkoutPlanKey);
     final plans = await getWorkoutPlansByUser();
     if (quickPlanId != null) {
       for (final plan in plans) {
@@ -560,7 +655,7 @@ class BackendApi {
     for (final plan in plans) {
       if ((_value<String>(plan, 'name') ?? '') == 'Quick Workout') {
         await prefs.setString(
-          'quick_workout_plan_id',
+          _quickWorkoutPlanKey,
           _value<String>(plan, 'id')!,
         );
         return plan;
@@ -569,13 +664,77 @@ class BackendApi {
     return null;
   }
 
+  static Future<Map<String, dynamic>?> _activeRoutinePlan() async {
+    final plans = await getWorkoutPlansByUser();
+    final activePlans = plans.where((plan) {
+      final isActive = _value<bool>(plan, 'isActive') ?? true;
+      final name = (_value<String>(plan, 'name') ?? '').trim().toLowerCase();
+      return isActive && name != 'quick workout';
+    }).toList();
+    if (activePlans.isNotEmpty) return activePlans.last;
+    return null;
+  }
+
+  static Map<String, dynamic>? _selectWorkoutSession(
+    Map<String, dynamic> plan,
+  ) {
+    final sessions = _value<List>(plan, 'sessions') ?? const [];
+    final sessionMaps = sessions
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    if (sessionMaps.isEmpty) return null;
+
+    final today = _todayName();
+    for (final session in sessionMaps) {
+      final dayOfWeek = (_value<String>(session, 'dayOfWeek') ?? '').trim();
+      final exercises = _value<List>(session, 'exercises') ?? const [];
+      if (_matchesToday(dayOfWeek, today) && exercises.isNotEmpty) {
+        return session;
+      }
+    }
+
+    for (final session in sessionMaps) {
+      final exercises = _value<List>(session, 'exercises') ?? const [];
+      if (exercises.isNotEmpty) return session;
+    }
+
+    return sessionMaps.first;
+  }
+
+  static Future<void> _rememberCurrentWorkout({
+    required String planId,
+    required String sessionId,
+    required bool isQuick,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_currentWorkoutPlanKey, planId);
+    await prefs.setString(_currentWorkoutSessionKey, sessionId);
+    await prefs.setBool(_currentWorkoutIsQuickKey, isQuick);
+  }
+
   static Future<Map<String, dynamic>?> getWorkoutSession(String email) async {
-    final plan = await _quickPlan();
+    var isQuick = false;
+    var plan = await _activeRoutinePlan();
+    plan ??= await _quickPlan();
+    isQuick =
+        (_value<String>(plan ?? {}, 'name') ?? '').trim().toLowerCase() ==
+        'quick workout';
     if (plan == null) return null;
 
-    final sessions = _value<List>(plan, 'sessions') ?? const [];
-    if (sessions.isEmpty || sessions.first is! Map) return null;
-    final session = Map<String, dynamic>.from(sessions.first as Map);
+    final session = _selectWorkoutSession(plan);
+    if (session == null) return null;
+
+    final planId = _value<String>(plan, 'id') ?? '';
+    final sessionId = _value<String>(session, 'id') ?? '';
+    if (planId.isNotEmpty && sessionId.isNotEmpty) {
+      await _rememberCurrentWorkout(
+        planId: planId,
+        sessionId: sessionId,
+        isQuick: isQuick,
+      );
+    }
+
     final exercises = (_value<List>(session, 'exercises') ?? const [])
         .whereType<Map>()
         .map((item) {
@@ -583,13 +742,19 @@ class BackendApi {
           return {
             'exerciseId': _value<String>(row, 'exerciseId'),
             'name': _value<String>(row, 'exerciseName') ?? 'Exercise',
+            'muscleGroup': _value<String>(row, 'muscleGroup') ?? 'Unknown',
             'sets': _value<num>(row, 'sets')?.toString() ?? '3',
             'reps': _value<String>(row, 'reps') ?? '10',
           };
         })
         .toList();
 
-    return {'exercises': exercises};
+    final dayOfWeek = _value<String>(session, 'dayOfWeek') ?? '';
+    return {
+      'day': dayOfWeek.isEmpty ? 'Today' : _displayDay(dayOfWeek),
+      'focus': _value<String>(session, 'focus') ?? '',
+      'exercises': exercises,
+    };
   }
 
   static Future<Map<String, dynamic>> saveWorkoutSession({
@@ -611,7 +776,7 @@ class BackendApi {
       daysPerWeek: 1,
     );
     final planId = _value<String>(plan, 'id') ?? '';
-    await prefs.setString('quick_workout_plan_id', planId);
+    await prefs.setString(_quickWorkoutPlanKey, planId);
     final updatedPlan = await addWorkoutPlanSession(
       planId: planId,
       dayOfWeek: 'Today',
@@ -622,7 +787,12 @@ class BackendApi {
         ? Map<String, dynamic>.from(sessions.last as Map)
         : <String, dynamic>{};
     final sessionId = _value<String>(session, 'id') ?? '';
-    await prefs.setString('quick_workout_session_id', sessionId);
+    await prefs.setString(_quickWorkoutSessionKey, sessionId);
+    await _rememberCurrentWorkout(
+      planId: planId,
+      sessionId: sessionId,
+      isQuick: true,
+    );
 
     for (final exercise in exercises) {
       final exerciseId = exercise['exerciseId']?.toString() ?? '';
@@ -677,14 +847,22 @@ class BackendApi {
     required String email,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final planId = prefs.getString('quick_workout_plan_id');
-    final sessionId = prefs.getString('quick_workout_session_id');
+    final planId =
+        prefs.getString(_currentWorkoutPlanKey) ??
+        prefs.getString(_quickWorkoutPlanKey);
+    final sessionId =
+        prefs.getString(_currentWorkoutSessionKey) ??
+        prefs.getString(_quickWorkoutSessionKey);
+    final isQuick =
+        prefs.getBool(_currentWorkoutIsQuickKey) ??
+        (planId != null && planId == prefs.getString(_quickWorkoutPlanKey));
     final userId = prefs.getString(SessionStore.userIdKey);
     if (userId == null || userId.isEmpty) {
       return {'success': true};
     }
 
     String? logId;
+    Map<String, dynamic>? finishedLog;
     try {
       if (planId != null && sessionId != null) {
         final started = await _post(
@@ -712,13 +890,16 @@ class BackendApi {
 
     try {
       if (logId != null && logId.isNotEmpty) {
-        await _put('/api/workout-session-logs/$logId/finish');
+        final decoded = await _put('/api/workout-session-logs/$logId/finish');
+        if (decoded is Map<String, dynamic>) {
+          finishedLog = decoded;
+        }
       }
     } catch (_) {
       // Keep the user's UI flow moving if a stale session cannot be finished.
     }
 
-    if (planId != null && planId.isNotEmpty) {
+    if (isQuick && planId != null && planId.isNotEmpty) {
       try {
         await deleteWorkoutPlan(planId);
       } catch (_) {
@@ -726,9 +907,20 @@ class BackendApi {
       }
     }
 
-    await prefs.remove('quick_workout_plan_id');
-    await prefs.remove('quick_workout_session_id');
-    return {'success': true};
+    await prefs.remove(_quickWorkoutPlanKey);
+    await prefs.remove(_quickWorkoutSessionKey);
+    await prefs.remove(_currentWorkoutPlanKey);
+    await prefs.remove(_currentWorkoutSessionKey);
+    await prefs.remove(_currentWorkoutIsQuickKey);
+    return {
+      'success': true,
+      'log': finishedLog,
+      'totalDurationSeconds':
+          _value<num>(finishedLog ?? {}, 'totalDurationSeconds')?.toInt() ?? 0,
+      'totalSets': _value<num>(finishedLog ?? {}, 'totalSets')?.toInt() ?? 0,
+      'totalExpGained':
+          _value<num>(finishedLog ?? {}, 'totalExpGained')?.toInt() ?? 0,
+    };
   }
 
   static Future<List<Map<String, dynamic>>> getWorkoutHistory({

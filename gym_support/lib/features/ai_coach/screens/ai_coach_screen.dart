@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -148,11 +150,12 @@ class _AiCoachScreenState extends State<AiCoachScreen>
         );
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _sending = false;
-      });
-      FocusScope.of(context).unfocus();
+      if (mounted) {
+        setState(() {
+          _sending = false;
+        });
+        FocusScope.of(context).unfocus();
+      }
     }
   }
 
@@ -165,14 +168,27 @@ class _AiCoachScreenState extends State<AiCoachScreen>
     );
 
     if (!mounted || result == null) return;
-    if (result is String && result.trim().isNotEmpty) {
+    if (result is Map) {
+      final text = result['text']?.toString() ?? '';
+      final imagePath = result['imagePath']?.toString();
+      if (text.trim().isEmpty) return;
       setState(() {
-        messages.add(AiChatMessage(text: result, isUser: false));
+        messages.add(
+          AiChatMessage(text: text, isUser: false, imagePath: imagePath),
+        );
       });
       _scrollToBottom();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Đã thêm kết quả scan vào chat')),
       );
+      return;
+    }
+
+    if (result is String && result.trim().isNotEmpty) {
+      setState(() {
+        messages.add(AiChatMessage(text: result, isUser: false));
+      });
+      _scrollToBottom();
     }
   }
 
@@ -413,16 +429,33 @@ class AiMessageBubble extends StatelessWidget {
             bottomRight: Radius.circular(isUser ? 4 : 16),
           ),
         ),
-        child: Text(
-          message.text,
-          style: TextStyle(
-            color: isUser
-                ? AppColors.textDark
-                : Colors.white.withValues(alpha: 0.86),
-            fontSize: 13,
-            height: 1.45,
-            fontWeight: FontWeight.w600,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (message.imagePath != null && message.imagePath!.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  File(message.imagePath!),
+                  width: double.infinity,
+                  height: 180,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            Text(
+              message.text,
+              style: TextStyle(
+                color: isUser
+                    ? AppColors.textDark
+                    : Colors.white.withValues(alpha: 0.86),
+                fontSize: 13,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -570,6 +603,11 @@ class _ExerciseSuggestions extends StatelessWidget {
 class AiChatMessage {
   final String text;
   final bool isUser;
+  final String? imagePath;
 
-  const AiChatMessage({required this.text, required this.isUser});
+  const AiChatMessage({
+    required this.text,
+    required this.isUser,
+    this.imagePath,
+  });
 }

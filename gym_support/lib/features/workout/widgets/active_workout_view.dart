@@ -8,14 +8,24 @@ import 'active_workout_exercise_card.dart';
 
 class ActiveWorkoutView extends StatefulWidget {
   final List<Exercise> exercises;
+  final String dayLabel;
+  final String focus;
   final ValueChanged<String> onRemoveExercise;
   final void Function(String exerciseId, String sets, String reps)
   onUpdateExercise;
-  final VoidCallback onFinishWorkout;
+  final Future<void> Function({
+    required int completedCount,
+    required int completedSets,
+    required int elapsedSeconds,
+    required int totalExercises,
+  })
+  onFinishWorkout;
 
   const ActiveWorkoutView({
     super.key,
     required this.exercises,
+    required this.dayLabel,
+    required this.focus,
     required this.onRemoveExercise,
     required this.onUpdateExercise,
     required this.onFinishWorkout,
@@ -29,6 +39,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
   Timer? timer;
   int elapsedSeconds = 0;
   bool isRunning = false;
+  bool isFinishing = false;
   final Set<String> completedExerciseIds = {};
 
   @override
@@ -92,19 +103,20 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
         children: [
           ActiveWorkoutHeader(
             formattedTime: formattedTime,
+            dayLabel: widget.dayLabel,
+            focus: widget.focus,
             isRunning: isRunning,
             onToggleTimer: toggleTimer,
           ),
           const SizedBox(height: 22),
           WorkoutProgressCard(progress: progress),
           const SizedBox(height: 24),
-          const Text(
-            "TODAY'S EXERCISES",
-            style: TextStyle(
+          Text(
+            '${widget.dayLabel.toUpperCase()} EXERCISES',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: 12),
@@ -131,7 +143,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
           Padding(
             padding: const EdgeInsets.only(bottom: 22),
             child: GestureDetector(
-              onTap: widget.onFinishWorkout,
+              onTap: isFinishing ? null : _finishWorkout,
               child: Container(
                 height: 56,
                 width: double.infinity,
@@ -146,24 +158,34 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
                     ),
                   ],
                 ),
-                child: const Center(
+                child: Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      if (isFinishing) ...[
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
                       Text(
-                        'Finish Workout',
+                        isFinishing ? 'Finishing...' : 'Finish Workout',
                         style: TextStyle(
                           color: AppColors.textDark,
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      SizedBox(width: 8),
-                      Icon(
-                        Icons.check_circle_outline,
-                        color: AppColors.textDark,
-                        size: 20,
-                      ),
+                      if (!isFinishing) ...[
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.check_circle_outline,
+                          color: AppColors.textDark,
+                          size: 20,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -173,6 +195,38 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
         ],
       ),
     );
+  }
+
+  Future<void> _finishWorkout() async {
+    setState(() {
+      isFinishing = true;
+      isRunning = false;
+    });
+    timer?.cancel();
+
+    try {
+      await widget.onFinishWorkout(
+        completedCount: completedExerciseIds.length,
+        completedSets: _completedSets,
+        elapsedSeconds: elapsedSeconds,
+        totalExercises: widget.exercises.length,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isFinishing = false;
+        });
+      }
+    }
+  }
+
+  int get _completedSets {
+    var total = 0;
+    for (final exercise in widget.exercises) {
+      if (!completedExerciseIds.contains(exercise.id)) continue;
+      total += int.tryParse(_parseSetsReps(exercise.setsAndReps).$1) ?? 0;
+    }
+    return total;
   }
 
   void _showEditSetsReps(BuildContext context, Exercise exercise) {
@@ -243,12 +297,16 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
 
 class ActiveWorkoutHeader extends StatelessWidget {
   final String formattedTime;
+  final String dayLabel;
+  final String focus;
   final bool isRunning;
   final VoidCallback onToggleTimer;
 
   const ActiveWorkoutHeader({
     super.key,
     required this.formattedTime,
+    required this.dayLabel,
+    required this.focus,
     required this.isRunning,
     required this.onToggleTimer,
   });
@@ -268,6 +326,29 @@ class ActiveWorkoutHeader extends StatelessWidget {
                   fontSize: 25,
                   fontWeight: FontWeight.w900,
                 ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today_rounded,
+                    color: AppColors.primary,
+                    size: 15,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      focus.trim().isEmpty ? dayLabel : '$dayLabel • $focus',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Row(

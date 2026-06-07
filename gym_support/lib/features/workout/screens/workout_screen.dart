@@ -8,31 +8,46 @@ import '../widgets/perfect_workout_dialog.dart';
 
 class WorkoutScreen extends StatelessWidget {
   final List<Exercise> selectedExercises;
-  final VoidCallback onBrowseExercises;
+  final String dayLabel;
+  final String focus;
+  final VoidCallback onBuildRoutine;
   final ValueChanged<String> onRemoveExercise;
   final void Function(String exerciseId, String sets, String reps)
   onUpdateExercise;
-  final VoidCallback onFinishWorkout;
+  final Future<Map<String, dynamic>> Function({
+    required int completedCount,
+    required int completedSets,
+    required int elapsedSeconds,
+    required int totalExercises,
+  })
+  onFinishWorkout;
+  final VoidCallback onGoHomeAfterFinish;
 
   const WorkoutScreen({
     super.key,
     required this.selectedExercises,
-    required this.onBrowseExercises,
+    required this.dayLabel,
+    required this.focus,
+    required this.onBuildRoutine,
     required this.onRemoveExercise,
     required this.onUpdateExercise,
     required this.onFinishWorkout,
+    required this.onGoHomeAfterFinish,
   });
 
-  void showPerfectWorkoutDialog(BuildContext context) {
+  void showPerfectWorkoutDialog(
+    BuildContext context,
+    Map<String, dynamic> result,
+  ) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.72),
       builder: (context) {
         return PerfectWorkoutDialog(
-          exerciseCount: selectedExercises.length,
+          result: result,
           onGoHome: () {
             Navigator.pop(context);
-            onFinishWorkout();
+            onGoHomeAfterFinish();
           },
         );
       },
@@ -45,14 +60,29 @@ class WorkoutScreen extends StatelessWidget {
       child: Container(
         color: AppColors.background,
         child: selectedExercises.isEmpty
-            ? EmptyWorkoutView(onBrowseExercises: onBrowseExercises)
+            ? EmptyWorkoutView(onBuildRoutine: onBuildRoutine)
             : ActiveWorkoutView(
                 exercises: selectedExercises,
+                dayLabel: dayLabel,
+                focus: focus,
                 onRemoveExercise: onRemoveExercise,
                 onUpdateExercise: onUpdateExercise,
-                onFinishWorkout: () {
-                  showPerfectWorkoutDialog(context);
-                },
+                onFinishWorkout:
+                    ({
+                      required completedCount,
+                      required completedSets,
+                      required elapsedSeconds,
+                      required totalExercises,
+                    }) async {
+                      final result = await onFinishWorkout(
+                        completedCount: completedCount,
+                        completedSets: completedSets,
+                        elapsedSeconds: elapsedSeconds,
+                        totalExercises: totalExercises,
+                      );
+                      if (!context.mounted) return;
+                      showPerfectWorkoutDialog(context, result);
+                    },
               ),
       ),
     );
