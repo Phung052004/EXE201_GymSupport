@@ -11,6 +11,7 @@ public class AIController : ControllerBase
 {
     private readonly IAIService _aiService;
     private readonly IChatRepository _chatRepository;
+
     public AIController(
         IAIService aiService,
         IChatRepository chatRepository)
@@ -20,15 +21,13 @@ public class AIController : ControllerBase
     }
 
     [HttpPost("chat")]
-    public async Task<IActionResult> Chat(
-    ChatRequestDto dto)
+    public async Task<IActionResult> Chat([FromBody] ChatRequestDto dto)
     {
         try
         {
-            var result =
-                await _aiService.ChatAsync(
-                    dto.UserId,
-                    dto.Message);
+            var result = await _aiService.ChatAsync(
+                dto.UserId,
+                dto.Message);
 
             return Ok(result);
         }
@@ -40,12 +39,11 @@ public class AIController : ControllerBase
             });
         }
     }
+
     [HttpPost("apply")]
-    public async Task<IActionResult> ApplySuggestions(
-    ApplySuggestionsRequestDto dto)
+    public async Task<IActionResult> ApplySuggestions([FromBody] ApplySuggestionsRequestDto dto)
     {
-        await _aiService
-            .ApplySuggestionsAsync(dto);
+        await _aiService.ApplySuggestionsAsync(dto);
 
         return Ok(new
         {
@@ -53,30 +51,25 @@ public class AIController : ControllerBase
             message = "Applied successfully"
         });
     }
-    [HttpGet("history/{userId}")]
-    public async Task<IActionResult> GetHistory(
-    string userId)
-    {
-        var messages =
-            await _chatRepository
-                .GetByUserIdAsync(userId);
 
-        var result =
-            messages.Select(x =>
-                new ChatHistoryDto
-                {
-                    Role = x.Role,
-                    Content = x.Content,
-                    CreatedAt = x.CreatedAt
-                });
+    [HttpGet("history/{userId}")]
+    public async Task<IActionResult> GetHistory(string userId)
+    {
+        var messages = await _chatRepository.GetByUserIdAsync(userId);
+
+        var result = messages.Select(x => new ChatHistoryDto
+        {
+            Role = x.Role,
+            Content = x.Content,
+            CreatedAt = x.CreatedAt
+        });
 
         return Ok(result);
     }
 
     [HttpPost("analyze-image")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> AnalyzeImage(
-    [FromForm] AnalyzeImageRequest request)
+    public async Task<IActionResult> AnalyzeImage([FromForm] AnalyzeImageRequest request)
     {
         var image = request.Image;
         var mode = request.Mode;
@@ -91,10 +84,10 @@ public class AIController : ControllerBase
 
         var allowedTypes = new[]
         {
-        "image/jpeg",
-        "image/png",
-        "image/webp"
-    };
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        };
 
         if (!allowedTypes.Contains(image.ContentType))
         {
@@ -112,18 +105,19 @@ public class AIController : ControllerBase
             });
         }
 
+        // Vì form_check đã đổi sang video,
+        // analyze-image chỉ nên giữ body_check và equipment_info.
         var allowedModes = new[]
         {
-        "equipment_info",
-        "form_check",
-        "body_check"
-    };
+            "equipment_info",
+            "body_check"
+        };
 
         if (string.IsNullOrWhiteSpace(mode) || !allowedModes.Contains(mode))
         {
             return BadRequest(new
             {
-                message = "Mode không hợp lệ. Dùng equipment_info, form_check hoặc body_check."
+                message = "Mode không hợp lệ. Dùng equipment_info hoặc body_check."
             });
         }
 
@@ -146,11 +140,74 @@ public class AIController : ControllerBase
             });
         }
     }
-}
 
-public class AnalyzeImageRequest
-{
-    public IFormFile? Image { get; set; }
+    [HttpPost("analyze-form-video")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> AnalyzeFormVideo([FromForm] AnalyzeFormVideoRequest request)
+    {
+        var video = request.Video;
 
-    public string? Mode { get; set; }
+        if (video == null || video.Length == 0)
+        {
+            return BadRequest(new
+            {
+                message = "Vui lòng tải video lên."
+            });
+        }
+
+        const long maxSize = 25 * 1024 * 1024;
+
+        if (video.Length > maxSize)
+        {
+            return BadRequest(new
+            {
+                message = "Dung lượng video vượt quá 25MB."
+            });
+        }
+
+        var allowedTypes = new[]
+        {
+        "video/mp4",
+        "video/quicktime"
+    };
+
+        if (!allowedTypes.Contains(video.ContentType))
+        {
+            return BadRequest(new
+            {
+                message = "Chỉ hỗ trợ video MP4 hoặc MOV."
+            });
+        }
+
+        try
+        {
+            await using var stream = video.OpenReadStream();
+
+            var result = await _aiService.AnalyzeFormVideoAsync(
+                stream,
+                video.FileName,
+                video.ContentType);
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+    public class AnalyzeImageRequest
+    {
+        public IFormFile? Image { get; set; }
+
+        public string? Mode { get; set; }
+    }
+
+    public class AnalyzeFormVideoRequest
+    {
+        public IFormFile? Video { get; set; }
+    }
 }

@@ -1,12 +1,13 @@
-﻿using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using GymSupport.Repository.Interfaces;
+﻿using GymSupport.Repository.Interfaces;
 using GymSupport.Repository.Models.DTOs.AIModel;
 using GymSupport.Repository.Models.Entities;
 using GymSupport.Service.Interfaces;
 using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace GymSupport.Service.Services;
 
@@ -904,6 +905,422 @@ Trả về JSON đúng schema.
             Title = "Không phân tích được ảnh",
             Summary = aiContent
         };
+    }
+    public async Task<VideoFormAnalyzeResponseDto> AnalyzeFormVideoAsync(
+    Stream videoStream,
+    string fileName,
+    string contentType)
+    {
+        var tempDir = Path.Combine(
+            Path.GetTempPath(),
+            "gymsupport_video_" + Guid.NewGuid());
+
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var safeFileName = Path.GetFileName(fileName);
+            var inputPath = Path.Combine(tempDir, safeFileName);
+
+            await using (var fileStream = File.Create(inputPath))
+            {
+                await videoStream.CopyToAsync(fileStream);
+            }
+
+            var outputPattern = Path.Combine(tempDir, "frame_%03d.jpg");
+
+            var args =
+                $"-i \"{inputPath}\" -vf \"fps=2,scale=768:-1\" -frames:v 12 \"{outputPattern}\"";
+
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = @"C:\Users\Acer Nitro 5\AppData\Local\Microsoft\WinGet\Links\ffmpeg.exe",
+                    Arguments = args,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            process.Start();
+
+            var ffmpegError = await process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode != 0)
+            {
+                throw new Exception($"FFmpeg error: {ffmpegError}");
+            }
+
+            var frameFiles = Directory.GetFiles(tempDir, "frame_*.jpg")
+                .OrderBy(x => x)
+                .Take(12)
+                .ToList();
+
+            if (!frameFiles.Any())
+            {
+                throw new Exception("Không thể trích xuất frame từ video.");
+            }
+
+            return await AnalyzeFramesWithOpenAIAsync(frameFiles);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+    private async Task<VideoFormAnalyzeResponseDto> AnalyzeFramesWithOpenAIAsync(
+    List<string> frameFiles)
+    {
+        var apiKey = _configuration["OpenAI:ApiKey"];
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new Exception("OpenAI API key is missing.");
+        }
+
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", apiKey);
+
+        var prompt = """
+Bạn là AI Form Auditor trong app GymSupport. Bạn đang phân tích video tập gym đã được tách thành các frame theo thứ tự thời gian.
+
+BẠN KHÔNG ĐƯỢC BIẾT TRƯỚC BÀI TẬP.
+Bạn phải tự nhận diện bài tập từ video nếu có thể.
+
+NHIỆM VỤ CHÍNH:
+1. Tự nhận diện bài tập trong video.
+2. Nếu không chắc bài tập là gì, detectedExercise phải ghi "Không chắc chắn".
+3. Nếu không chắc bài tập là gì, confidence = "low".
+4. Sau khi nhận diện bài tập, kiểm tra form có ĐẠT hay KHÔNG ĐẠT.
+5. Không được khen chung chung nếu có lỗi rõ ràng.
+
+QUY TẮC BẮT BUỘC:
+1. Ưu tiên tìm lỗi form trước, sau đó mới nói điểm đúng.
+2. Nếu thấy lỗi nguy hiểm, riskLevel = "high".
+3. Nếu lỗi form có thể gây chấn thương, isFormAcceptable = false.
+4. Nếu video không đủ rõ, confidence = "low" và isFormAcceptable = false.
+5. Nếu không thấy đủ chuyển động để xác định bài tập, confidence = "low" và isFormAcceptable = false.
+6. Không chẩn đoán y tế.
+7. Không nói "form tốt" nếu vẫn có lỗi lớn.
+8. Không được viết quá tích cực nếu video thể hiện form sai.
+9. Chỉ nhận xét dựa trên những gì thấy được trong frame.
+10. Trả lời bằng tiếng Việt.
+11. Nếu không nhìn rõ toàn bộ động tác, không được pass form.
+12. Nếu có majorIssues thì isFormAcceptable bắt buộc là false.
+
+TIÊU CHÍ ĐÁNH GIÁ CHUNG:
+- Cột sống/lưng có giữ trung lập không?
+- Vai có bị nhún hoặc cuộn về trước không?
+- Core có được kiểm soát không?
+- Có dùng đà quá nhiều không?
+- Biên độ chuyển động có hợp lý không?
+- Tốc độ động tác có kiểm soát không?
+- Đường đi của khớp có an toàn không?
+- Có dấu hiệu mất kiểm soát tạ/máy không?
+
+CÁCH CHẤM:
+- Nếu có từ 1 lỗi nguy hiểm trở lên: riskLevel = "high", isFormAcceptable = false.
+- Nếu có nhiều lỗi kỹ thuật nhưng chưa quá nguy hiểm: riskLevel = "medium", isFormAcceptable = false.
+- Nếu chỉ có lỗi nhỏ và video đủ rõ: riskLevel = "low", isFormAcceptable = true.
+- Nếu không đủ rõ để đánh giá: confidence = "low", isFormAcceptable = false.
+- Nếu không nhận diện chắc bài tập: confidence = "low", isFormAcceptable = false.
+
+YÊU CẦU OUTPUT:
+- targetExercise = "auto_detect".
+- detectedExercise = bài tập bạn quan sát được, hoặc "Không chắc chắn".
+- overallVerdict phải nói rõ: "Form chưa đạt", "Form tạm ổn", hoặc "Form tốt".
+- Nếu isFormAcceptable = false thì overallVerdict không được là "Form tốt".
+- majorIssues phải liệt kê lỗi lớn nếu có.
+- minorIssues liệt kê lỗi nhỏ nếu có.
+- correctPoints chỉ liệt kê điểm đúng thật sự quan sát được.
+- correctiveCues phải là câu hướng dẫn sửa ngắn gọn, dễ làm.
+- warnings phải nhắc kết quả chỉ mang tính tham khảo.
+
+Trả về JSON đúng schema.
+""";
+
+        var content = new List<object>
+    {
+        new
+        {
+            type = "text",
+            text = prompt
+        }
+    };
+
+        foreach (var framePath in frameFiles)
+        {
+            var bytes = await File.ReadAllBytesAsync(framePath);
+            var base64 = Convert.ToBase64String(bytes);
+
+            content.Add(new
+            {
+                type = "image_url",
+                image_url = new
+                {
+                    url = $"data:image/jpeg;base64,{base64}",
+                    detail = "low"
+                }
+            });
+        }
+
+        var requestBody = new
+        {
+            model = "gpt-4.1-mini",
+            messages = new object[]
+            {
+            new
+            {
+                role = "user",
+                content
+            }
+            },
+            temperature = 0.1,
+            response_format = new
+            {
+                type = "json_schema",
+                json_schema = new
+                {
+                    name = "video_form_check",
+                    strict = true,
+                    schema = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            mode = new { type = "string" },
+                            title = new { type = "string" },
+                            summary = new { type = "string" },
+
+                            targetExercise = new { type = "string" },
+                            detectedExercise = new { type = "string" },
+
+                            confidence = new { type = "string" },
+                            isFormAcceptable = new { type = "boolean" },
+                            riskLevel = new { type = "string" },
+                            overallVerdict = new { type = "string" },
+
+                            movementSummary = new { type = "string" },
+
+                            majorIssues = new
+                            {
+                                type = "array",
+                                items = new { type = "string" }
+                            },
+
+                            minorIssues = new
+                            {
+                                type = "array",
+                                items = new { type = "string" }
+                            },
+
+                            correctPoints = new
+                            {
+                                type = "array",
+                                items = new { type = "string" }
+                            },
+
+                            frameObservations = new
+                            {
+                                type = "array",
+                                items = new { type = "string" }
+                            },
+
+                            correctiveCues = new
+                            {
+                                type = "array",
+                                items = new { type = "string" }
+                            },
+
+                            suggestedFixes = new
+                            {
+                                type = "array",
+                                items = new { type = "string" }
+                            },
+
+                            muscles = new
+                            {
+                                type = "array",
+                                items = new { type = "string" }
+                            },
+
+                            warnings = new
+                            {
+                                type = "array",
+                                items = new { type = "string" }
+                            }
+                        },
+                        required = new[]
+                        {
+                        "mode",
+                        "title",
+                        "summary",
+                        "targetExercise",
+                        "detectedExercise",
+                        "confidence",
+                        "isFormAcceptable",
+                        "riskLevel",
+                        "overallVerdict",
+                        "movementSummary",
+                        "majorIssues",
+                        "minorIssues",
+                        "correctPoints",
+                        "frameObservations",
+                        "correctiveCues",
+                        "suggestedFixes",
+                        "muscles",
+                        "warnings"
+                    },
+                        additionalProperties = false
+                    }
+                }
+            },
+            max_tokens = 1600
+        };
+
+        var json = JsonSerializer.Serialize(requestBody);
+
+        var response = await _httpClient.PostAsync(
+            "https://api.openai.com/v1/chat/completions",
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"OpenAI Video Form Check Error: {error}");
+        }
+
+        var result = await response.Content.ReadAsStringAsync();
+
+        using var document = JsonDocument.Parse(result);
+
+        var aiContent = document.RootElement
+            .GetProperty("choices")[0]
+            .GetProperty("message")
+            .GetProperty("content")
+            .GetString();
+
+        if (string.IsNullOrWhiteSpace(aiContent))
+        {
+            return new VideoFormAnalyzeResponseDto
+            {
+                Mode = "video_form_check",
+                Title = "Không phân tích được video",
+                Summary = "AI không trả về kết quả.",
+                TargetExercise = "auto_detect",
+                DetectedExercise = "Không chắc chắn",
+                Confidence = "low",
+                IsFormAcceptable = false,
+                RiskLevel = "medium",
+                OverallVerdict = "Không đủ dữ liệu để đánh giá form.",
+                Warnings = new List<string>
+            {
+                "Vui lòng thử lại với video rõ hơn.",
+                "Kết quả chỉ mang tính tham khảo, không thay thế huấn luyện viên hoặc bác sĩ."
+            }
+            };
+        }
+
+        var analysis = JsonSerializer.Deserialize<VideoFormAnalyzeResponseDto>(
+            aiContent,
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true
+            });
+
+        if (analysis == null)
+        {
+            return new VideoFormAnalyzeResponseDto
+            {
+                Mode = "video_form_check",
+                Title = "Không phân tích được video",
+                Summary = aiContent,
+                TargetExercise = "auto_detect",
+                DetectedExercise = "Không chắc chắn",
+                Confidence = "low",
+                IsFormAcceptable = false,
+                RiskLevel = "medium",
+                OverallVerdict = "Không đủ dữ liệu để đánh giá form.",
+                Warnings = new List<string>
+            {
+                "Kết quả chỉ mang tính tham khảo."
+            }
+            };
+        }
+
+        analysis.Mode = "video_form_check";
+        analysis.TargetExercise = "auto_detect";
+
+        if (string.IsNullOrWhiteSpace(analysis.DetectedExercise))
+        {
+            analysis.DetectedExercise = "Không chắc chắn";
+        }
+
+        if (string.IsNullOrWhiteSpace(analysis.Confidence))
+        {
+            analysis.Confidence = "medium";
+        }
+
+        if (string.IsNullOrWhiteSpace(analysis.RiskLevel))
+        {
+            analysis.RiskLevel = "medium";
+        }
+
+        // Hậu kiểm để tránh AI trả quá tích cực
+        if (analysis.MajorIssues.Any())
+        {
+            analysis.IsFormAcceptable = false;
+
+            if (analysis.RiskLevel.Equals("low", StringComparison.OrdinalIgnoreCase))
+            {
+                analysis.RiskLevel = "medium";
+            }
+
+            if (string.IsNullOrWhiteSpace(analysis.OverallVerdict)
+                || analysis.OverallVerdict.Contains("tốt", StringComparison.OrdinalIgnoreCase))
+            {
+                analysis.OverallVerdict = "Form chưa đạt, cần sửa các lỗi kỹ thuật chính.";
+            }
+        }
+
+        if (analysis.Confidence.Equals("low", StringComparison.OrdinalIgnoreCase))
+        {
+            analysis.IsFormAcceptable = false;
+
+            if (string.IsNullOrWhiteSpace(analysis.OverallVerdict)
+                || analysis.OverallVerdict.Contains("tốt", StringComparison.OrdinalIgnoreCase))
+            {
+                analysis.OverallVerdict = "Chưa đủ dữ liệu rõ ràng để đánh giá form chính xác.";
+            }
+        }
+
+        if (analysis.DetectedExercise.Contains("Không chắc", StringComparison.OrdinalIgnoreCase))
+        {
+            analysis.Confidence = "low";
+            analysis.IsFormAcceptable = false;
+
+            if (string.IsNullOrWhiteSpace(analysis.OverallVerdict)
+                || analysis.OverallVerdict.Contains("tốt", StringComparison.OrdinalIgnoreCase))
+            {
+                analysis.OverallVerdict = "Chưa nhận diện chắc chắn bài tập nên không thể kết luận form tốt.";
+            }
+        }
+
+        if (!analysis.Warnings.Any())
+        {
+            analysis.Warnings.Add("Kết quả chỉ mang tính tham khảo, không thay thế huấn luyện viên hoặc bác sĩ.");
+        }
+
+        return analysis;
     }
 
 }

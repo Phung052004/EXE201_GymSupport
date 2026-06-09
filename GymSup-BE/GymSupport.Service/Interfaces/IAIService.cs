@@ -13,4 +13,9 @@ public interface IAIService
       Stream imageStream,
       string contentType,
       string mode);
+
+    Task<VideoFormAnalyzeResponseDto> AnalyzeFormVideoAsync(
+    Stream videoStream,
+    string fileName,
+    string contentType);
 }
