@@ -1,0 +1,192 @@
+using GymSupport.Repository.Interfaces;
+using GymSupport.Repository.Models.Entities;
+using GymSupport.Service.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace GymSupport.Service.Services;
+
+public class SubscriptionService : ISubscriptionService
+{
+    private readonly ISubscriptionPlanRepository _planRepository;
+    private readonly IUserSubscriptionRepository _userSubscriptionRepository;
+    private readonly ICustomerRepository _customerRepository;
+
+    public SubscriptionService(
+        ISubscriptionPlanRepository planRepository,
+        IUserSubscriptionRepository userSubscriptionRepository,
+        ICustomerRepository customerRepository)
+    {
+        _planRepository = planRepository;
+        _userSubscriptionRepository = userSubscriptionRepository;
+        _customerRepository = customerRepository;
+    }
+
+    public async Task<SubscriptionPlanDto?> GetSubscriptionPlanAsync(string planId)
+    {
+        var plan = await _planRepository.GetByIdAsync(planId);
+        if (plan == null)
+            return null;
+
+        return MapToPlanDto(plan);
+    }
+
+    public async Task<IEnumerable<SubscriptionPlanDto>> GetAllSubscriptionPlansAsync()
+    {
+        var plans = await _planRepository.GetAllAsync();
+        return plans.Select(MapToPlanDto).ToList();
+    }
+
+    public async Task<IEnumerable<SubscriptionPlanDto>> GetActiveSubscriptionPlansAsync()
+    {
+        var plans = await _planRepository.GetActiveAsync();
+        return plans.Select(MapToPlanDto).ToList();
+    }
+
+    public async Task<UserSubscriptionDto> PurchaseSubscriptionAsync(string userId, string planId)
+    {
+        // Find the subscription plan
+        var plan = await _planRepository.GetByIdAsync(planId);
+        if (plan == null)
+            throw new Exception("Gói đăng ký không tồn tại.");
+
+        if (!plan.IsActive)
+            throw new Exception("Gói đăng ký này không còn hoạt động.");
+
+        // Simulate payment - in real app, call payment gateway (VNPAY, MOMO, etc)
+        // For now, assume payment is successful
+
+        // Create/Update UserSubscription
+        var now = DateTime.UtcNow;
+        var endDate = now.AddMonths(plan.DurationMonths);
+
+        var existingSubscription = await _userSubscriptionRepository.GetByUserIdAsync(userId);
+        if (existingSubscription != null)
+        {
+            existingSubscription.PlanId = plan.Id;
+            existingSubscription.PlanName = plan.Name;
+            existingSubscription.Price = plan.Price;
+            existingSubscription.Status = "Active";
+            existingSubscription.StartedAt = now;
+            existingSubscription.ExpiredAt = endDate;
+            
+            await _userSubscriptionRepository.UpdateAsync(existingSubscription);
+        }
+        else
+        {
+            var newSubscription = new UserSubscription
+            {
+                UserId = userId,
+                PlanId = plan.Id,
+                PlanName = plan.Name,
+                Price = plan.Price,
+                Status = "Active",
+                StartedAt = now,
+                ExpiredAt = endDate
+            };
+
+            await _userSubscriptionRepository.CreateAsync(newSubscription);
+        }
+
+        // Return subscription info
+        var daysRemaining = (int)(endDate - now).TotalDays;
+        return new UserSubscriptionDto
+        {
+            PlanName = plan.Name,
+            StartDate = now,
+            EndDate = endDate,
+            DaysRemaining = daysRemaining,
+            Status = "active"
+        };
+    }
+
+    public async Task<UserSubscriptionDto?> GetUserCurrentSubscriptionAsync(string userId)
+    {
+        var subscription = await _userSubscriptionRepository.GetByUserIdAsync(userId);
+        if (subscription == null)
+            return null;
+
+        var now = DateTime.UtcNow;
+        var daysRemaining = 0;
+
+        if (subscription.ExpiredAt.HasValue)
+        {
+            daysRemaining = (int)(subscription.ExpiredAt.Value - now).TotalDays;
+        }
+
+        return new UserSubscriptionDto
+        {
+            PlanName = subscription.PlanName,
+            StartDate = subscription.StartedAt,
+            EndDate = subscription.ExpiredAt ?? now,
+            DaysRemaining = Math.Max(0, daysRemaining),
+            Status = subscription.Status.ToLower()
+        };
+    }
+
+    public async Task CancelUserSubscriptionAsync(string userId)
+    {
+        var subscription = await _userSubscriptionRepository.GetByUserIdAsync(userId);
+        if (subscription == null)
+            throw new Exception("Người dùng không có gói đăng ký nào.");
+
+        subscription.Status = "Cancelled";
+        await _userSubscriptionRepository.UpdateAsync(subscription);
+
+    }
+
+    public async Task UpdateSubscriptionPlanAsync(string planId, bool isActive)
+    {
+        var plan = await _planRepository.GetByIdAsync(planId);
+        if (plan == null)
+            throw new Exception("Gói đăng ký không tồn tại.");
+
+        plan.IsActive = isActive;
+        plan.UpdatedAt = DateTime.UtcNow;
+        
+        await _planRepository.UpdateAsync(plan);
+    }
+
+    public async Task CreateSubscriptionPlanAsync(CreateSubscriptionPlanDto dto)
+    {
+        var plan = new SubscriptionPlan
+        {
+            Name = dto.Name,
+            DurationMonths = dto.DurationMonths,
+            Price = dto.Price,
+            IsActive = dto.IsActive,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _planRepository.CreateAsync(plan);
+    }
+
+    public async Task UpdateSubscriptionPlanFullAsync(string planId, UpdateSubscriptionPlanDto dto)
+    {
+        var plan = await _planRepository.GetByIdAsync(planId);
+        if (plan == null)
+            throw new Exception("Gói đăng ký không tồn tại.");
+
+        plan.Name = dto.Name;
+        plan.DurationMonths = dto.DurationMonths;
+        plan.Price = dto.Price;
+        plan.IsActive = dto.IsActive;
+        plan.UpdatedAt = DateTime.UtcNow;
+        
+        await _planRepository.UpdateAsync(plan);
+    }
+
+    private SubscriptionPlanDto MapToPlanDto(SubscriptionPlan plan)
+    {
+        return new SubscriptionPlanDto
+        {
+            Id = plan.Id,
+            Name = plan.Name,
+            DurationMonths = plan.DurationMonths,
+            Price = plan.Price,
+            IsActive = plan.IsActive
+        };
+    }
+}

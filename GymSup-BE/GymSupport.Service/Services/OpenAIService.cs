@@ -306,8 +306,7 @@ public class OpenAIService : IAIService
             customer.WeightKg,
             customer.Goal,
             customer.ExperienceLevel,
-            customer.InjuryNotes,
-            customer.Subscription
+            customer.InjuryNotes
         };
 
         var customerJson = JsonSerializer.Serialize(

@@ -1,0 +1,62 @@
+using GymSupport.Repository.Interfaces;
+using GymSupport.Repository.Models.Entities;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace GymSupport.Service.Interfaces
+{
+    public interface ISubscriptionService
+    {
+        Task<SubscriptionPlanDto?> GetSubscriptionPlanAsync(string planId);
+        Task<IEnumerable<SubscriptionPlanDto>> GetAllSubscriptionPlansAsync();
+        Task<IEnumerable<SubscriptionPlanDto>> GetActiveSubscriptionPlansAsync();
+        
+        Task<UserSubscriptionDto> PurchaseSubscriptionAsync(string userId, string planId);
+        Task<UserSubscriptionDto?> GetUserCurrentSubscriptionAsync(string userId);
+        Task CancelUserSubscriptionAsync(string userId);
+        
+        Task UpdateSubscriptionPlanAsync(string planId, bool isActive);
+        Task UpdateSubscriptionPlanFullAsync(string planId, UpdateSubscriptionPlanDto dto);
+        Task CreateSubscriptionPlanAsync(CreateSubscriptionPlanDto dto);
+    }
+
+    public class SubscriptionPlanDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public int DurationMonths { get; set; }
+        public decimal Price { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class UserSubscriptionDto
+    {
+        public string PlanName { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int DaysRemaining { get; set; }
+        public string Status { get; set; } = "active";
+    }
+
+    public class CreateSubscriptionPlanDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public int DurationMonths { get; set; }
+        public decimal Price { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class PurchaseSubscriptionDto
+    {
+        public string PlanId { get; set; } = string.Empty;
+    }
+
+    public class UpdateSubscriptionPlanDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public int DurationMonths { get; set; }
+        public decimal Price { get; set; }
+        public bool IsActive { get; set; }
+    }
+}
