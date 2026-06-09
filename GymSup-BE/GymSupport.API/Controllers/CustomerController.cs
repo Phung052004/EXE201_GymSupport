@@ -52,8 +52,7 @@ namespace GymSupport.API.Controllers
                 WeightKg = customer.WeightKg,
                 Goal = customer.Goal,
                 ExperienceLevel = customer.ExperienceLevel,
-                InjuryNotes = customer.InjuryNotes,
-                Subscription = customer.Subscription
+                InjuryNotes = customer.InjuryNotes
             };
 
             return Ok(response);
@@ -82,8 +81,7 @@ namespace GymSupport.API.Controllers
                 WeightKg = request.WeightKg ?? 0,
                 Goal = request.Goal,
                 ExperienceLevel = request.ExperienceLevel,
-                InjuryNotes = request.InjuryNotes,
-                Subscription = string.IsNullOrWhiteSpace(request.Subscription) ? "free" : request.Subscription
+                InjuryNotes = request.InjuryNotes
             };
             customer.Bmi = CalculateBmi(customer.WeightKg, customer.HeightCm);
 
@@ -127,9 +125,6 @@ namespace GymSupport.API.Controllers
 
             if (request.InjuryNotes != null)
                 customer.InjuryNotes = request.InjuryNotes;
-
-            if (request.Subscription != null)
-                customer.Subscription = request.Subscription;
 
             await _customerRepository.UpdateAsync(customer);
             return NoContent();

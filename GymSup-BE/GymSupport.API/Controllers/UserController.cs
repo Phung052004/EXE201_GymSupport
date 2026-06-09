@@ -87,7 +87,7 @@ namespace GymSupport.API.Controllers
             return NoContent();
         }
 
-        [HttpPost("{id}/activate")]
+        [HttpPut("{id}/activate")]
         public async Task<IActionResult> Activate(string id)
         {
             var user = await _userRepository.GetByIdAsync(id);
@@ -99,7 +99,7 @@ namespace GymSupport.API.Controllers
             return NoContent();
         }
 
-        [HttpPost("{id}/deactivate")]
+        [HttpPut("{id}/deactivate")]
         public async Task<IActionResult> Deactivate(string id)
         {
             var user = await _userRepository.GetByIdAsync(id);

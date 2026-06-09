@@ -14,6 +14,7 @@ namespace GymSupport.Service.Services
     {
         private readonly IUserRepository _repo;
         private readonly ICustomerRepository _customerRepository;
+        private readonly IUserSubscriptionRepository _userSubscriptionRepository;
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _config;
@@ -22,12 +23,14 @@ namespace GymSupport.Service.Services
         public AuthService(
             IUserRepository repo,
             ICustomerRepository customerRepository,
+            IUserSubscriptionRepository userSubscriptionRepository,
             ITokenService tokenService,
             IEmailService emailService,
             IConfiguration config)
         {
             _repo = repo;
             _customerRepository = customerRepository;
+            _userSubscriptionRepository = userSubscriptionRepository;
             _tokenService = tokenService;
             _emailService = emailService;
             _config = config;
@@ -67,8 +70,7 @@ namespace GymSupport.Service.Services
                 WeightKg = 0,
                 Goal = null,
                 ExperienceLevel = null,
-                InjuryNotes = null,
-                Subscription = "free"
+                InjuryNotes = null
             });
             await SendVerificationEmailAsync(user);
             return (user.Id, true);
@@ -149,6 +151,22 @@ namespace GymSupport.Service.Services
             user.EmailVerificationTokenExpiresAt = null;
 
             await _repo.UpdateAsync(user);
+            
+            // Create free subscription for verified user
+            var existingSubscription = await _userSubscriptionRepository.GetByUserIdAsync(userId);
+            if (existingSubscription == null)
+            {
+                await _userSubscriptionRepository.CreateAsync(new UserSubscription
+                {
+                    UserId = userId,
+                    PlanId = string.Empty,
+                    PlanName = "free",
+                    Price = 0,
+                    Status = "Active",
+                    StartedAt = DateTime.UtcNow,
+                    ExpiredAt = null
+                });
+            }
         }
 
         public async Task ResendVerificationEmailAsync(string email)
