@@ -8,7 +8,7 @@ export default function StatCard({ icon: Icon, label, value, helper }) {
           {helper ? <p className="mt-1 text-xs font-medium text-emerald-600">{helper}</p> : null}
         </div>
         <div className="grid h-11 w-11 place-items-center rounded-md bg-emerald-50 text-emerald-600">
-          <Icon size={22} />
+          {Icon ? <Icon size={22} /> : <span className="text-sm font-bold">#</span>}
         </div>
       </div>
     </div>

@@ -1,6 +1,18 @@
+import { useNavigate } from 'react-router-dom'
 import { LogOut, Menu, Search } from 'lucide-react'
+import { getCurrentUser, logout } from '../../services/authService.js'
 
 export default function Header({ title, onMenuClick }) {
+  const navigate = useNavigate()
+  const user = getCurrentUser()
+  const displayName = user?.fullName || user?.email || 'Admin Nguyen'
+  const roleLabel = user?.role || 'Super Admin'
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="flex h-16 items-center gap-4 px-4 sm:px-6">
@@ -17,10 +29,10 @@ export default function Header({ title, onMenuClick }) {
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden text-right sm:block">
-            <p className="text-sm font-black text-slate-950">Admin Nguyen</p>
-            <p className="text-xs font-semibold text-slate-500">Super Admin</p>
+            <p className="text-sm font-black text-slate-950">{displayName}</p>
+            <p className="text-xs font-semibold text-slate-500">{roleLabel}</p>
           </div>
-          <button className="btn-secondary">
+          <button className="btn-secondary" onClick={handleLogout}>
             <LogOut size={16} />
             <span className="hidden sm:inline">Logout</span>
           </button>

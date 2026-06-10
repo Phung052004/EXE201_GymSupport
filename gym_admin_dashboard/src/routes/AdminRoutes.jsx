@@ -6,7 +6,9 @@ import DashboardPage from '../pages/admin/DashboardPage.jsx'
 import ExerciseFormPage from '../pages/admin/ExerciseFormPage.jsx'
 import ExercisesPage from '../pages/admin/ExercisesPage.jsx'
 import FeedbacksPage from '../pages/admin/FeedbacksPage.jsx'
+import LoginPage from '../pages/LoginPage.jsx'
 import MuscleGroupsPage from '../pages/admin/MuscleGroupsPage.jsx'
+import ProtectedRoute from './ProtectedRoute.jsx'
 import UserDetailPage from '../pages/admin/UserDetailPage.jsx'
 import UsersPage from '../pages/admin/UsersPage.jsx'
 import WorkoutTemplateFormPage from '../pages/admin/WorkoutTemplateFormPage.jsx'
@@ -15,8 +17,16 @@ import WorkoutTemplatesPage from '../pages/admin/WorkoutTemplatesPage.jsx'
 export default function AdminRoutes() {
   return (
     <Routes>
+      <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<Navigate to="/admin" replace />} />
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<DashboardPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:id" element={<UserDetailPage />} />
