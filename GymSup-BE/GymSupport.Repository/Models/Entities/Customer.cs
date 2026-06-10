@@ -3,10 +3,12 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace GymSupport.Repository.Models.Entities;
 
+[BsonIgnoreExtraElements]
 public class Customer
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
+    
     public string Id { get; set; }
 
     public string UserId { get; set; }
