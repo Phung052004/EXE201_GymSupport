@@ -147,26 +147,40 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.black, // Darker background
       appBar: AppBar(
-        title: const Text('Workout Session', style: TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.expand_more, color: Colors.white70),
+          onPressed: () => Navigator.pop(context),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Text(_timeDisplay, style: const TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.timer, size: 14, color: Colors.white70),
+                const SizedBox(width: 6),
+                Text(
+                  _timeDisplay.substring(3), // mm:ss
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
           ),
         ],
       ),
       body: Column(
         children: [
-          _buildInfoBanner(),
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.zero,
               itemCount: widget.exercises.length,
               itemBuilder: (context, index) => _buildExerciseBlock(widget.exercises[index]),
             ),
@@ -177,84 +191,224 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     );
   }
 
-  Widget _buildInfoBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: AppColors.surface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(widget.planName, style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold)),
-          Text('${widget.dayName} - ${widget.focus}', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildExerciseBlock(WorkoutExercise ex) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Exercise Image Section
+        Container(
+          height: 250,
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: NetworkImage('https://via.placeholder.com/400x300'), // Replace with actual exercise image if available
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.black.withOpacity(0.3), Colors.transparent, Colors.black],
+              ),
+            ),
+          ),
+        ),
+        
+        // Thumbnails
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: SizedBox(
+            height: 60,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: 5,
+              itemBuilder: (context, i) => Container(
+                width: 60,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: i == 2 ? Border.all(color: Colors.orange, width: 2) : null,
+                  image: const DecorationImage(
+                    image: NetworkImage('https://via.placeholder.com/60'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  ex.exerciseName,
+                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Icon(Icons.more_horiz, color: Colors.white70),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+        _buildAiFeedbackBox(),
+
+        const SizedBox(height: 24),
+        _buildTableHeader(),
+        
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Divider(color: Colors.white10),
+        ),
+        
+        _buildSectionHeader('WARMUP'),
+        ...List.generate(1, (i) => _buildSetRow(ex, i, isWarmup: true)), // Sample 1 warmup set
+        
+        _buildSectionHeader('SETS'),
+        ...List.generate(ex.sets, (i) => _buildSetRow(ex, i)),
+        
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  Widget _buildAiFeedbackBox() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
-      child: Column(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1525), // Dark purple-ish
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple.withOpacity(0.2)),
+      ),
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(ex.exerciseName, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+          Text(
+            'ADJUSTED FOR TODAY',
+            style: TextStyle(color: Colors.purpleAccent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.1),
           ),
-          const Divider(color: Colors.white10, height: 1),
-          ...List.generate(ex.sets, (i) => _buildSetRow(ex, i)),
-          const SizedBox(height: 12),
+          SizedBox(height: 8),
+          Text(
+            "You reported moderate energy, so I've eased weights slightly. Hit your reps clean at 95.0kg and you're right on track.",
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSetRow(WorkoutExercise ex, int setIndex) {
-    final isDone = _completedSets[ex.exerciseId]![setIndex];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  Widget _buildTableHeader() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
-          Text('Set ${setIndex + 1}', style: TextStyle(color: isDone ? AppColors.primary : Colors.white60, fontWeight: FontWeight.bold)),
-          const Spacer(),
-          _buildCompactInput(_repsControllers[ex.exerciseId]![setIndex], 'reps', isDone),
-          const SizedBox(width: 10),
-          _buildCompactInput(_weightControllers[ex.exerciseId]![setIndex], 'kg', isDone),
-          const SizedBox(width: 10),
-          IconButton(
-            onPressed: isDone ? null : () => _doneSet(ex, setIndex),
-            icon: Icon(isDone ? Icons.check_circle : Icons.check_circle_outline, color: isDone ? AppColors.primary : Colors.white24, size: 30),
+          SizedBox(width: 40, child: Text('SET', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold))),
+          SizedBox(width: 80, child: Text('PREV', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold))),
+          Expanded(child: Center(child: Text('KG', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)))),
+          Expanded(child: Center(child: Text('REPS', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)))),
+          SizedBox(width: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          const Expanded(child: Divider(color: Colors.white10, endIndent: 10)),
+          Text(title, style: const TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
+          const Expanded(child: Divider(color: Colors.white10, indent: 10)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSetRow(WorkoutExercise ex, int setIndex, {bool isWarmup = false}) {
+    // Note: To support both warmup and normal sets cleanly, we'd need to adjust state management.
+    // For now, I'll use the existing _completedSets but with an offset or just mock the warmup row visual.
+    
+    final displayIndex = isWarmup ? 'W${setIndex + 1}' : '${setIndex + 1}';
+    final isDone = !isWarmup && _completedSets[ex.exerciseId]![setIndex];
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 40,
+            child: Text(displayIndex, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(
+            width: 80,
+            child: Text('25,0 kgx10', style: TextStyle(color: Colors.white38, fontSize: 12)),
+          ),
+          
+          Expanded(
+            child: _buildCellInput(
+              isWarmup ? TextEditingController(text: '37,5') : _weightControllers[ex.exerciseId]![setIndex], 
+              'kg', 
+              isDone || isWarmup,
+              highlight: isWarmup,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _buildCellInput(
+              isWarmup ? TextEditingController(text: '10') : _repsControllers[ex.exerciseId]![setIndex], 
+              '', 
+              isDone || isWarmup,
+            ),
+          ),
+          
+          SizedBox(
+            width: 50,
+            child: IconButton(
+              onPressed: isDone || isWarmup ? null : () => _doneSet(ex, setIndex),
+              icon: Icon(
+                isDone || isWarmup ? Icons.check_circle : Icons.check_circle_outline, 
+                color: isDone || isWarmup ? (isWarmup ? Colors.white12 : Colors.green) : Colors.white12, 
+                size: 28,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCompactInput(TextEditingController controller, String suffix, bool isDone) {
+  Widget _buildCellInput(TextEditingController controller, String suffix, bool isReadOnly, {bool highlight = false}) {
     return Container(
-      width: 85, // "ô to 1 xíu"
-      height: 44, // "ô to 1 xíu"
+      height: 40,
       decoration: BoxDecoration(
-        color: isDone ? Colors.transparent : AppColors.background,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isDone ? AppColors.primary.withOpacity(0.3) : Colors.white12),
+        color: highlight ? Colors.green.withOpacity(0.1) : (isReadOnly ? Colors.transparent : Colors.white.withOpacity(0.05)),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: TextField(
         controller: controller,
-        enabled: !isDone,
+        enabled: !isReadOnly,
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
-        style: TextStyle(color: isDone ? AppColors.primary : Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: highlight ? Colors.greenAccent : (isReadOnly ? Colors.white60 : Colors.orangeAccent), 
+          fontSize: 14, 
+          fontWeight: FontWeight.bold
+        ),
         decoration: InputDecoration(
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
           border: InputBorder.none,
-          hintText: '0',
-          hintStyle: const TextStyle(color: Colors.white10),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
           suffixText: suffix,
-          suffixStyle: const TextStyle(fontSize: 10, color: Colors.white24),
+          suffixStyle: const TextStyle(fontSize: 9, color: Colors.white38),
         ),
       ),
     );

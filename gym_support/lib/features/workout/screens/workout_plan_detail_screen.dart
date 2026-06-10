@@ -69,9 +69,20 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(_plan?.name ?? 'Plan Detail', style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Workout', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.edit_outlined, color: AppColors.textPrimary, size: 20),
+          ),
+        ],
       ),
       body: _buildBody(),
     );
@@ -79,7 +90,7 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2));
     }
 
     if (_error != null || _plan == null) {
@@ -87,7 +98,7 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(_error ?? 'Lỗi không xác định', style: const TextStyle(color: Colors.white70)),
+            Text(_error ?? 'Lỗi không xác định', style: const TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: _loadPlan, child: const Text('Thử lại')),
           ],
@@ -97,55 +108,182 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
 
     final plan = _plan!;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow('Goal', plan.goal),
-          _buildInfoRow('Level', plan.level),
-          _buildInfoRow('Days per week', plan.daysPerWeek.toString()),
-          _buildInfoRow('Status', plan.isActive ? 'Active' : 'Inactive', 
-              color: plan.isActive ? AppColors.primary : Colors.white70),
-          
-          if (plan.description.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            const Text('Description', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(plan.description, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          ],
-
-          const SizedBox(height: 30),
-          const Text('Workout Days:', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          
-          ...plan.workoutDays.map((day) => _buildDayCard(day)).toList(),
-
-          const SizedBox(height: 40),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: plan.isActive ? null : _applyPlan,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: plan.isActive ? Colors.grey : AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              child: Text(plan.isActive ? 'Currently Active' : 'Apply Plan'),
+          _buildPlanOverview(plan),
+          const SizedBox(height: 24),
+          _buildNutritionCard(),
+          const SizedBox(height: 32),
+          const Text(
+            'WORKOUT DAYS',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          ...plan.workoutDays.map((day) => _buildDayCard(day)).toList(),
+          const SizedBox(height: 32),
+          if (!plan.isActive)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _applyPlan,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: _isLoading 
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('APPLY THIS PLAN', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+              ),
+            ),
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {Color? color}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+  Widget _buildPlanOverview(WorkoutPlan plan) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  plan.name.toUpperCase(),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      plan.level.toUpperCase(),
+                      style: const TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  if (plan.isActive) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'ACTIVE',
+                        style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _buildInfoBadge(Icons.calendar_today_rounded, '8 WEEKS'),
+              const SizedBox(width: 12),
+              _buildInfoBadge(Icons.repeat_rounded, '${plan.daysPerWeek} DAYS/WK'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoBadge(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
-          Text('$label: ', style: const TextStyle(color: Colors.white70, fontSize: 15)),
-          Text(value, style: TextStyle(color: color ?? Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+          Icon(icon, size: 14, color: AppColors.textSecondary),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNutritionCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.restaurant_rounded, size: 18, color: AppColors.accent),
+              const SizedBox(width: 10),
+              const Text(
+                'Nutrition Tips',
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildTipRow('Consume 1.6-2.2g protein per kg bodyweight'),
+          _buildTipRow('Stay hydrated with 2.5-3L water daily'),
+          _buildTipRow('Focus on whole, unprocessed foods'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTipRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4),
+            ),
+          ),
         ],
       ),
     );
@@ -153,35 +291,98 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
 
   Widget _buildDayCard(WorkoutDay day) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${day.dayName}: ${day.focus}',
-            style: const TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          ...day.exercises.map((ex) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              children: [
-                const Icon(Icons.circle, size: 6, color: Colors.white38),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${ex.exerciseName}: ${ex.sets} sets x ${ex.reps}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  '${day.dayName}: ${day.focus}',
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w800),
                 ),
-              ],
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.accent, size: 20),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            day.targetMuscleGroups.join(', '),
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildSmallBadge(Icons.fitness_center_rounded, '${day.exercises.length} Exercises'),
+              const SizedBox(width: 12),
+              _buildSmallBadge(Icons.timer_outlined, '65 min'),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 60,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: day.exercises.length > 5 ? 5 : day.exercises.length,
+              itemBuilder: (context, i) {
+                return Container(
+                  width: 60,
+                  margin: const EdgeInsets.only(right: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface2,
+                    borderRadius: BorderRadius.circular(12),
+                    image: const DecorationImage(
+                      image: NetworkImage('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&q=80'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                );
+              },
             ),
-          )).toList(),
+          ),
+          if (day.dayName.toLowerCase().contains('monday')) ...[
+             const SizedBox(height: 16),
+             const Divider(color: Colors.white10),
+             const SizedBox(height: 8),
+             Row(
+               children: [
+                 const Icon(Icons.check_circle_rounded, color: Color(0xFF12E67F), size: 14),
+                 const SizedBox(width: 8),
+                 const Text(
+                   'Completed this week',
+                   style: TextStyle(color: Color(0xFF12E67F), fontSize: 11, fontWeight: FontWeight.bold),
+                 ),
+               ],
+             ),
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmallBadge(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 12, color: AppColors.accent),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w800),
+          ),
         ],
       ),
     );

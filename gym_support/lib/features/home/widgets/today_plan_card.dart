@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/constants/app_colors.dart';
 
 class TodayPlanCard extends StatelessWidget {
@@ -16,225 +15,227 @@ class TodayPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return _buildLoadingState();
+    }
+
+    if (workout == null) {
+      return _buildEmptyState();
+    }
+
+    return _buildActiveState(context);
+  }
+
+  Widget _buildLoadingState() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      height: 160,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (isLoading) ...[
-            const Text(
-              'Loading plan...',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Fetching your latest workout from the backend.',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.42),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ] else if (workout == null) ...[
-            const Text(
-              'No active plan',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Create a new workout to start tracking.',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.42),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 14),
-            GestureDetector(
-              onTap: onBuildRoutine,
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Build Routine',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SizedBox(width: 5),
-                  Icon(Icons.arrow_forward, color: AppColors.primary, size: 17),
-                ],
-              ),
-            ),
-          ] else ...[
-            _buildWorkoutContent(context),
-          ],
-        ],
+      child: const Center(
+        child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
       ),
     );
   }
 
-  Widget _buildWorkoutContent(BuildContext context) {
-    final workoutPlan = workout?['workoutPlan'];
-    final nutrition = workout?['nutrition'] as Map<String, dynamic>?;
-
-    if (workoutPlan is! List || workoutPlan.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
         children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.fitness_center_rounded, color: AppColors.primary, size: 32),
+          ),
+          const SizedBox(height: 16),
           const Text(
-            'Today',
+            'Ready to sweat?',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Workout saved, but no day list was returned yet.',
+            'You don\'t have an active workout plan yet. Start your journey now!',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.42),
+              color: AppColors.textSecondary,
               fontSize: 13,
-              fontWeight: FontWeight.w600,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onBuildRoutine,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Build Routine',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
             ),
           ),
         ],
-      );
-    }
+      ),
+    );
+  }
+
+  Widget _buildActiveState(BuildContext context) {
+    final workoutPlan = workout?['workoutPlan'];
+    if (workoutPlan is! List || workoutPlan.isEmpty) return _buildEmptyState();
 
     final selectedDay = workoutPlan.first as Map<String, dynamic>;
     final dayLabel = selectedDay['day']?.toString() ?? 'Today';
+    final focus = selectedDay['focus']?.toString() ?? 'Full Body';
     final exercises = selectedDay['exercises'] as List? ?? const [];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          dayLabel,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 17,
-            fontWeight: FontWeight.w900,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-        ),
-        const SizedBox(height: 8),
-        if (nutrition != null) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _pill('Calories', '${nutrition['calories'] ?? '—'}'),
-              _pill('Protein', '${nutrition['protein'] ?? '—'}'),
-              _pill('Carbs', '${nutrition['carbs'] ?? '—'}'),
-              _pill('Fat', '${nutrition['fat'] ?? '—'}'),
-            ],
-          ),
-          const SizedBox(height: 12),
         ],
-        ...exercises.map((exercise) {
-          final item = exercise as Map<String, dynamic>;
-          final name = item['name']?.toString() ?? 'Exercise';
-          final muscle = item['muscle']?.toString() ?? 'Unknown';
-          final sets = item['sets']?.toString() ?? '—';
-          final reps = item['reps']?.toString() ?? '—';
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          children: [
+            Stack(
               children: [
-                const Icon(
-                  Icons.fitness_center,
-                  color: AppColors.primary,
-                  size: 18,
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: const NetworkImage('https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80'),
+                      fit: BoxFit.cover,
+                      colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
+                Positioned(
+                  bottom: 12,
+                  left: 16,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          dayLabel.toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
-                        '$muscle • $sets sets • $reps reps',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.72),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        focus,
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
                       ),
                     ],
                   ),
                 ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.timer_outlined, color: Colors.white70, size: 14),
+                        const SizedBox(width: 4),
+                        const Text('45 min', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
-          );
-        }),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: onBuildRoutine,
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Build Routine',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${exercises.length} Exercises',
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      GestureDetector(
+                        onTap: () {}, // Detail
+                        child: const Text(
+                          'View All',
+                          style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
+                          ),
+                          child: const Text('Start Workout', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              SizedBox(width: 5),
-              Icon(Icons.arrow_forward, color: AppColors.primary, size: 17),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _pill(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.88),
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
+            ),
+          ],
         ),
       ),
     );

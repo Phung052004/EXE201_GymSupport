@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/constants/app_colors.dart';
 
 class AppBottomNavBar extends StatelessWidget {
@@ -15,85 +14,67 @@ class AppBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      const BottomNavItemData(icon: Icons.home_rounded, label: 'Home'),
-      const BottomNavItemData(icon: Icons.smart_toy_rounded, label: 'AI'),
-      const BottomNavItemData(
-        icon: Icons.fitness_center_rounded,
-        label: 'Workout',
-      ),
-      const BottomNavItemData(
-        icon: Icons.calendar_month_rounded,
-        label: 'Routine',
-      ),
+      const BottomNavItemData(icon: Icons.grid_view_rounded, label: 'Home'),
+      const BottomNavItemData(icon: Icons.smart_toy_rounded, label: 'AI Coach'),
+      const BottomNavItemData(icon: Icons.fitness_center_rounded, label: 'Workout'),
+      const BottomNavItemData(icon: Icons.calendar_today_rounded, label: 'Routine'),
       const BottomNavItemData(icon: Icons.person_rounded, label: 'Profile'),
     ];
 
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: 74,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          border: Border(top: BorderSide(color: Color(0xFF2F3440), width: 1)),
-        ),
+    return Container(
+      height: 85,
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List.generate(items.length, (index) {
             final item = items[index];
             final isSelected = currentIndex == index;
 
             return Expanded(
-              child: BottomNavItem(
-                item: item,
-                isSelected: isSelected,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () => onTap(index),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        item.icon,
+                        color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.label,
+                      style: TextStyle(
+                        color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                        fontSize: 10,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }),
         ),
-      ),
-    );
-  }
-}
-
-class BottomNavItem extends StatelessWidget {
-  final BottomNavItemData item;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const BottomNavItem({
-    super.key,
-    required this.item,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final activeColor = AppColors.primary;
-    final inactiveColor = Colors.white.withValues(alpha: 0.32);
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            item.icon,
-            color: isSelected ? activeColor : inactiveColor,
-            size: 22,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            item.label,
-            style: TextStyle(
-              color: isSelected ? activeColor : inactiveColor,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
       ),
     );
   }

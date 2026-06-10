@@ -40,7 +40,7 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -93,64 +93,104 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     final restController = TextEditingController(text: '60');
     final noteController = TextEditingController();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text('Add ${ex.name}', style: const TextStyle(color: Colors.white)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDialogField('Sets', setsController, TextInputType.number),
-              const SizedBox(height: 12),
-              _buildDialogField('Reps', repsController, TextInputType.text),
-              const SizedBox(height: 12),
-              _buildDialogField('Rest Time (sec)', restController, TextInputType.number),
-              const SizedBox(height: 12),
-              _buildDialogField('Note', noteController, TextInputType.text),
-            ],
-          ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              final sets = int.tryParse(setsController.text) ?? 0;
-              final reps = repsController.text.trim();
-              if (sets <= 0 || reps.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập đủ sets và reps')));
-                return;
-              }
-              final workoutEx = WorkoutExercise(
-                exerciseId: ex.id,
-                exerciseName: ex.name,
-                sets: sets,
-                reps: reps,
-                restTime: int.tryParse(restController.text) ?? 60,
-                note: noteController.text.trim(),
-                muscleGroup: ex.muscleGroup,
-              );
-              Navigator.pop(ctx);
-              Navigator.pop(context, workoutEx);
-            },
-            child: const Text('Add to Day'),
-          ),
-        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Add ${ex.name}',
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w900),
+                  ),
+                ),
+                IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close, color: AppColors.textSecondary)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: _buildInputModern('SETS', setsController, TextInputType.number)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildInputModern('REPS', repsController, TextInputType.text)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildInputModern('REST TIME (SEC)', restController, TextInputType.number),
+            const SizedBox(height: 16),
+            _buildInputModern('NOTE (OPTIONAL)', noteController, TextInputType.text),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () {
+                  final sets = int.tryParse(setsController.text) ?? 0;
+                  final reps = repsController.text.trim();
+                  if (sets <= 0 || reps.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter valid sets and reps')));
+                    return;
+                  }
+                  final workoutEx = WorkoutExercise(
+                    exerciseId: ex.id,
+                    exerciseName: ex.name,
+                    sets: sets,
+                    reps: reps,
+                    restTime: int.tryParse(restController.text) ?? 60,
+                    note: noteController.text.trim(),
+                    muscleGroup: ex.muscleGroup,
+                  );
+                  Navigator.pop(ctx);
+                  Navigator.pop(context, workoutEx);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: const Text('ADD TO DAY', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDialogField(String label, TextEditingController controller, TextInputType type) {
-    return TextField(
-      controller: controller,
-      keyboardType: type,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
-        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-      ),
+  Widget _buildInputModern(String label, TextEditingController controller, TextInputType type) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: type,
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+            decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 12)),
+          ),
+        ),
+      ],
     );
   }
 
@@ -159,63 +199,68 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Select Exercise', style: TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary), onPressed: () => Navigator.pop(context)),
+        title: const Text('Select Exercise', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Column(
         children: [
-          _buildFilters(),
+          _buildFiltersModern(),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                : _buildExerciseList(),
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
+                : _buildExerciseListModern(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFilters() {
+  Widget _buildFiltersModern() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      color: AppColors.surface.withOpacity(0.5),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       child: Column(
         children: [
-          TextField(
-            onChanged: (val) => setState(() => _searchQuery = val),
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Search exercise...',
-              hintStyle: const TextStyle(color: Colors.white38),
-              prefixIcon: const Icon(Icons.search, color: Colors.white38),
-              filled: true,
-              fillColor: AppColors.background,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: TextField(
+              onChanged: (val) => setState(() => _searchQuery = val),
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: const InputDecoration(
+                hintText: 'Search exercise...',
+                hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                prefixIcon: Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                border: InputBorder.none,
+              ),
             ),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: _buildDropdown(
-                  hint: 'Category',
+                child: _buildDropdownModern(
                   value: _selectedCategory,
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('All Categories')),
-                    ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))),
+                    const DropdownMenuItem(value: null, child: Text('Categories', style: TextStyle(fontSize: 13))),
+                    ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)))),
                   ],
                   onChanged: (v) => _onCategoryChanged(v),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildDropdown(
-                  hint: 'Muscle',
+                child: _buildDropdownModern(
                   value: _selectedMuscleId,
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('All Muscles')),
-                    ..._muscles.map((m) => DropdownMenuItem(value: m['id'].toString(), child: Text(m['name'], overflow: TextOverflow.ellipsis))),
+                    const DropdownMenuItem(value: null, child: Text('Muscles', style: TextStyle(fontSize: 13))),
+                    ..._muscles.map((m) => DropdownMenuItem(value: m['id'].toString(), child: Text(m['name'], overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)))),
                   ],
                   onChanged: (v) => _onMuscleChanged(v),
                 ),
@@ -227,16 +272,19 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     );
   }
 
-  Widget _buildDropdown({required String hint, required dynamic value, required List<DropdownMenuItem<dynamic>> items, required void Function(dynamic) onChanged}) {
+  Widget _buildDropdownModern({required dynamic value, required List<DropdownMenuItem<dynamic>> items, required void Function(dynamic) onChanged}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<dynamic>(
           value: value,
-          hint: Text(hint, style: const TextStyle(color: Colors.white38, fontSize: 13)),
-          isExpanded: true,
           dropdownColor: AppColors.surface,
+          isExpanded: true,
           items: items,
           onChanged: onChanged,
         ),
@@ -244,41 +292,54 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     );
   }
 
-  Widget _buildExerciseList() {
+  Widget _buildExerciseListModern() {
     final filtered = _exercises.where((e) => e.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
     if (filtered.isEmpty) {
-      return const Center(child: Text('No exercises found', style: TextStyle(color: Colors.white38)));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off_rounded, size: 48, color: AppColors.textSecondary.withOpacity(0.2)),
+            const SizedBox(height: 16),
+            const Text('No exercises found', style: TextStyle(color: AppColors.textSecondary)),
+          ],
+        ),
+      );
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         final ex = filtered[index];
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
-                child: Icon(ex.icon, color: AppColors.primary),
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+                child: Icon(ex.icon, color: AppColors.primary, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(ex.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text(ex.muscleGroup, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                    Text(ex.name, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
+                    Text(ex.muscleGroup.toUpperCase(), style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800)),
                   ],
                 ),
               ),
               IconButton(
                 onPressed: () => _showAddDialog(ex),
-                icon: const Icon(Icons.add_circle, color: AppColors.primary),
+                icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.accent, size: 26),
               ),
             ],
           ),

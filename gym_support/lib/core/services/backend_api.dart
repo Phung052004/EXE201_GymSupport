@@ -213,11 +213,33 @@ class BackendApi {
     final customer = await getCustomerByUserId(userId);
     if (customer == null) return null;
 
-    final height = _value<num>(customer, 'heightCm')?.toDouble() ?? 0;
-    final weight = _value<num>(customer, 'weightKg')?.toDouble() ?? 0;
-    final storedBmi = _value<num>(customer, 'bmi')?.toDouble() ?? 0;
-    final bmi = storedBmi > 0 ? storedBmi : _calculateBmi(weight, height);
-    final customerId = _value<String>(customer, 'id');
+    final fullName = user['fullName']?.toString() ?? user['FullName']?.toString() ?? email;
+    final userEmail = user['email']?.toString() ?? user['Email']?.toString() ?? email;
+    
+    final gender = customer['gender']?.toString() ?? customer['Gender']?.toString();
+    final age = customer['age'] is int 
+        ? customer['age'] as int 
+        : int.tryParse(customer['age']?.toString() ?? customer['Age']?.toString() ?? '0') ?? 0;
+    
+    final heightCm = customer['heightCm'] is num 
+        ? (customer['heightCm'] as num).toInt() 
+        : int.tryParse(customer['heightCm']?.toString() ?? customer['HeightCm']?.toString() ?? '0') ?? 0;
+        
+    final weightKg = customer['weightKg'] is num 
+        ? (customer['weightKg'] as num).toInt() 
+        : int.tryParse(customer['weightKg']?.toString() ?? customer['WeightKg']?.toString() ?? '0') ?? 0;
+
+    final bmiVal = customer['bmi'] is num 
+        ? (customer['bmi'] as num).toDouble() 
+        : double.tryParse(customer['bmi']?.toString() ?? customer['Bmi']?.toString() ?? '0') ?? 0;
+    
+    final bmi = bmiVal > 0 ? bmiVal : _calculateBmi(weightKg.toDouble(), heightCm.toDouble());
+
+    final goal = customer['goal']?.toString() ?? customer['Goal']?.toString();
+    final experienceLevel = customer['experienceLevel']?.toString() ?? customer['ExperienceLevel']?.toString();
+    final injuryNotes = customer['injuryNotes']?.toString() ?? customer['InjuryNotes']?.toString();
+    final customerId = customer['id']?.toString() ?? customer['Id']?.toString();
+
     if (customerId != null) {
       await SessionStore.saveCustomerId(customerId);
     }
@@ -225,16 +247,21 @@ class BackendApi {
     return {
       'id': customerId,
       'userId': userId,
-      'email': _value<String>(user, 'email') ?? email,
-      'name': _value<String>(user, 'fullName') ?? email,
-      'gender': _value<String>(customer, 'gender') ?? '',
-      'age': _value<num>(customer, 'age')?.toString() ?? '',
-      'weight': weight == 0 ? '' : weight.toStringAsFixed(0),
-      'height': height == 0 ? '' : height.toStringAsFixed(0),
-      'bmi': bmi == 0 ? '--' : bmi.toStringAsFixed(1),
-      'goal': _value<String>(customer, 'goal') ?? '',
-      'schedule': _value<String>(customer, 'experienceLevel') ?? '',
-      'subscription': _value<String>(customer, 'subscription') ?? 'free',
+      'fullName': fullName,
+      'email': userEmail,
+      'gender': gender ?? '',
+      'age': age,
+      'bmi': bmi,
+      'heightCm': heightCm,
+      'weightKg': weightKg,
+      'goal': goal ?? '',
+      'experienceLevel': experienceLevel ?? '',
+      'injuryNotes': injuryNotes ?? '',
+      // Backward compatibility for existing UI if needed, but primarily following new schema
+      'name': fullName,
+      'weight': weightKg > 0 ? weightKg.toString() : '',
+      'height': heightCm > 0 ? heightCm.toString() : '',
+      'schedule': experienceLevel ?? '',
     };
   }
 
@@ -248,6 +275,7 @@ class BackendApi {
     required String bmi,
     required String goal,
     required String schedule,
+    String? injuryNotes,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString(SessionStore.userIdKey);
@@ -255,18 +283,19 @@ class BackendApi {
       throw Exception('Vui lòng đăng nhập sau khi xác minh email');
     }
 
+    final weightVal = double.tryParse(weight) ?? 0;
+    final heightVal = double.tryParse(height) ?? 0;
+
     final payload = {
+      'userId': userId,
       'gender': gender,
-      'age': int.tryParse(age),
-      'bmi': _calculateBmi(
-        double.tryParse(weight) ?? 0,
-        double.tryParse(height) ?? 0,
-      ),
-      'heightCm': int.tryParse(height),
-      'weightKg': int.tryParse(weight),
+      'age': int.tryParse(age) ?? 0,
+      'bmi': _calculateBmi(weightVal, heightVal),
+      'heightCm': heightVal.toInt(),
+      'weightKg': weightVal.toInt(),
       'goal': goal,
       'experienceLevel': schedule,
-      'subscription': 'free',
+      'injuryNotes': injuryNotes ?? '',
     };
 
     await _put('/api/User/$userId', body: {'fullName': name, 'email': email});
@@ -276,16 +305,16 @@ class BackendApi {
       final created = await _post(
         '/api/Customer',
         auth: true,
-        body: {'userId': userId, ...payload},
+        body: payload,
       );
       if (created is Map<String, dynamic>) {
-        final id = _value<String>(created, 'id');
+        final id = created['id']?.toString() ?? created['Id']?.toString();
         if (id != null) await SessionStore.saveCustomerId(id);
       }
       return;
     }
 
-    final customerId = _value<String>(customer, 'id');
+    final customerId = customer['id']?.toString() ?? customer['Id']?.toString();
     if (customerId == null || customerId.isEmpty) {
       throw Exception('Không tìm thấy hồ sơ customer');
     }
@@ -1378,6 +1407,17 @@ class BackendApi {
     return '${_englishDayToVietnamese(day)} - $day';
   }
 
+  static Future<Map<String, dynamic>> getSubscription() async {
+    final userId = await currentUserId();
+    if (userId == null) return {};
+    try {
+      final decoded = await _get('/api/Subscription/user/$userId', auth: true);
+      return decoded is Map<String, dynamic> ? decoded : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
   static Map<String, dynamic> _nutritionFromCustomer(
     Map<String, dynamic>? customer,
   ) {
@@ -1385,11 +1425,18 @@ class BackendApi {
       return {'calories': '—', 'protein': '—', 'water': '—'};
     }
 
-    final weight = _value<num>(customer, 'weightKg')?.toDouble() ?? 0;
-    final height = _value<num>(customer, 'heightCm')?.toDouble() ?? 0;
-    final age = _value<num>(customer, 'age')?.toDouble() ?? 0;
-    final gender = (_value<String>(customer, 'gender') ?? '').toLowerCase();
-    final goal = (_value<String>(customer, 'goal') ?? '').toLowerCase();
+    // Using camelCase keys as requested
+    final weight = (customer['weightKg'] ?? customer['WeightKg']) is num 
+        ? (customer['weightKg'] ?? customer['WeightKg'] as num).toDouble() 
+        : 0.0;
+    final height = (customer['heightCm'] ?? customer['HeightCm']) is num 
+        ? (customer['heightCm'] ?? customer['HeightCm'] as num).toDouble() 
+        : 0.0;
+    final age = (customer['age'] ?? customer['Age']) is num 
+        ? (customer['age'] ?? customer['Age'] as num).toDouble() 
+        : 0.0;
+    final gender = (customer['gender'] ?? customer['Gender'] ?? '').toString().toLowerCase();
+    final goal = (customer['goal'] ?? customer['Goal'] ?? '').toString().toLowerCase();
 
     if (weight <= 0 || height <= 0 || age <= 0) {
       return {

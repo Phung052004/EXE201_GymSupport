@@ -38,7 +38,7 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController.text = 'My Routine';
+    _nameController.text = 'My Custom Routine';
     _goalController.text = widget.goal;
     _levelController.text = 'Beginner';
     _updateDaysList();
@@ -51,7 +51,7 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
           _dayDataList.add(WorkoutDayData(
             dayNumber: i + 1,
             weekday: _weekdays[i % 7],
-            dayName: 'Day ${i + 1}',
+            dayName: 'Workout Day ${i + 1}',
           ));
         }
       } else if (_dayDataList.length > _daysPerWeek) {
@@ -81,18 +81,18 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
   Future<void> _saveRoutine() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      _showError('Vui lòng nhập tên routine');
+      _showError('Please enter routine name');
       return;
     }
     
     for (int i = 0; i < _dayDataList.length; i++) {
       final day = _dayDataList[i];
       if (day.dayName.trim().isEmpty) {
-        _showError('Vui lòng nhập tên cho Day ${i + 1}');
+        _showError('Please enter name for Day ${i + 1}');
         return;
       }
       if (day.exercises.isEmpty) {
-        _showError('Vui lòng thêm ít nhất 1 bài tập cho ${day.dayName}');
+        _showError('Please add at least 1 exercise for ${day.dayName}');
         return;
       }
     }
@@ -101,11 +101,11 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
     try {
       final userId = await BackendApi.currentUserId();
       if (userId == null || userId.isEmpty) {
-        throw Exception('Vui lòng đăng nhập để lưu routine');
+        throw Exception('Please login to save routine');
       }
 
       final payload = {
-        "id": "", // Bổ sung ID cho Plan
+        "id": "",
         "userId": userId,
         "name": name,
         "goal": _goalController.text.trim(),
@@ -125,14 +125,14 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      _showError('Lỗi khi lưu routine: $e');
+      _showError('Error saving routine: $e');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.redAccent));
   }
 
   @override
@@ -140,92 +140,129 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Build Routine', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Build Routine', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildMainInfo(),
-            const SizedBox(height: 30),
-            const Text('Workout Days:', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            ..._dayDataList.asMap().entries.map((entry) => _buildDayCard(entry.key, entry.value)).toList(),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _saveRoutine,
-                child: _isSaving 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Save Routine', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildMainInfoCard(),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'WORKOUT DAYS',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._dayDataList.asMap().entries.map((entry) => _buildDayCard(entry.key, entry.value)).toList(),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainInfo() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
-      child: Column(
-        children: [
-          _buildTextField('Routine Name', _nameController),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _buildTextField('Goal', _goalController)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildTextField('Level', _levelController)),
-            ],
           ),
-          const SizedBox(height: 12),
-          _buildDaysDropdown(),
-          const SizedBox(height: 12),
-          _buildTextField('Description', _descController),
+          _buildBottomButton(),
         ],
       ),
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white60),
-        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white10)),
+  Widget _buildMainInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTextFieldModern('ROUTINE NAME', _nameController, Icons.edit_note_rounded),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(child: _buildTextFieldModern('GOAL', _goalController, Icons.flag_rounded)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildTextFieldModern('LEVEL', _levelController, Icons.bolt_rounded)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildDaysDropdownModern(),
+        ],
       ),
     );
   }
 
-  Widget _buildDaysDropdown() {
-    return Row(
+  Widget _buildTextFieldModern(String label, TextEditingController controller, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Days Per Week: ', style: TextStyle(color: Colors.white70)),
-        const SizedBox(width: 12),
-        DropdownButton<int>(
-          value: _daysPerWeek,
-          dropdownColor: AppColors.surface,
-          items: List.generate(7, (i) => i + 1).map((d) => DropdownMenuItem(
-            value: d,
-            child: Text('$d days', style: const TextStyle(color: Colors.white)),
-          )).toList(),
-          onChanged: (val) {
-            if (val != null) {
-              setState(() => _daysPerWeek = val);
-              _updateDaysList();
-            }
-          },
+        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: TextField(
+            controller: controller,
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              icon: Icon(icon, color: AppColors.primary, size: 20),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDaysDropdownModern() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('DAYS PER WEEK', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 18),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _daysPerWeek,
+                    dropdownColor: AppColors.surface2,
+                    isExpanded: true,
+                    items: List.generate(7, (i) => i + 1).map((d) => DropdownMenuItem(
+                      value: d,
+                      child: Text('$d Days', style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+                    )).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _daysPerWeek = val);
+                        _updateDaysList();
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -234,54 +271,135 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
   Widget _buildDayCard(int index, WorkoutDayData day) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Day ${index + 1}', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text('DAY ${index + 1}', style: const TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w900)),
+              ),
               DropdownButton<String>(
                 value: day.weekday,
-                dropdownColor: AppColors.surface,
+                dropdownColor: AppColors.surface2,
                 underline: const SizedBox(),
                 items: _weekdays.map((w) => DropdownMenuItem(
                   value: w,
-                  child: Text(w, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                  child: Text(w, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
                 )).toList(),
                 onChanged: (v) => setState(() => day.weekday = v!),
               ),
             ],
           ),
+          const SizedBox(height: 12),
           TextField(
             onChanged: (v) => day.dayName = v,
             controller: TextEditingController(text: day.dayName),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w900),
             decoration: const InputDecoration(
-              hintText: 'Day Name (e.g. Chest + Triceps)',
-              hintStyle: TextStyle(color: Colors.white24),
+              hintText: 'Add session focus (e.g. Chest)',
+              hintStyle: TextStyle(color: Colors.white10, fontSize: 16),
               border: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
             ),
           ),
-          const Divider(color: Colors.white10),
-          ...day.exercises.asMap().entries.map((exEntry) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(exEntry.value.exerciseName, style: const TextStyle(color: Colors.white, fontSize: 14)),
-            subtitle: Text('${exEntry.value.sets} sets x ${exEntry.value.reps}', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-            trailing: IconButton(
-              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 20),
-              onPressed: () => _removeExercise(index, exEntry.key),
-            ),
-          )).toList(),
+          const SizedBox(height: 4),
+          Divider(color: Colors.white.withOpacity(0.05)),
           const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () => _addExercise(index),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add Exercise'),
+          if (day.exercises.isEmpty)
+             Center(
+               child: Padding(
+                 padding: const EdgeInsets.all(20),
+                 child: Text('No exercises added yet.', style: TextStyle(color: Colors.white.withOpacity(0.1), fontSize: 13, fontStyle: FontStyle.italic)),
+               ),
+             ),
+          ...day.exercises.asMap().entries.map((exEntry) => _buildExerciseRow(index, exEntry.key, exEntry.value)).toList(),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: () => _addExercise(index),
+              icon: const Icon(Icons.add_circle_outline_rounded, size: 20, color: AppColors.accent),
+              label: const Text('Add Exercise', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 13)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: AppColors.accent.withOpacity(0.05),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildExerciseRow(int dayIndex, int exIndex, WorkoutExercise ex) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.fitness_center_rounded, color: AppColors.textSecondary, size: 16),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(ex.exerciseName, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700)),
+                Text('${ex.sets} Sets • ${ex.reps} Reps', style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 18),
+            onPressed: () => _removeExercise(dayIndex, exIndex),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomButton() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, -5))],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: _isSaving ? null : _saveRoutine,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+            ),
+            child: _isSaving 
+              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text('SAVE ROUTINE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          ),
+        ),
       ),
     );
   }
@@ -297,7 +415,6 @@ class WorkoutDayData {
 
   Map<String, dynamic> toJson() {
     return {
-      "id": "", // Bổ sung ID cho Session
       "dayNumber": dayNumber,
       "dayOfWeek": weekday,
       "dayName": dayName,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/constants/app_colors.dart';
 
 class NutritionPlanCard extends StatelessWidget {
@@ -20,10 +19,11 @@ class NutritionPlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Column(
         children: [
@@ -31,7 +31,7 @@ class NutritionPlanCard extends StatelessWidget {
             children: [
               Expanded(
                 child: NutritionItem(
-                  icon: Icons.local_fire_department,
+                  icon: Icons.local_fire_department_rounded,
                   label: 'Calories',
                   value: calories,
                   iconColor: const Color(0xFFFF7A30),
@@ -39,7 +39,7 @@ class NutritionPlanCard extends StatelessWidget {
               ),
               Expanded(
                 child: NutritionItem(
-                  icon: Icons.egg_alt,
+                  icon: Icons.egg_alt_rounded,
                   label: 'Protein',
                   value: protein,
                   iconColor: AppColors.primary,
@@ -47,12 +47,12 @@ class NutritionPlanCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
                 child: NutritionItem(
-                  icon: Icons.water_drop,
+                  icon: Icons.water_drop_rounded,
                   label: 'Water',
                   value: water,
                   iconColor: const Color(0xFF248DFF),
@@ -60,7 +60,7 @@ class NutritionPlanCard extends StatelessWidget {
               ),
               Expanded(
                 child: NutritionItem(
-                  icon: Icons.monitor_weight,
+                  icon: Icons.monitor_weight_rounded,
                   label: 'BMI',
                   value: bmi.isEmpty ? '--' : bmi,
                   iconColor: const Color(0xFFC44DFF),
@@ -92,25 +92,31 @@ class NutritionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: iconColor, size: 22),
-        const SizedBox(width: 9),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: iconColor, size: 18),
+        ),
+        const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               value,
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.38),
-                fontSize: 11,
+                color: AppColors.textSecondary,
+                fontSize: 10,
                 fontWeight: FontWeight.w700,
               ),
             ),

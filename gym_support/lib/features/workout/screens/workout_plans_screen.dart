@@ -54,12 +54,12 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
       if (mounted) {
         String msg = e.toString();
         if (msg.contains('Exception: ')) msg = msg.split('Exception: ').last;
-        // If it's a 405 or other error but it actually worked (user reported this),
-        // we show a less scary message or just proceed to reload.
-        debugPrint('Apply plan error (may have still worked): $e');
+        debugPrint('Apply plan error: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi kích hoạt: $msg')),
+        );
       }
     } finally {
-      // Always reload to get the latest status from server
       await Future.delayed(const Duration(milliseconds: 500));
       _loadPlans();
     }
@@ -70,9 +70,13 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Workout Plans', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Workout Plans',
+          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w900, fontSize: 24),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: false,
       ),
       body: _buildBody(),
     );
@@ -80,7 +84,7 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2));
     }
 
     if (_error != null) {
@@ -88,22 +92,33 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(_error!, style: const TextStyle(color: Colors.white70)),
+            Text(_error!, style: const TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _loadPlans, child: const Text('Thử lại')),
+            ElevatedButton(
+              onPressed: _loadPlans,
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text('Thử lại'),
+            ),
           ],
         ),
       );
     }
 
     if (_plans.isEmpty) {
-      return const Center(
-        child: Text('Bạn chưa có workout plan nào.', style: TextStyle(color: Colors.white70)),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.fitness_center_rounded, size: 64, color: AppColors.textSecondary.withOpacity(0.2)),
+            const SizedBox(height: 16),
+            const Text('Bạn chưa có workout plan nào.', style: TextStyle(color: AppColors.textSecondary)),
+          ],
+        ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       itemCount: _plans.length,
       itemBuilder: (context, index) {
         final plan = _plans[index];
@@ -114,74 +129,157 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
 
   Widget _buildPlanCard(WorkoutPlan plan) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: plan.isActive ? AppColors.primary : Colors.white.withOpacity(0.05),
+          color: plan.isActive ? AppColors.primary.withOpacity(0.5) : Colors.white.withOpacity(0.05),
           width: plan.isActive ? 2 : 1,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  plan.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              if (plan.isActive)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'Active',
-                    style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('Goal: ${plan.goal}', style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          Text('Level: ${plan.level}', style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          Text('Days: ${plan.daysPerWeek} days/week', style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => WorkoutPlanDetailScreen(planId: plan.id)),
-                    );
-                  },
-                  child: const Text('View Detail'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: plan.isActive ? null : () => _applyPlan(plan.id),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: plan.isActive ? Colors.grey : AppColors.primary,
-                  ),
-                  child: Text(plan.isActive ? 'Currently Active' : 'Apply Plan'),
-                ),
-              ),
-            ],
-          ),
+        boxShadow: [
+          if (plan.isActive)
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
         ],
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 100,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: plan.isActive 
+                      ? [AppColors.primary, AppColors.primary.withOpacity(0.6)]
+                      : [AppColors.surface2, AppColors.surface],
+                ),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -20,
+                    bottom: -20,
+                    child: Icon(
+                      Icons.fitness_center_rounded,
+                      size: 120,
+                      color: Colors.white.withOpacity(0.05),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          plan.name.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        if (plan.isActive)
+                          Container(
+                            margin: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'ACTIVE NOW',
+                              style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildMiniInfo(Icons.flag_rounded, plan.goal),
+                      _buildMiniInfo(Icons.bolt_rounded, plan.level),
+                      _buildMiniInfo(Icons.calendar_today_rounded, '${plan.daysPerWeek} Days'),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => WorkoutPlanDetailScreen(planId: plan.id)),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textPrimary,
+                            side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: const Text('View Detail', style: TextStyle(fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: plan.isActive ? null : () => _applyPlan(plan.id),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.white.withOpacity(0.05),
+                            disabledForegroundColor: Colors.white.withOpacity(0.2),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            plan.isActive ? 'Active' : 'Apply Plan',
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniInfo(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.primary),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }

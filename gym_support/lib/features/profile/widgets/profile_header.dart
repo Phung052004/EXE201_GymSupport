@@ -70,6 +70,8 @@ class ProfileHeader extends StatelessWidget {
             fontWeight: FontWeight.w900,
           ),
         ),
+        // Subscription plan hidden until API integration is complete
+        /*
         const SizedBox(height: 5),
         Text(
           'Free Plan • Joined Jan 2026',
@@ -80,6 +82,7 @@ class ProfileHeader extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
+        */
       ],
     );
   }

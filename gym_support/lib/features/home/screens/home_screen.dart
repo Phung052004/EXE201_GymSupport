@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_colors.dart';
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/core/services/session_store.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_stat_card.dart';
 import '../widgets/muscle_progress_card.dart';
@@ -29,6 +29,7 @@ class HomeScreen extends StatefulWidget {
     required this.refreshSeed,
     required this.onBuildRoutine,
   });
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -103,90 +104,112 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            HomeHeader(name: widget.name, goal: widget.goal),
+    final displayName = widget.name.isEmpty ? 'User' : widget.name;
+    final displayGoal = widget.goal.isEmpty ? 'Fitness Goal' : widget.goal;
 
-            const SizedBox(height: 22),
-
-            Row(
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _loadWorkout,
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: HomeStatCard(
-                    icon: Icons.local_fire_department,
-                    iconColor: Color(0xFFFF7A30),
-                    value: '${_home?['streak'] ?? 0}',
-                    label: 'DAY STREAK',
-                  ),
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const WorkoutHistoryScreen()),
-                      );
-                    },
-                    child: HomeStatCard(
-                      icon: Icons.emoji_events,
-                      iconColor: AppColors.primary,
-                      value: '${_home?['workoutCount'] ?? 0}',
-                      label: 'WORKOUTS',
+                HomeHeader(name: displayName, goal: displayGoal),
+
+                const SizedBox(height: 32),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: HomeStatCard(
+                        icon: Icons.local_fire_department_rounded,
+                        iconColor: AppColors.accent,
+                        value: '${_home?['streak'] ?? 0}',
+                        label: 'DAY STREAK',
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const WorkoutHistoryScreen(),
+                            ),
+                          );
+                        },
+                        child: HomeStatCard(
+                          icon: Icons.emoji_events_rounded,
+                          iconColor: AppColors.primary,
+                          value: '${_home?['workoutCount'] ?? 0}',
+                          label: 'WORKOUTS',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+
+                const SizedBox(height: 32),
+
+                const SectionTitle(
+                  icon: Icons.bolt_rounded,
+                  title: "Today's Plan",
+                ),
+
+                const SizedBox(height: 16),
+
+                TodayPlanCard(
+                  isLoading: _loading,
+                  onBuildRoutine: widget.onBuildRoutine,
+                  workout: _workout,
+                ),
+
+                const SizedBox(height: 32),
+
+                const SectionTitle(
+                  icon: Icons.fitness_center_rounded,
+                  title: 'Muscle Progress',
+                ),
+
+                const SizedBox(height: 16),
+
+                MuscleProgressGrid(items: _muscleProgress, isLoading: _loading),
+
+                const SizedBox(height: 32),
+
+                const SectionTitle(
+                  icon: Icons.restaurant_rounded,
+                  title: 'Nutrition Plan',
+                ),
+
+                const SizedBox(height: 16),
+
+                NutritionPlanCard(
+                  calories:
+                      _workout != null
+                          ? '${_workout!['nutrition']?['calories'] ?? '—'}'
+                          : '—',
+                  protein:
+                      _workout != null
+                          ? '${_workout!['nutrition']?['protein'] ?? '—'}'
+                          : '—',
+                  water:
+                      _workout != null
+                          ? '${_workout!['nutrition']?['water'] ?? '—'}'
+                          : '—',
+                  bmi: widget.bmi,
+                ),
+
+                const SizedBox(height: 24),
               ],
             ),
-
-            const SizedBox(height: 26),
-
-            const SectionTitle(icon: Icons.bolt, title: "Today's Plan"),
-
-            const SizedBox(height: 12),
-
-            TodayPlanCard(
-              isLoading: _loading,
-              onBuildRoutine: widget.onBuildRoutine,
-              workout: _workout,
-            ),
-
-            const SizedBox(height: 28),
-
-            const SectionTitle(
-              icon: Icons.fitness_center,
-              title: 'Muscle Progress',
-            ),
-
-            const SizedBox(height: 12),
-
-            MuscleProgressGrid(items: _muscleProgress, isLoading: _loading),
-
-            const SizedBox(height: 28),
-
-            const SectionTitle(icon: Icons.restaurant, title: 'Nutrition Plan'),
-
-            const SizedBox(height: 12),
-
-            NutritionPlanCard(
-              calories: _workout != null
-                  ? '${_workout!['nutrition']?['calories'] ?? '—'}'
-                  : '—',
-              protein: _workout != null
-                  ? '${_workout!['nutrition']?['protein'] ?? '—'}'
-                  : '—',
-              water: _workout != null
-                  ? '${_workout!['nutrition']?['water'] ?? '—'}'
-                  : '—',
-              bmi: widget.bmi,
-            ),
-
-            const SizedBox(height: 18),
-          ],
+          ),
         ),
       ),
     );
@@ -204,13 +227,14 @@ class SectionTitle extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, color: AppColors.primary, size: 20),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Text(
           title,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.textPrimary,
             fontSize: 18,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
           ),
         ),
       ],

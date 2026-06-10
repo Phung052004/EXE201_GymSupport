@@ -24,16 +24,18 @@ class WorkoutPlan {
   });
 
   factory WorkoutPlan.fromJson(Map<String, dynamic> json) {
-    var list = json['workoutDays'] as List? ?? json['sessions'] as List? ?? [];
+    var list = json['workoutDays'] as List? ?? json['sessions'] as List? ?? json['Sessions'] as List? ?? [];
     return WorkoutPlan(
-      id: json['id']?.toString() ?? '',
-      userId: json['userId']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      goal: json['goal']?.toString() ?? '',
-      level: json['level']?.toString() ?? 'Beginner',
-      daysPerWeek: json['daysPerWeek'] is int ? json['daysPerWeek'] : 0,
-      description: json['description']?.toString() ?? '',
-      isActive: json['isActive'] ?? false,
+      id: (json['id'] ?? json['Id'])?.toString() ?? '',
+      userId: (json['userId'] ?? json['UserId'])?.toString() ?? '',
+      name: (json['name'] ?? json['Name'])?.toString() ?? '',
+      goal: (json['goal'] ?? json['Goal'])?.toString() ?? '',
+      level: (json['level'] ?? json['Level'])?.toString() ?? 'Beginner',
+      daysPerWeek: (json['daysPerWeek'] ?? json['DaysPerWeek']) is int 
+          ? (json['daysPerWeek'] ?? json['DaysPerWeek']) 
+          : int.tryParse((json['daysPerWeek'] ?? json['DaysPerWeek'])?.toString() ?? '0') ?? 0,
+      description: (json['description'] ?? json['Description'])?.toString() ?? '',
+      isActive: json['isActive'] ?? json['IsActive'] ?? false,
       workoutDays: list.map((i) => WorkoutDay.fromJson(Map<String, dynamic>.from(i))).toList(),
     );
   }
@@ -59,14 +61,14 @@ class WorkoutDay {
   });
 
   factory WorkoutDay.fromJson(Map<String, dynamic> json) {
-    var list = json['exercises'] as List? ?? [];
-    var muscles = json['targetMuscleGroups'] as List? ?? [];
+    var list = json['exercises'] as List? ?? json['Exercises'] as List? ?? [];
+    var muscles = json['targetMuscleGroups'] as List? ?? json['TargetMuscleGroups'] as List? ?? [];
     return WorkoutDay(
-      id: json['id']?.toString() ?? '',
-      dayNumber: json['dayNumber'] is int ? json['dayNumber'] : 0,
-      weekday: json['dayOfWeek']?.toString() ?? json['weekday']?.toString() ?? '',
-      dayName: json['dayName']?.toString() ?? json['dayOfWeek']?.toString() ?? '',
-      focus: json['focus']?.toString() ?? '',
+      id: (json['id'] ?? json['Id'])?.toString() ?? '',
+      dayNumber: (json['dayNumber'] ?? json['DayNumber']) is int ? (json['dayNumber'] ?? json['DayNumber']) : 0,
+      weekday: (json['dayOfWeek'] ?? json['DayOfWeek'] ?? json['weekday'] ?? json['Weekday'])?.toString() ?? '',
+      dayName: (json['dayName'] ?? json['DayName'] ?? json['dayOfWeek'] ?? json['DayOfWeek'])?.toString() ?? '',
+      focus: (json['focus'] ?? json['Focus'])?.toString() ?? '',
       targetMuscleGroups: muscles.map((m) => m.toString()).toList(),
       exercises: list.map((i) => WorkoutExercise.fromJson(Map<String, dynamic>.from(i))).toList(),
     );
@@ -102,13 +104,13 @@ class WorkoutExercise {
 
   factory WorkoutExercise.fromJson(Map<String, dynamic> json) {
     return WorkoutExercise(
-      exerciseId: json['exerciseId']?.toString() ?? '',
-      exerciseName: json['exerciseName']?.toString() ?? '',
-      sets: json['sets'] is int ? json['sets'] : 3,
-      reps: json['reps']?.toString() ?? '10',
-      restTime: json['restTime'] is int ? json['restTime'] : 60,
-      note: json['notes']?.toString() ?? json['note']?.toString() ?? '',
-      muscleGroup: json['muscleGroup']?.toString() ?? 'Unknown',
+      exerciseId: (json['exerciseId'] ?? json['ExerciseId'])?.toString() ?? '',
+      exerciseName: (json['exerciseName'] ?? json['ExerciseName'])?.toString() ?? '',
+      sets: (json['sets'] ?? json['Sets']) is int ? (json['sets'] ?? json['Sets']) : 3,
+      reps: (json['reps'] ?? json['Reps'])?.toString() ?? '10',
+      restTime: (json['restTime'] ?? json['RestTime']) is int ? (json['restTime'] ?? json['RestTime']) : 60,
+      note: (json['notes'] ?? json['Notes'] ?? json['note'] ?? json['Note'])?.toString() ?? '',
+      muscleGroup: (json['muscleGroup'] ?? json['MuscleGroup'])?.toString() ?? 'Unknown',
     );
   }
 
