@@ -104,19 +104,26 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
         throw Exception('Please login to save routine');
       }
 
+      // Build payload with sessions and exercises
       final payload = {
-        "id": "",
         "userId": userId,
         "name": name,
         "goal": _goalController.text.trim(),
-        "level": _levelController.text.trim(),
         "daysPerWeek": _daysPerWeek,
-        "description": _descController.text.trim(),
-        "isActive": false,
-        "sessions": _dayDataList.map((d) => d.toJson()).toList(),
+        "sessions": _dayDataList.map((day) => {
+          "dayOfWeek": day.weekday,
+          "focus": day.dayName.isEmpty ? "Workout Session" : day.dayName,
+          "exercises": day.exercises.map((ex) => {
+            "exerciseId": ex.exerciseId,
+            "exerciseName": ex.exerciseName,
+            "sets": ex.sets,
+            "reps": ex.reps,
+            "notes": ex.note
+          }).toList()
+        }).toList()
       };
 
-      await BackendApi.createWorkoutPlan(payload);
+      await BackendApi.createRoutineWithSessions(payload);
       if (!mounted) return;
       
       if (widget.onRoutineSaved != null) {

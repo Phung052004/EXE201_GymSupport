@@ -1,5 +1,6 @@
 using GymSupport.Repository.Interfaces;
 using GymSupport.Repository.Models.Entities;
+using GymSupport.Repository.Models.DTOs.WorkoutPlan;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GymSupport.API.Controllers;
@@ -63,6 +64,42 @@ public class WorkoutPlansController : ControllerBase
         return Ok(plan);
     }
 
+    [HttpPost("create-routine")]
+    public async Task<IActionResult> CreateRoutine([FromBody] CreateRoutineDto dto)
+    {
+        // Deactivate all previous plans
+        await _repository.DeactivateAllByUserIdAsync(dto.UserId);
+
+        // Create new plan with sessions and exercises
+        var plan = new WorkoutPlan
+        {
+            UserId = dto.UserId,
+            Name = dto.Name,
+            Goal = dto.Goal,
+            DaysPerWeek = dto.DaysPerWeek,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            Sessions = dto.Sessions.Select(s => new WorkoutSession
+            {
+                Id = Guid.NewGuid().ToString(),
+                DayOfWeek = s.DayOfWeek,
+                Focus = s.Focus,
+                Exercises = s.Exercises.Select(e => new ExerciseInSession
+                {
+                    ExerciseId = e.ExerciseId,
+                    ExerciseName = e.ExerciseName,
+                    Sets = e.Sets,
+                    Reps = e.Reps,
+                    Notes = e.Notes
+                }).ToList()
+            }).ToList()
+        };
+
+        await _repository.CreateAsync(plan);
+
+        return Ok(plan);
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] WorkoutPlan request)
     {
@@ -77,7 +114,6 @@ public class WorkoutPlansController : ControllerBase
 
         return Ok(request);
     }
-
     [HttpPut("{id}/activate")]
     public async Task<IActionResult> Activate(string id)
     {

@@ -537,6 +537,17 @@ class BackendApi {
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
 
+  static Future<Map<String, dynamic>> createRoutineWithSessions(
+    Map<String, dynamic> payload,
+  ) async {
+    final decoded = await _post(
+      '/api/workoutplans/create-routine',
+      auth: true,
+      body: payload,
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
   static Future<void> deleteWorkoutPlan(String id) =>
       _delete('/api/workoutplans/$id');
 
