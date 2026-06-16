@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/constants/app_colors.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
@@ -23,14 +24,16 @@ class PrimaryButton extends StatelessWidget {
           height: 56,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF12E67F), Color(0xFF248DFF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.primary, AppColors.accent],
             ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF12E67F).withValues(alpha: 0.25),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+                color: AppColors.primary.withValues(alpha: 0.28),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
@@ -39,13 +42,13 @@ class PrimaryButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (icon != null) ...[
-                  Icon(icon, color: const Color(0xFF111318), size: 20),
+                  Icon(icon, color: AppColors.textDark, size: 20),
                   const SizedBox(width: 8),
                 ],
                 Text(
                   text,
                   style: const TextStyle(
-                    color: Color(0xFF111318),
+                    color: AppColors.textDark,
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                   ),
@@ -54,7 +57,7 @@ class PrimaryButton extends StatelessWidget {
                   const SizedBox(width: 8),
                   const Icon(
                     Icons.arrow_forward,
-                    color: Color(0xFF111318),
+                    color: AppColors.textDark,
                     size: 20,
                   ),
                 ],

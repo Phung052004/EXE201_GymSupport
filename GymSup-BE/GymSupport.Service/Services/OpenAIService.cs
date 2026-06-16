@@ -115,12 +115,7 @@ public class OpenAIService : IAIService
             {
                 case "create_plan":
                     // NẾU TẠO LỊCH MỚI: Tắt toàn bộ lịch cũ của user trước để đảm bảo tính duy nhất của Active Plan
-                    var userPlans = await _workoutRepository.GetByUserIdAsync(dto.UserId);
-                    foreach (var oldPlan in userPlans.Where(p => p.IsActive))
-                    {
-                        oldPlan.IsActive = false;
-                        await _workoutRepository.UpdateAsync(oldPlan);
-                    }
+                    await _workoutRepository.DeactivateAllByUserIdAsync(dto.UserId);
 
                     var newPlan = new WorkoutPlan
                     {
@@ -373,7 +368,46 @@ Khi người dùng yêu cầu xóa một bài tập (Ví dụ: "Xóa bài Bench 
 QUY TẮC ĐỒNG BỘ NGÔN NGỮ NGÀY THÁNG (BẮT BUỘC):
 - Dữ liệu hệ thống lưu tên thứ bằng tiếng Anh: "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday".
 - Khi người dùng nói "Thứ 2", bạn phải tự hiểu là "Monday"; "Thứ 4" là "Wednesday"; "Thứ 6" là "Friday",... để tra cứu chính xác trong trường `DayOfWeek` của dữ liệu {{workoutJson}}.
+============================================
+Khi AI gợi ý hoặc tạo lịch tập cho người dùng trong app GymSupport, hãy ưu tiên thiết kế lịch theo phương pháp Upper/Lower Split.
 
+Yêu cầu chính:
+
+Nếu người dùng tập 4 buổi/tuần: ưu tiên lịch Upper - Lower - nghỉ - Upper - Lower.
+Nếu người dùng tập 3 buổi/tuần: có thể dùng biến thể Upper - Lower - Full Body hoặc Upper - Lower - Upper/Lower luân phiên theo tuần.
+Nếu người dùng tập 5 buổi/tuần: ưu tiên Upper - Lower - Push - Pull - Legs hoặc Upper - Lower - Upper - Lower - Weak Point.
+Nếu người dùng mới tập: giảm volume, chọn bài dễ kiểm soát kỹ thuật.
+Nếu người dùng trung cấp/nâng cao: tăng volume, thêm bài compound và isolation hợp lý.
+
+Nguyên tắc tạo lịch:
+
+Ưu tiên cân bằng nhóm cơ thân trên và thân dưới.
+Không xếp hai buổi nặng cùng nhóm cơ liên tiếp.
+Mỗi buổi nên có 4–7 bài tập.
+Mỗi bài nên có số sets, reps, rest time và ghi chú kỹ thuật.
+Ưu tiên bài compound trước, bài isolation sau.
+Luôn có khởi động trước buổi tập và giãn cơ sau buổi tập.
+Lịch phải phù hợp với mục tiêu của người dùng: tăng cơ, giảm mỡ, tăng sức mạnh hoặc duy trì sức khỏe.
+Lịch phải phù hợp với số buổi/tuần, kinh nghiệm tập, thiết bị hiện có, chấn thương hoặc hạn chế vận động nếu có.
+Nếu thiếu thông tin, hãy tự đưa ra giả định hợp lý và ghi rõ giả định đó.
+
+Format output:
+
+Trả về lịch tập theo từng ngày.
+Mỗi ngày gồm: tên buổi, nhóm cơ chính, danh sách bài tập, sets, reps, thời gian nghỉ, ghi chú.
+Có thêm lời khuyên ngắn về dinh dưỡng, phục hồi và tăng tiến mức tạ.
+
+Ví dụ logic ưu tiên:
+Nếu user chọn 4 buổi/tuần:
+Day 1: Upper Body
+Day 2: Lower Body
+Day 3: Rest / Cardio nhẹ
+Day 4: Upper Body
+Day 5: Lower Body
+Day 6: Rest hoặc Mobility
+Day 7: Rest
+
+Hãy luôn ưu tiên Upper/Lower Split trước các kiểu lịch khác, trừ khi mục tiêu, số buổi tập hoặc tình trạng sức khỏe của người dùng khiến lịch khác phù hợp hơn.
 =========================================
 DỮ LIỆU THỰC TẾ HIỆN TẠI TỪ DATABASE CẤP CHO BẠN:
 - THÔNG TIN CUSTOMER PROFILE CỦA USER: {{customerJson}}

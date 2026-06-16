@@ -16,20 +16,29 @@ class AppBottomNavBar extends StatelessWidget {
     final items = [
       const BottomNavItemData(icon: Icons.grid_view_rounded, label: 'Home'),
       const BottomNavItemData(icon: Icons.smart_toy_rounded, label: 'AI Coach'),
-      const BottomNavItemData(icon: Icons.fitness_center_rounded, label: 'Workout'),
-      const BottomNavItemData(icon: Icons.calendar_today_rounded, label: 'Routine'),
+      const BottomNavItemData(
+        icon: Icons.fitness_center_rounded,
+        label: 'Workout',
+      ),
+      const BottomNavItemData(
+        icon: Icons.calendar_today_rounded,
+        label: 'Routine',
+      ),
       const BottomNavItemData(icon: Icons.person_rounded, label: 'Profile'),
     ];
 
     return Container(
       height: 85,
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.surface,
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 24,
+            offset: const Offset(0, -8),
           ),
         ],
       ),
@@ -49,14 +58,21 @@ class AppBottomNavBar extends StatelessWidget {
                   children: [
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+                        color: isSelected
+                            ? AppColors.primary.withValues(alpha: 0.14)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         item.icon,
-                        color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
                         size: 24,
                       ),
                     ),
@@ -64,9 +80,13 @@ class AppBottomNavBar extends StatelessWidget {
                     Text(
                       item.label,
                       style: TextStyle(
-                        color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
                         fontSize: 10,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight: isSelected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
                       ),
                     ),
                   ],

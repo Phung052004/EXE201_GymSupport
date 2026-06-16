@@ -90,6 +90,9 @@ export default function ExercisesPage() {
             <div className="space-y-4 text-sm text-slate-700">
               <p>{detail.description}</p>
               <DetailRow label="Instruction" value={detail.instruction} />
+              <DetailRow label="Safety Notes" value={detail.safetyNotes} />
+              <DetailRow label="Common Mistakes" value={detail.commonMistakes} />
+              <DetailRow label="Tips" value={detail.tips} />
               <DetailRow label="Video URL" value={detail.videoUrl} />
               <DetailRow label="Rest Time" value={detail.restTime} />
               <div>

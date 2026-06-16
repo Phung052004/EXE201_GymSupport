@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://localhost:7230').replace(/\/$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5028').replace(/\/$/, '')
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -10,7 +10,7 @@ const apiClient = axios.create({
 })
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('jwt')
 
   if (token) {
     config.headers = config.headers ?? {}

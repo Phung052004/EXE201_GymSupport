@@ -12,6 +12,9 @@ const emptyExercise = {
   difficulty: '',
   equipment: '',
   instruction: '',
+  safetyNotes: '',
+  commonMistakes: '',
+  tips: '',
   imageUrl: '',
   videoUrl: '',
   defaultSets: '',
@@ -87,6 +90,15 @@ export default function ExerciseFormPage() {
           </div>
           <div className="md:col-span-2">
             <FormInput label="Instruction" as="textarea" rows="4" value={form.instruction} onChange={(e) => update('instruction', e.target.value)} error={errors.instruction} />
+          </div>
+          <div className="md:col-span-2">
+            <FormInput label="Safety Notes" as="textarea" rows="3" value={form.safetyNotes} onChange={(e) => update('safetyNotes', e.target.value)} placeholder="Important cues, injury cautions, setup warnings..." />
+          </div>
+          <div className="md:col-span-2">
+            <FormInput label="Common Mistakes" as="textarea" rows="3" value={form.commonMistakes} onChange={(e) => update('commonMistakes', e.target.value)} />
+          </div>
+          <div className="md:col-span-2">
+            <FormInput label="Tips" as="textarea" rows="3" value={form.tips} onChange={(e) => update('tips', e.target.value)} />
           </div>
         </div>
         <div className="mt-6 flex justify-end">

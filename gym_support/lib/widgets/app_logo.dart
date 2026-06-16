@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/constants/app_colors.dart';
 
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key});
@@ -10,20 +11,22 @@ class AppLogo extends StatelessWidget {
       height: 62,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF12E67F), Color(0xFF248DFF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primary, AppColors.accent],
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF12E67F).withValues(alpha: 0.35),
-            blurRadius: 28,
-            spreadRadius: 2,
+            color: AppColors.primary.withValues(alpha: 0.34),
+            blurRadius: 30,
+            spreadRadius: 1,
           ),
         ],
       ),
       child: const Icon(
         Icons.fitness_center,
-        color: Color(0xFF111318),
+        color: AppColors.textDark,
         size: 30,
       ),
     );

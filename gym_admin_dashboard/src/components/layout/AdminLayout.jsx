@@ -27,7 +27,7 @@ export default function AdminLayout() {
   }, [location.pathname])
 
   return (
-    <div className="min-h-screen bg-slate-100 lg:flex">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_34%),linear-gradient(180deg,#f8fdff_0%,#eef9fb_100%)] lg:flex">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="min-w-0 flex-1">
         <Header title={title} onMenuClick={() => setSidebarOpen(true)} />

@@ -22,7 +22,7 @@ async function request(path, { method = 'GET', body, optional = false, emptyValu
       body: body === undefined ? undefined : JSON.stringify(body),
     })
 
-    if ([401, 403].includes(response.status)) {
+    if (!optional && [401, 403].includes(response.status)) {
       clearAuthTokens()
     }
 
@@ -56,6 +56,8 @@ const activeFromStatus = (status) => status !== 'Hidden' && status !== 'Blocked'
 const fallback = (value) => value ?? 'N/A'
 
 const normalizeCustomer = (customer) => customer ?? {}
+
+const requestAll = async (items, mapper) => Promise.all(asArray(items).map(mapper))
 
 const normalizeUser = (user, customer, plans = [], aiHistory = []) => {
   const profile = normalizeCustomer(customer)
@@ -121,11 +123,14 @@ const normalizeExercise = (exercise, muscleLookup = { byId: {}, byName: {} }) =>
     mainMuscleGroup: impacts[0]?.muscle || 'N/A',
     secondaryMuscleGroups: impacts.slice(1).map((impact) => impact.muscle),
     muscleImpacts: impacts,
-    description: '',
-    instruction: '',
-    defaultSets: 'N/A',
-    defaultReps: 'N/A',
-    restTime: 'N/A',
+    description: exercise.description || '',
+    instruction: exercise.instruction || '',
+    safetyNotes: exercise.safetyNotes || '',
+    commonMistakes: exercise.commonMistakes || '',
+    tips: exercise.tips || '',
+    defaultSets: exercise.defaultSets ?? 'N/A',
+    defaultReps: exercise.defaultReps || 'N/A',
+    restTime: exercise.restTimeSeconds ? `${exercise.restTimeSeconds}` : 'N/A',
     status: 'Active',
   }
 }
@@ -142,6 +147,14 @@ const exercisePayload = async (payload) => {
     name: payload.name,
     equipment: payload.equipment,
     difficulty: payload.difficulty,
+    description: payload.description || '',
+    instruction: payload.instruction || '',
+    safetyNotes: payload.safetyNotes || '',
+    commonMistakes: payload.commonMistakes || '',
+    tips: payload.tips || '',
+    defaultSets: Number(payload.defaultSets) || 3,
+    defaultReps: payload.defaultReps || '10',
+    restTimeSeconds: Number(payload.restTime) || Number(payload.restTimeSeconds) || 60,
     imageUrl: payload.imageUrl,
     videoUrl: payload.videoUrl,
     muscleImpacts,
@@ -206,15 +219,19 @@ const normalizeDashboard = (data) => ({
 })
 
 export const adminApi = {
-  getDashboard: async () => normalizeDashboard(await request('/admin/dashboard', { emptyValue: {} })),
+  getDashboard: async () => normalizeDashboard(await request('/admin/dashboard/summary', { emptyValue: {} })),
 
   getUsers: async () => {
-    const [users, customers, plans] = await Promise.all([
+    const [users, plans] = await Promise.all([
       request('/User', { emptyValue: [] }),
-      request('/admin/customers', { emptyValue: [] }),
       request('/workoutplans', { emptyValue: [] }),
     ])
-    const customersByUser = Object.fromEntries(asArray(customers).map((customer) => [customer.userId, customer]))
+    const customerRows = await requestAll(users, (user) =>
+      request(`/Customer/user/${user.id}`, { optional: true, emptyValue: null })
+    )
+    const customersByUser = Object.fromEntries(
+      customerRows.filter(Boolean).map((customer) => [customer.userId, customer])
+    )
     const plansByUser = asArray(plans).reduce((groups, plan) => {
       groups[plan.userId] = [...(groups[plan.userId] || []), plan]
       return groups
@@ -232,11 +249,11 @@ export const adminApi = {
     return user ? normalizeUser(user, customer, plans, aiHistory) : null
   },
   blockUser: async (id) => {
-    await request(`/User/${id}/deactivate`, { method: 'POST' })
+    await request(`/User/${id}/deactivate`, { method: 'PUT' })
     return { id, status: 'Blocked' }
   },
   unblockUser: async (id) => {
-    await request(`/User/${id}/activate`, { method: 'POST' })
+    await request(`/User/${id}/activate`, { method: 'PUT' })
     return { id, status: 'Active' }
   },
 
@@ -301,15 +318,25 @@ export const adminApi = {
   },
   deleteWorkoutTemplate: (id) => request(`/workoutplans/${id}`, { method: 'DELETE' }),
 
-  getAIRecommendations: () => request('/admin/ai-recommendations', { emptyValue: [] }),
+  getSubscriptionPlans: () => request('/subscriptions/plans', { emptyValue: [] }),
+  getActiveSubscriptionPlans: () => request('/subscriptions/plans/active', { emptyValue: [] }),
+  getSubscriptionPlanById: (id) => request(`/subscriptions/plans/${id}`, { emptyValue: null }),
+  saveSubscriptionPlan: (payload) =>
+    payload.id
+      ? request(`/subscriptions/plans/${payload.id}`, { method: 'PUT', body: payload })
+      : request('/subscriptions/plans', { method: 'POST', body: payload }),
+  updateSubscriptionPlanStatus: (id, isActive) =>
+    request(`/subscriptions/plans/${id}/status`, { method: 'PATCH', body: { isActive } }),
+
+  getAIRecommendations: () => Promise.resolve([]),
   reviewAIRecommendation: (id, status) => Promise.resolve({ id, status }),
   deleteAIRecommendation: (id) => Promise.resolve({ id }),
 
-  getBodyChecks: () => request('/admin/body-checks', { emptyValue: [] }),
+  getBodyChecks: () => Promise.resolve([]),
   reviewBodyCheck: (id) => Promise.resolve({ id, status: 'Reviewed' }),
   deleteBodyCheck: (id) => Promise.resolve({ id }),
 
-  getFeedbacks: () => request('/admin/feedbacks', { emptyValue: [] }),
+  getFeedbacks: () => Promise.resolve([]),
   updateFeedbackStatus: (id, status) => Promise.resolve({ id, status }),
   deleteFeedback: (id) => Promise.resolve({ id }),
 }

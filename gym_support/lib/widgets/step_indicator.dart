@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/constants/app_colors.dart';
 
 class StepIndicator extends StatelessWidget {
   final int currentStep;
@@ -24,7 +25,7 @@ class StepIndicator extends StatelessWidget {
           height: 4,
           decoration: BoxDecoration(
             color: isActive
-                ? const Color(0xFF12E67F)
+                ? AppColors.primary
                 : Colors.white.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(99),
           ),

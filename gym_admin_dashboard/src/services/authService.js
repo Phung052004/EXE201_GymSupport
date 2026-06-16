@@ -52,7 +52,11 @@ export async function login(email, password) {
 
       localStorage.setItem('token', token)
 
-      const user = extractUser(payload)
+      const user = extractUser(payload) || {
+        userId: payload?.userId || payload?.id,
+        role: payload?.role,
+        email,
+      }
       if (user) {
         localStorage.setItem('user', JSON.stringify(user))
       }

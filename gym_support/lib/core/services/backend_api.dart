@@ -109,6 +109,25 @@ class BackendApi {
     return decoded;
   }
 
+  static Future<dynamic> _patch(
+    String path, {
+    Object? body,
+    bool auth = false,
+  }) async {
+    final response = await http.patch(
+      _baseUri.resolve(path),
+      headers: await _headers(auth: auth),
+      body: body == null ? null : jsonEncode(body),
+    );
+    final decoded = _decode(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _messageFrom(decoded, 'KhÃ´ng thá»ƒ cáº­p nháº­t dá»¯ liá»‡u'),
+      );
+    }
+    return decoded;
+  }
+
   static Future<void> _delete(String path, {bool auth = false}) async {
     final response = await http.delete(
       _baseUri.resolve(path),
@@ -152,7 +171,7 @@ class BackendApi {
       '/api/auth/register/customer',
       body: {'email': email, 'password': password, 'fullName': name},
     );
-    
+
     if (decoded is Map<String, dynamic>) {
       return {
         ...decoded,
@@ -185,6 +204,57 @@ class BackendApi {
     return <String, dynamic>{};
   }
 
+  static Future<Map<String, dynamic>> registerManager({
+    required String email,
+    required String password,
+    required String fullName,
+  }) async {
+    final decoded = await _post(
+      '/api/auth/register/manager',
+      body: {'email': email, 'password': password, 'fullName': fullName},
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<void> resendVerification(String email) async {
+    await _post('/api/auth/resend-verification', body: {'email': email});
+  }
+
+  static Future<List<Map<String, dynamic>>> getUsers() async {
+    final decoded = await _get('/api/User', auth: true);
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<Map<String, dynamic>> getUserById(String id) async {
+    final decoded = await _get('/api/User/${Uri.encodeComponent(id)}');
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<void> updateUser(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
+    await _put('/api/User/${Uri.encodeComponent(id)}', body: payload);
+  }
+
+  static Future<void> deleteUser(String id) async {
+    await _delete('/api/User/${Uri.encodeComponent(id)}', auth: true);
+  }
+
+  static Future<void> activateUser(String id) async {
+    await _put('/api/User/${Uri.encodeComponent(id)}/activate', auth: true);
+  }
+
+  static Future<void> deactivateUser(String id) async {
+    await _put('/api/User/${Uri.encodeComponent(id)}/deactivate', auth: true);
+  }
+
   static Future<Map<String, dynamic>?> getCustomerByUserId(
     String userId,
   ) async {
@@ -206,38 +276,64 @@ class BackendApi {
     final userId = prefs.getString(SessionStore.userIdKey);
     if (userId == null || userId.isEmpty) return null;
 
-    final userDecoded = await _get('/api/User/${Uri.encodeComponent(userId)}');
-    final user = userDecoded is Map<String, dynamic>
-        ? userDecoded
-        : <String, dynamic>{};
+    final user = await getUserById(userId);
     final customer = await getCustomerByUserId(userId);
     if (customer == null) return null;
 
-    final fullName = user['fullName']?.toString() ?? user['FullName']?.toString() ?? email;
-    final userEmail = user['email']?.toString() ?? user['Email']?.toString() ?? email;
-    
-    final gender = customer['gender']?.toString() ?? customer['Gender']?.toString();
-    final age = customer['age'] is int 
-        ? customer['age'] as int 
-        : int.tryParse(customer['age']?.toString() ?? customer['Age']?.toString() ?? '0') ?? 0;
-    
-    final heightCm = customer['heightCm'] is num 
-        ? (customer['heightCm'] as num).toInt() 
-        : int.tryParse(customer['heightCm']?.toString() ?? customer['HeightCm']?.toString() ?? '0') ?? 0;
-        
-    final weightKg = customer['weightKg'] is num 
-        ? (customer['weightKg'] as num).toInt() 
-        : int.tryParse(customer['weightKg']?.toString() ?? customer['WeightKg']?.toString() ?? '0') ?? 0;
+    final fullName =
+        user['fullName']?.toString() ?? user['FullName']?.toString() ?? email;
+    final userEmail =
+        user['email']?.toString() ?? user['Email']?.toString() ?? email;
 
-    final bmiVal = customer['bmi'] is num 
-        ? (customer['bmi'] as num).toDouble() 
-        : double.tryParse(customer['bmi']?.toString() ?? customer['Bmi']?.toString() ?? '0') ?? 0;
-    
-    final bmi = bmiVal > 0 ? bmiVal : _calculateBmi(weightKg.toDouble(), heightCm.toDouble());
+    final gender =
+        customer['gender']?.toString() ?? customer['Gender']?.toString();
+    final age = customer['age'] is int
+        ? customer['age'] as int
+        : int.tryParse(
+                customer['age']?.toString() ??
+                    customer['Age']?.toString() ??
+                    '0',
+              ) ??
+              0;
+
+    final heightCm = customer['heightCm'] is num
+        ? (customer['heightCm'] as num).toInt()
+        : int.tryParse(
+                customer['heightCm']?.toString() ??
+                    customer['HeightCm']?.toString() ??
+                    '0',
+              ) ??
+              0;
+
+    final weightKg = customer['weightKg'] is num
+        ? (customer['weightKg'] as num).toInt()
+        : int.tryParse(
+                customer['weightKg']?.toString() ??
+                    customer['WeightKg']?.toString() ??
+                    '0',
+              ) ??
+              0;
+
+    final bmiVal = customer['bmi'] is num
+        ? (customer['bmi'] as num).toDouble()
+        : double.tryParse(
+                customer['bmi']?.toString() ??
+                    customer['Bmi']?.toString() ??
+                    '0',
+              ) ??
+              0;
+
+    final bmi = bmiVal > 0
+        ? bmiVal
+        : _calculateBmi(weightKg.toDouble(), heightCm.toDouble());
 
     final goal = customer['goal']?.toString() ?? customer['Goal']?.toString();
-    final experienceLevel = customer['experienceLevel']?.toString() ?? customer['ExperienceLevel']?.toString();
-    final injuryNotes = customer['injuryNotes']?.toString() ?? customer['InjuryNotes']?.toString();
+    final experienceLevel =
+        customer['experienceLevel']?.toString() ??
+        customer['ExperienceLevel']?.toString();
+    final injuryNotes =
+        customer['injuryNotes']?.toString() ??
+        customer['InjuryNotes']?.toString();
     final customerId = customer['id']?.toString() ?? customer['Id']?.toString();
 
     if (customerId != null) {
@@ -298,15 +394,11 @@ class BackendApi {
       'injuryNotes': injuryNotes ?? '',
     };
 
-    await _put('/api/User/$userId', body: {'fullName': name, 'email': email});
+    await updateUser(userId, {'fullName': name, 'email': email});
 
     final customer = await getCustomerByUserId(userId);
     if (customer == null) {
-      final created = await _post(
-        '/api/Customer',
-        auth: true,
-        body: payload,
-      );
+      final created = await _post('/api/Customer', auth: true, body: payload);
       if (created is Map<String, dynamic>) {
         final id = created['id']?.toString() ?? created['Id']?.toString();
         if (id != null) await SessionStore.saveCustomerId(id);
@@ -412,8 +504,12 @@ class BackendApi {
     return [];
   }
 
-  static Future<List<Map<String, dynamic>>> getMusclesByCategory(String category) async {
-    final decoded = await _get('/api/muscles/by-category?category=${Uri.encodeComponent(category)}');
+  static Future<List<Map<String, dynamic>>> getMusclesByCategory(
+    String category,
+  ) async {
+    final decoded = await _get(
+      '/api/muscles/by-category?category=${Uri.encodeComponent(category)}',
+    );
     if (decoded is List) {
       return decoded
           .whereType<Map>()
@@ -428,6 +524,35 @@ class BackendApi {
     return decoded is Map<String, dynamic> ? decoded : {};
   }
 
+  static Future<Map<String, dynamic>> createMuscle({
+    required String name,
+    required String category,
+  }) async {
+    final decoded = await _post(
+      '/api/muscles',
+      auth: true,
+      body: {'name': name, 'category': category},
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<Map<String, dynamic>> updateMuscle({
+    required String id,
+    required String name,
+    required String category,
+  }) async {
+    final decoded = await _put(
+      '/api/muscles/${Uri.encodeComponent(id)}',
+      auth: true,
+      body: {'name': name, 'category': category},
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<void> deleteMuscle(String id) async {
+    await _delete('/api/muscles/${Uri.encodeComponent(id)}', auth: true);
+  }
+
   static Future<List<Exercise>> getExercises({
     String? query,
     String? muscleId,
@@ -436,36 +561,59 @@ class BackendApi {
     final Map<String, String> queryParams = {};
     if (category != null) queryParams['category'] = category;
     if (muscleId != null) queryParams['muscleId'] = muscleId;
-    
-    final uri = _baseUri.resolve('/api/exercises').replace(queryParameters: queryParams);
-    
-    final response = await http.get(
-      uri,
-      headers: await _headers(auth: false),
-    );
-    
+
+    final uri = _baseUri
+        .resolve('/api/exercises')
+        .replace(queryParameters: queryParams);
+
+    final response = await http.get(uri, headers: await _headers(auth: false));
+
     final decoded = _decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(_messageFrom(decoded, 'Không thể tải bài tập'));
     }
 
     final list = decoded is List ? decoded : const [];
+    final muscles = await getMuscles();
+    final muscleById = {
+      for (final muscle in muscles)
+        if ((_value<String>(muscle, 'id') ?? '').isNotEmpty)
+          _value<String>(muscle, 'id')!: muscle,
+    };
     final exercises = list.whereType<Map>().map((item) {
       final json = Map<String, dynamic>.from(item);
-      return Exercise.fromJson(json);
+      return Exercise.fromJson(json, muscleById: muscleById);
     }).toList();
 
     if (query != null && query.isNotEmpty) {
       final q = query.toLowerCase();
       return exercises.where((e) => e.name.toLowerCase().contains(q)).toList();
     }
-    
+
     return exercises;
   }
 
   static Future<Map<String, dynamic>> getExerciseById(String id) async {
     final decoded = await _get('/api/exercises/$id');
     return decoded is Map<String, dynamic> ? decoded : {};
+  }
+
+  static Future<Map<String, dynamic>> saveExercise(
+    Map<String, dynamic> payload, {
+    String? id,
+  }) async {
+    final decoded = id == null || id.isEmpty
+        ? await _post('/api/exercises', auth: true, body: payload)
+        : await _put(
+            '/api/exercises/${Uri.encodeComponent(id)}',
+            auth: true,
+            body: payload,
+          );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<void> deleteExercise(String id) async {
+    await _delete('/api/exercises/${Uri.encodeComponent(id)}', auth: true);
   }
 
   static Future<List<Map<String, dynamic>>> _getExerciseRows() async {
@@ -487,7 +635,10 @@ class BackendApi {
       return <Map<String, dynamic>>[];
     }
 
-    final decoded = await _get('/api/workoutplans/user/$resolvedUserId', auth: true);
+    final decoded = await _get(
+      '/api/workoutplans/user/$resolvedUserId',
+      auth: true,
+    );
     if (decoded is List) {
       return decoded
           .whereType<Map>()
@@ -501,7 +652,10 @@ class BackendApi {
     final userId = await currentUserId();
     if (userId == null) return null;
     try {
-      final decoded = await _get('/api/workoutplans/user/$userId/active', auth: true);
+      final decoded = await _get(
+        '/api/workoutplans/user/$userId/active',
+        auth: true,
+      );
       if (decoded is Map<String, dynamic>) return decoded;
     } catch (_) {}
 
@@ -516,11 +670,11 @@ class BackendApi {
   }
 
   static Future<void> activateWorkoutPlan(String planId) async {
-    await _post('/api/workoutplans/$planId/activate', auth: true, body: {});
+    await _put('/api/workoutplans/$planId/activate', auth: true);
   }
 
   static Future<void> deactivateWorkoutPlan(String planId) async {
-    await _post('/api/workoutplans/$planId/deactivate', auth: true, body: {});
+    await _put('/api/workoutplans/$planId/deactivate', auth: true);
   }
 
   static Future<Map<String, dynamic>> getWorkoutPlanById(String id) async {
@@ -528,12 +682,10 @@ class BackendApi {
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
 
-  static Future<Map<String, dynamic>> createWorkoutPlan(Map<String, dynamic> payload) async {
-    final decoded = await _post(
-      '/api/workoutplans',
-      auth: true,
-      body: payload,
-    );
+  static Future<Map<String, dynamic>> createWorkoutPlan(
+    Map<String, dynamic> payload,
+  ) async {
+    final decoded = await _post('/api/workoutplans', auth: true, body: payload);
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
 
@@ -548,8 +700,31 @@ class BackendApi {
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
 
+  static Future<List<Map<String, dynamic>>> getWorkoutPlans() async {
+    final decoded = await _get('/api/workoutplans', auth: true);
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<Map<String, dynamic>> updateWorkoutPlan(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
+    final decoded = await _put(
+      '/api/workoutplans/${Uri.encodeComponent(id)}',
+      auth: true,
+      body: payload,
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
   static Future<void> deleteWorkoutPlan(String id) =>
-      _delete('/api/workoutplans/$id');
+      _delete('/api/workoutplans/$id', auth: true);
 
   static Future<Map<String, dynamic>> addWorkoutPlanSession({
     required String planId,
@@ -558,9 +733,31 @@ class BackendApi {
   }) async {
     final decoded = await _post(
       '/api/workoutplans/$planId/sessions',
+      auth: true,
       body: {'dayOfWeek': dayOfWeek, 'focus': focus},
     );
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<Map<String, dynamic>> updateWorkoutPlanSession({
+    required String planId,
+    required String sessionId,
+    required String dayOfWeek,
+    required String focus,
+  }) async {
+    final decoded = await _put(
+      '/api/workoutplans/$planId/sessions/$sessionId',
+      auth: true,
+      body: {'dayOfWeek': dayOfWeek, 'focus': focus},
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<void> deleteWorkoutPlanSession({
+    required String planId,
+    required String sessionId,
+  }) async {
+    await _delete('/api/workoutplans/$planId/sessions/$sessionId', auth: true);
   }
 
   static Future<Map<String, dynamic>> addExerciseToPlanSession({
@@ -574,6 +771,7 @@ class BackendApi {
   }) async {
     final decoded = await _post(
       '/api/workoutplans/$planId/sessions/$sessionId/exercises',
+      auth: true,
       body: {
         'exerciseId': exerciseId,
         'exerciseName': exerciseName,
@@ -583,6 +781,33 @@ class BackendApi {
       },
     );
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<Map<String, dynamic>> updateExerciseInPlanSession({
+    required String planId,
+    required String sessionId,
+    required String exerciseId,
+    required int sets,
+    required String reps,
+    String notes = '',
+  }) async {
+    final decoded = await _put(
+      '/api/workoutplans/$planId/sessions/$sessionId/exercises/$exerciseId',
+      auth: true,
+      body: {'sets': sets, 'reps': reps, 'notes': notes},
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<void> deleteExerciseFromPlanSession({
+    required String planId,
+    required String sessionId,
+    required String exerciseId,
+  }) async {
+    await _delete(
+      '/api/workoutplans/$planId/sessions/$sessionId/exercises/$exerciseId',
+      auth: true,
+    );
   }
 
   static Future<Map<String, dynamic>> startWorkout({
@@ -603,9 +828,20 @@ class BackendApi {
     return decoded is Map<String, dynamic> ? decoded : {};
   }
 
-  static Future<Map<String, dynamic>> getWorkoutSessionDetail(String logId) async {
-    final decoded = await _get('/api/workout-session-logs/$logId', auth: true);
-    return decoded is Map<String, dynamic> ? decoded : {};
+  static Future<Map<String, dynamic>> getWorkoutSessionDetail(
+    String logId,
+  ) async {
+    final userId = await currentUserId();
+    if (userId == null || userId.isEmpty) return {};
+    final decoded = await _get(
+      '/api/workout-session-logs/active/${Uri.encodeComponent(userId)}',
+      auth: true,
+    );
+    if (decoded is Map<String, dynamic> &&
+        (_value<String>(decoded, 'id') == logId || logId.isEmpty)) {
+      return decoded;
+    }
+    return {};
   }
 
   static Future<Map<String, dynamic>> saveSetLog({
@@ -616,17 +852,61 @@ class BackendApi {
     required double weight,
     String? note,
   }) async {
+    var exerciseLogId = exerciseId;
+    try {
+      final active = await getWorkoutSessionDetail(logId);
+      final exercises = _value<List>(active, 'exercises') ?? const [];
+      for (final rawExercise in exercises.whereType<Map>()) {
+        final row = Map<String, dynamic>.from(rawExercise);
+        final catalogId = _value<String>(row, 'exerciseId');
+        if (catalogId == exerciseId) {
+          exerciseLogId = _value<String>(row, 'id') ?? exerciseId;
+          break;
+        }
+      }
+    } catch (_) {
+      // If active lookup fails, keep the provided id for backward compatibility.
+    }
+
+    final payload = <String, dynamic>{
+      'setNumber': setNumber,
+      'reps': reps,
+      'weight': weight,
+    };
+    if (note != null) payload['note'] = note;
+
     final decoded = await _post(
-      '/api/workout-session-logs/$logId/exercises/$exerciseId/sets',
+      '/api/workout-session-logs/$logId/exercises/$exerciseLogId/sets',
       auth: true,
-      body: {
-        'setNumber': setNumber,
-        'reps': reps,
-        'weight': weight,
-        'note': note,
-      },
+      body: payload,
     );
     return decoded is Map<String, dynamic> ? decoded : {};
+  }
+
+  static Future<Map<String, dynamic>?> getActiveWorkoutSessionLog([
+    String? userId,
+  ]) async {
+    final resolvedUserId = userId ?? await currentUserId();
+    if (resolvedUserId == null || resolvedUserId.isEmpty) return null;
+    try {
+      final decoded = await _get(
+        '/api/workout-session-logs/active/${Uri.encodeComponent(resolvedUserId)}',
+        auth: true,
+      );
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>> finishWorkoutSessionLog(
+    String sessionLogId,
+  ) async {
+    final decoded = await _put(
+      '/api/workout-session-logs/${Uri.encodeComponent(sessionLogId)}/finish',
+      auth: true,
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
 
   static Future<Map<String, dynamic>> createRoutinePlan({
@@ -819,7 +1099,10 @@ class BackendApi {
   static Map<String, dynamic>? _selectWorkoutSession(
     Map<String, dynamic> plan,
   ) {
-    final sessions = _value<List>(plan, 'sessions') ?? _value<List>(plan, 'workoutDays') ?? const [];
+    final sessions =
+        _value<List>(plan, 'sessions') ??
+        _value<List>(plan, 'workoutDays') ??
+        const [];
     final sessionMaps = sessions
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
@@ -828,7 +1111,11 @@ class BackendApi {
 
     final today = _todayName();
     for (final session in sessionMaps) {
-      final dayOfWeek = (_value<String>(session, 'dayOfWeek') ?? _value<String>(session, 'weekday') ?? '').trim();
+      final dayOfWeek =
+          (_value<String>(session, 'dayOfWeek') ??
+                  _value<String>(session, 'weekday') ??
+                  '')
+              .trim();
       final exercises = _value<List>(session, 'exercises') ?? const [];
       if (_matchesToday(dayOfWeek, today) && exercises.isNotEmpty) {
         return session;
@@ -1021,7 +1308,10 @@ class BackendApi {
       }
     } catch (_) {
       try {
-        final active = await _get('/api/workout-session-logs/active/$userId');
+        final active = await _get(
+          '/api/workout-session-logs/active/$userId',
+          auth: true,
+        );
         logId = active is Map<String, dynamic>
             ? _value<String>(active, 'id')
             : null;
@@ -1032,7 +1322,10 @@ class BackendApi {
 
     try {
       if (logId != null && logId.isNotEmpty) {
-        final decoded = await _put('/api/workout-session-logs/$logId/finish');
+        final decoded = await _put(
+          '/api/workout-session-logs/$logId/finish',
+          auth: true,
+        );
         if (decoded is Map<String, dynamic>) {
           finishedLog = decoded;
         }
@@ -1073,6 +1366,7 @@ class BackendApi {
     if (userId == null || userId.isEmpty) return <Map<String, dynamic>>[];
     final decoded = await _get(
       '/api/workout-session-logs/user/$userId/history',
+      auth: true,
     );
     if (decoded is List) {
       return decoded
@@ -1130,6 +1424,10 @@ class BackendApi {
       'POST',
       _baseUri.resolve('/api/ai/analyze-image'),
     );
+    final token = await currentToken();
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
     request.fields['mode'] = mode;
     request.files.add(
       http.MultipartFile.fromBytes(
@@ -1147,8 +1445,41 @@ class BackendApi {
       throw Exception(_messageFrom(decoded, 'Không thể phân tích ảnh'));
     }
 
-    final data = decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    final data = decoded is Map<String, dynamic>
+        ? decoded
+        : <String, dynamic>{};
     return data;
+  }
+
+  static Future<Map<String, dynamic>> uploadFormVideo({
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final request = http.MultipartRequest(
+      'POST',
+      _baseUri.resolve('/api/ai/analyze-form-video'),
+    );
+    final token = await currentToken();
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'video',
+        bytes,
+        filename: filename,
+        contentType: _videoContentTypeFor(filename),
+      ),
+    );
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    final decoded = _decode(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(_messageFrom(decoded, 'KhÃ´ng thá»ƒ phÃ¢n tÃ­ch video'));
+    }
+
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
 
   static MediaType _contentTypeFor(String filename) {
@@ -1156,6 +1487,12 @@ class BackendApi {
     if (lower.endsWith('.png')) return MediaType('image', 'png');
     if (lower.endsWith('.webp')) return MediaType('image', 'webp');
     return MediaType('image', 'jpeg');
+  }
+
+  static MediaType _videoContentTypeFor(String filename) {
+    final lower = filename.toLowerCase();
+    if (lower.endsWith('.mov')) return MediaType('video', 'quicktime');
+    return MediaType('video', 'mp4');
   }
 
   static Future<String> sendAiCoachMessage({
@@ -1169,6 +1506,7 @@ class BackendApi {
 
     final decoded = await _post(
       '/api/ai/chat',
+      auth: true,
       body: {'userId': userId, 'message': message},
     );
 
@@ -1183,7 +1521,7 @@ class BackendApi {
   static Future<List<Map<String, dynamic>>> getAiHistory() async {
     final userId = await currentUserId();
     if (userId == null || userId.isEmpty) return <Map<String, dynamic>>[];
-    final decoded = await _get('/api/ai/history/$userId');
+    final decoded = await _get('/api/ai/history/$userId', auth: true);
     if (decoded is List) {
       return decoded
           .whereType<Map>()
@@ -1193,10 +1531,83 @@ class BackendApi {
     return <Map<String, dynamic>>[];
   }
 
+  static Future<Map<String, dynamic>> applyAiSuggestions(
+    Map<String, dynamic> payload,
+  ) async {
+    final decoded = await _post('/api/ai/apply', auth: true, body: payload);
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
   static Future<Map<String, dynamic>> getDashboardSummary(String email) async {
     final history = await getWorkoutHistory(email: email, limit: 100);
     final plans = await getWorkoutPlansByUser();
     return {'workoutCount': history.length, 'planCount': plans.length};
+  }
+
+  static Future<Map<String, dynamic>> getAdminDashboardSummary() async {
+    final decoded = await _get('/api/admin/dashboard/summary', auth: true);
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<List<Map<String, dynamic>>> getAdminUserGrowth(int year) async {
+    final decoded = await _get(
+      '/api/admin/dashboard/user-growth?year=$year',
+      auth: true,
+    );
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<List<Map<String, dynamic>>> getAdminMonthlyRevenue(
+    int year,
+  ) async {
+    final decoded = await _get(
+      '/api/admin/dashboard/revenue/monthly?year=$year',
+      auth: true,
+    );
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<List<Map<String, dynamic>>> getAdminRevenueByPlan(
+    int year,
+  ) async {
+    final decoded = await _get(
+      '/api/admin/dashboard/revenue/by-plan?year=$year',
+      auth: true,
+    );
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<List<Map<String, dynamic>>>
+  getAdminUsersBySubscription() async {
+    final decoded = await _get(
+      '/api/admin/dashboard/users/by-subscription',
+      auth: true,
+    );
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
   }
 
   static Future<Map<String, dynamic>> getHomeSummary(String email) async {
@@ -1419,14 +1830,79 @@ class BackendApi {
   }
 
   static Future<Map<String, dynamic>> getSubscription() async {
-    final userId = await currentUserId();
-    if (userId == null) return {};
     try {
-      final decoded = await _get('/api/Subscription/user/$userId', auth: true);
+      final decoded = await _get('/api/subscriptions/me', auth: true);
       return decoded is Map<String, dynamic> ? decoded : {};
     } catch (_) {
       return {};
     }
+  }
+
+  static Future<List<Map<String, dynamic>>> getSubscriptionPlans({
+    bool activeOnly = false,
+  }) async {
+    final decoded = await _get(
+      activeOnly
+          ? '/api/subscriptions/plans/active'
+          : '/api/subscriptions/plans',
+    );
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  static Future<Map<String, dynamic>> getSubscriptionPlanById(String id) async {
+    final decoded = await _get(
+      '/api/subscriptions/plans/${Uri.encodeComponent(id)}',
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<void> createSubscriptionPlan(
+    Map<String, dynamic> payload,
+  ) async {
+    await _post('/api/subscriptions/plans', auth: true, body: payload);
+  }
+
+  static Future<void> updateSubscriptionPlan(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
+    await _put(
+      '/api/subscriptions/plans/${Uri.encodeComponent(id)}',
+      auth: true,
+      body: payload,
+    );
+  }
+
+  static Future<void> updateSubscriptionPlanStatus(
+    String id,
+    bool isActive,
+  ) async {
+    await _patch(
+      '/api/subscriptions/plans/${Uri.encodeComponent(id)}/status',
+      auth: true,
+      body: {'isActive': isActive},
+    );
+  }
+
+  static Future<Map<String, dynamic>> purchaseSubscription(
+    String planId,
+  ) async {
+    final decoded = await _post(
+      '/api/subscriptions/purchase',
+      auth: true,
+      body: {'planId': planId},
+    );
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  static Future<void> cancelSubscription() async {
+    await _put('/api/subscriptions/me/cancel', auth: true);
   }
 
   static Map<String, dynamic> _nutritionFromCustomer(
@@ -1437,17 +1913,21 @@ class BackendApi {
     }
 
     // Using camelCase keys as requested
-    final weight = (customer['weightKg'] ?? customer['WeightKg']) is num 
-        ? (customer['weightKg'] ?? customer['WeightKg'] as num).toDouble() 
+    final weight = (customer['weightKg'] ?? customer['WeightKg']) is num
+        ? (customer['weightKg'] ?? customer['WeightKg'] as num).toDouble()
         : 0.0;
-    final height = (customer['heightCm'] ?? customer['HeightCm']) is num 
-        ? (customer['heightCm'] ?? customer['HeightCm'] as num).toDouble() 
+    final height = (customer['heightCm'] ?? customer['HeightCm']) is num
+        ? (customer['heightCm'] ?? customer['HeightCm'] as num).toDouble()
         : 0.0;
-    final age = (customer['age'] ?? customer['Age']) is num 
-        ? (customer['age'] ?? customer['Age'] as num).toDouble() 
+    final age = (customer['age'] ?? customer['Age']) is num
+        ? (customer['age'] ?? customer['Age'] as num).toDouble()
         : 0.0;
-    final gender = (customer['gender'] ?? customer['Gender'] ?? '').toString().toLowerCase();
-    final goal = (customer['goal'] ?? customer['Goal'] ?? '').toString().toLowerCase();
+    final gender = (customer['gender'] ?? customer['Gender'] ?? '')
+        .toString()
+        .toLowerCase();
+    final goal = (customer['goal'] ?? customer['Goal'] ?? '')
+        .toString()
+        .toLowerCase();
 
     if (weight <= 0 || height <= 0 || age <= 0) {
       return {

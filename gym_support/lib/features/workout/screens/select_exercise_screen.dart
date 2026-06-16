@@ -3,6 +3,7 @@ import 'package:gym_support/core/constants/app_colors.dart';
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/models/exercise.dart';
 import 'package:gym_support/models/workout_models.dart';
+import '../widgets/exercise_picker_card.dart';
 
 class SelectExerciseScreen extends StatefulWidget {
   const SelectExerciseScreen({super.key});
@@ -40,7 +41,9 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -88,9 +91,9 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
   }
 
   void _showAddDialog(Exercise ex) {
-    final setsController = TextEditingController(text: '3');
-    final repsController = TextEditingController(text: '10');
-    final restController = TextEditingController(text: '60');
+    final setsController = TextEditingController(text: '${ex.defaultSets}');
+    final repsController = TextEditingController(text: ex.defaultReps);
+    final restController = TextEditingController(text: '${ex.restTimeSeconds}');
     final noteController = TextEditingController();
 
     showModalBottomSheet(
@@ -98,7 +101,12 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
         decoration: const BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -113,24 +121,51 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
                 Expanded(
                   child: Text(
                     'Add ${ex.name}',
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-                IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close, color: AppColors.textSecondary)),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                ),
               ],
             ),
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(child: _buildInputModern('SETS', setsController, TextInputType.number)),
+                Expanded(
+                  child: _buildInputModern(
+                    'SETS',
+                    setsController,
+                    TextInputType.number,
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: _buildInputModern('REPS', repsController, TextInputType.text)),
+                Expanded(
+                  child: _buildInputModern(
+                    'REPS',
+                    repsController,
+                    TextInputType.text,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
-            _buildInputModern('REST TIME (SEC)', restController, TextInputType.number),
+            _buildInputModern(
+              'REST TIME (SEC)',
+              restController,
+              TextInputType.number,
+            ),
             const SizedBox(height: 16),
-            _buildInputModern('NOTE (OPTIONAL)', noteController, TextInputType.text),
+            _buildInputModern(
+              'NOTE (OPTIONAL)',
+              noteController,
+              TextInputType.text,
+            ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -140,7 +175,11 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
                   final sets = int.tryParse(setsController.text) ?? 0;
                   final reps = repsController.text.trim();
                   if (sets <= 0 || reps.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter valid sets and reps')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter valid sets and reps'),
+                      ),
+                    );
                     return;
                   }
                   final workoutEx = WorkoutExercise(
@@ -158,10 +197,18 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
-                child: const Text('ADD TO DAY', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+                child: const Text(
+                  'ADD TO DAY',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
+                ),
               ),
             ),
           ],
@@ -170,11 +217,23 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     );
   }
 
-  Widget _buildInputModern(String label, TextEditingController controller, TextInputType type) {
+  Widget _buildInputModern(
+    String label,
+    TextEditingController controller,
+    TextInputType type,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -186,8 +245,16 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
           child: TextField(
             controller: controller,
             keyboardType: type,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
-            decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 12)),
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 12),
+            ),
           ),
         ),
       ],
@@ -199,8 +266,17 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary), onPressed: () => Navigator.pop(context)),
-        title: const Text('Select Exercise', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800)),
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Select Exercise',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -210,7 +286,12 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
           _buildFiltersModern(),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2,
+                    ),
+                  )
                 : _buildExerciseListModern(),
           ),
         ],
@@ -235,8 +316,15 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
               style: const TextStyle(color: AppColors.textPrimary),
               decoration: const InputDecoration(
                 hintText: 'Search exercise...',
-                hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                prefixIcon: Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                hintStyle: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
                 border: InputBorder.none,
               ),
             ),
@@ -248,8 +336,20 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
                 child: _buildDropdownModern(
                   value: _selectedCategory,
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('Categories', style: TextStyle(fontSize: 13))),
-                    ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)))),
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Categories', style: TextStyle(fontSize: 13)),
+                    ),
+                    ..._categories.map(
+                      (c) => DropdownMenuItem(
+                        value: c,
+                        child: Text(
+                          c,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ),
                   ],
                   onChanged: (v) => _onCategoryChanged(v),
                 ),
@@ -259,8 +359,20 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
                 child: _buildDropdownModern(
                   value: _selectedMuscleId,
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('Muscles', style: TextStyle(fontSize: 13))),
-                    ..._muscles.map((m) => DropdownMenuItem(value: m['id'].toString(), child: Text(m['name'], overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)))),
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Muscles', style: TextStyle(fontSize: 13)),
+                    ),
+                    ..._muscles.map(
+                      (m) => DropdownMenuItem(
+                        value: m['id'].toString(),
+                        child: Text(
+                          m['name'],
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ),
                   ],
                   onChanged: (v) => _onMuscleChanged(v),
                 ),
@@ -272,7 +384,11 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     );
   }
 
-  Widget _buildDropdownModern({required dynamic value, required List<DropdownMenuItem<dynamic>> items, required void Function(dynamic) onChanged}) {
+  Widget _buildDropdownModern({
+    required dynamic value,
+    required List<DropdownMenuItem<dynamic>> items,
+    required void Function(dynamic) onChanged,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
@@ -293,15 +409,24 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
   }
 
   Widget _buildExerciseListModern() {
-    final filtered = _exercises.where((e) => e.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    final filtered = _exercises
+        .where((e) => e.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
     if (filtered.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off_rounded, size: 48, color: AppColors.textSecondary.withOpacity(0.2)),
+            Icon(
+              Icons.search_off_rounded,
+              size: 48,
+              color: AppColors.textSecondary.withOpacity(0.2),
+            ),
             const SizedBox(height: 16),
-            const Text('No exercises found', style: TextStyle(color: AppColors.textSecondary)),
+            const Text(
+              'No exercises found',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ],
         ),
       );
@@ -310,39 +435,12 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
-        final ex = filtered[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
-                child: Icon(ex.icon, color: AppColors.primary, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(ex.name, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
-                    Text(ex.muscleGroup.toUpperCase(), style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800)),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () => _showAddDialog(ex),
-                icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.accent, size: 26),
-              ),
-            ],
-          ),
+        final exercise = filtered[index];
+        return ExercisePickerCard(
+          exercise: exercise,
+          actionLabel: 'Add',
+          actionIcon: Icons.add_rounded,
+          onAction: () => _showAddDialog(exercise),
         );
       },
     );

@@ -69,11 +69,20 @@ namespace GymSupport.Repository.Repositories
 
         public async Task DeactivateAllByUserIdAsync(string userId)
         {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return;
+            }
+
             var update = Builders<WorkoutPlan>.Update
                 .Set(x => x.IsActive, false);
 
+            var filter = Builders<WorkoutPlan>.Filter.And(
+                Builders<WorkoutPlan>.Filter.Eq(x => x.UserId, userId),
+                Builders<WorkoutPlan>.Filter.Eq(x => x.IsActive, true));
+
             await _collection.UpdateManyAsync(
-                x => x.UserId == userId,
+                filter,
                 update);
         }
     }

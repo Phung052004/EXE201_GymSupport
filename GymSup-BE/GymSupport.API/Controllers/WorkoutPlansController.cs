@@ -57,6 +57,9 @@ public class WorkoutPlansController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] WorkoutPlan plan)
     {
+        if (string.IsNullOrWhiteSpace(plan.UserId))
+            return BadRequest("UserId is required");
+
         await _repository.DeactivateAllByUserIdAsync(plan.UserId);
 
         plan.IsActive = true;
@@ -69,6 +72,9 @@ public class WorkoutPlansController : ControllerBase
     [HttpPost("create-routine")]
     public async Task<IActionResult> CreateRoutine([FromBody] CreateRoutineDto dto)
     {
+        if (string.IsNullOrWhiteSpace(dto.UserId))
+            return BadRequest("UserId is required");
+
         // Deactivate all previous plans
         await _repository.DeactivateAllByUserIdAsync(dto.UserId);
 
@@ -250,6 +256,9 @@ public class WorkoutPlansController : ControllerBase
 
         if (plan == null)
             return NotFound("Workout plan not found");
+
+        if (string.IsNullOrWhiteSpace(plan.UserId))
+            return BadRequest("Workout plan has no user owner");
 
         await _repository.DeactivateAllByUserIdAsync(plan.UserId);
 

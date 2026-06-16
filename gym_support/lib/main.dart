@@ -22,11 +22,14 @@ class GymSupportApp extends StatelessWidget {
           seedColor: AppColors.primary,
           brightness: Brightness.dark,
           primary: AppColors.primary,
+          secondary: AppColors.secondary,
           surface: AppColors.surface,
+          onPrimary: AppColors.textDark,
+          onSurface: AppColors.textPrimary,
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.textPrimary,
           elevation: 0,
         ),
         dialogTheme: DialogThemeData(
@@ -40,11 +43,11 @@ class GymSupportApp extends StatelessWidget {
           fillColor: AppColors.surface,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+            borderSide: const BorderSide(color: Color(0xFF22303C)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+            borderSide: const BorderSide(color: Color(0xFF22303C)),
           ),
           focusedBorder: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(14)),
@@ -54,7 +57,7 @@ class GymSupportApp extends StatelessWidget {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
+            foregroundColor: AppColors.textDark,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),

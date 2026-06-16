@@ -37,31 +37,31 @@ class _OnboardingGoalScreenState extends State<OnboardingGoalScreen> {
       title: 'Tăng Cơ Bắp',
       subtitle: 'Build Muscle',
       icon: Icons.fitness_center,
-      color: Color(0xFF12E67F),
+      color: AppColors.primary,
     ),
     FitnessGoal(
       title: 'Giảm Cân',
       subtitle: 'Lose Weight',
       icon: Icons.local_fire_department,
-      color: Color(0xFFFF7A30),
+      color: Color(0xFFFFB545),
     ),
     FitnessGoal(
       title: 'Tăng Sức Mạnh',
       subtitle: 'Increase Strength',
       icon: Icons.flash_on,
-      color: Color(0xFF248DFF),
+      color: AppColors.secondary,
     ),
     FitnessGoal(
       title: 'Tăng Sức Bền',
       subtitle: 'Boost Endurance',
       icon: Icons.show_chart,
-      color: Color(0xFFC44DFF),
+      color: Color(0xFFC084FC),
     ),
     FitnessGoal(
       title: 'Giữ Sức Khỏe',
       subtitle: 'Stay Healthy',
       icon: Icons.favorite,
-      color: Color(0xFFFF3D8B),
+      color: Color(0xFFFF5C8A),
     ),
   ];
 

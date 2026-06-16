@@ -76,6 +76,14 @@ public class ExercisesController : ControllerBase
                 Name = dto.Name,
                 Equipment = dto.Equipment,
                 Difficulty = dto.Difficulty,
+                Description = dto.Description ?? "",
+                Instruction = dto.Instruction ?? "",
+                SafetyNotes = dto.SafetyNotes ?? "",
+                CommonMistakes = dto.CommonMistakes ?? "",
+                Tips = dto.Tips ?? "",
+                DefaultSets = dto.DefaultSets <= 0 ? 3 : dto.DefaultSets,
+                DefaultReps = string.IsNullOrWhiteSpace(dto.DefaultReps) ? "10" : dto.DefaultReps,
+                RestTimeSeconds = dto.RestTimeSeconds <= 0 ? 60 : dto.RestTimeSeconds,
                 ImageUrl = dto.ImageUrl,
                 VideoUrl = dto.VideoUrl,
 
@@ -113,6 +121,14 @@ public class ExercisesController : ControllerBase
         exercise.Name = dto.Name;
         exercise.Equipment = dto.Equipment;
         exercise.Difficulty = dto.Difficulty;
+        exercise.Description = dto.Description ?? "";
+        exercise.Instruction = dto.Instruction ?? "";
+        exercise.SafetyNotes = dto.SafetyNotes ?? "";
+        exercise.CommonMistakes = dto.CommonMistakes ?? "";
+        exercise.Tips = dto.Tips ?? "";
+        exercise.DefaultSets = dto.DefaultSets <= 0 ? 3 : dto.DefaultSets;
+        exercise.DefaultReps = string.IsNullOrWhiteSpace(dto.DefaultReps) ? "10" : dto.DefaultReps;
+        exercise.RestTimeSeconds = dto.RestTimeSeconds <= 0 ? 60 : dto.RestTimeSeconds;
         exercise.ImageUrl = dto.ImageUrl;
         exercise.VideoUrl = dto.VideoUrl;
 

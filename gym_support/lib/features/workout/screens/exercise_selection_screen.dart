@@ -2,23 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:gym_support/core/constants/app_colors.dart';
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/models/exercise.dart';
+import '../widgets/exercise_picker_card.dart';
 
 class ExerciseSelectionScreen extends StatefulWidget {
   const ExerciseSelectionScreen({super.key});
 
   @override
-  State<ExerciseSelectionScreen> createState() => _ExerciseSelectionScreenState();
+  State<ExerciseSelectionScreen> createState() =>
+      _ExerciseSelectionScreenState();
 }
 
 class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
   List<Exercise> _exercises = [];
   List<String> _categories = [];
   List<Map<String, dynamic>> _muscles = [];
-  
+
   String? _selectedCategory;
   String? _selectedMuscleId;
   String _searchQuery = '';
-  
+
   bool _isLoading = true;
 
   @override
@@ -39,7 +41,10 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi tải dữ liệu: $e')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi tải dữ liệu: $e')));
     }
   }
 
@@ -88,7 +93,10 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Select Exercises', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Select Exercises',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -96,9 +104,11 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
         children: [
           _buildFilters(),
           Expanded(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-              : _buildExerciseList(),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : _buildExerciseList(),
           ),
         ],
       ),
@@ -120,7 +130,10 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
               prefixIcon: const Icon(Icons.search, color: Colors.white38),
               filled: true,
               fillColor: AppColors.background,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -130,8 +143,10 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
                 child: _buildDropdown(
                   hint: 'Category',
                   value: _selectedCategory,
-                  items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                  onChanged: _onCategoryChanged,
+                  items: _categories
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+                  onChanged: (value) => _onCategoryChanged(value as String?),
                 ),
               ),
               const SizedBox(width: 12),
@@ -139,8 +154,15 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
                 child: _buildDropdown(
                   hint: 'Muscle',
                   value: _selectedMuscleId,
-                  items: _muscles.map((m) => DropdownMenuItem(value: m['id'].toString(), child: Text(m['name']))).toList(),
-                  onChanged: _onMuscleChanged,
+                  items: _muscles
+                      .map(
+                        (m) => DropdownMenuItem(
+                          value: m['id'].toString(),
+                          child: Text(m['name']),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => _onMuscleChanged(value as String?),
                 ),
               ),
             ],
@@ -165,7 +187,10 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<dynamic>(
           value: value,
-          hint: Text(hint, style: const TextStyle(color: Colors.white38, fontSize: 13)),
+          hint: Text(
+            hint,
+            style: const TextStyle(color: Colors.white38, fontSize: 13),
+          ),
           isExpanded: true,
           dropdownColor: AppColors.surface,
           items: items,
@@ -176,53 +201,29 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
   }
 
   Widget _buildExerciseList() {
-    final filtered = _exercises.where((e) => 
-      e.name.toLowerCase().contains(_searchQuery.toLowerCase())
-    ).toList();
+    final filtered = _exercises
+        .where((e) => e.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
 
     if (filtered.isEmpty) {
-      return const Center(child: Text('Không tìm thấy bài tập phù hợp.', style: TextStyle(color: Colors.white38)));
+      return const Center(
+        child: Text(
+          'Không tìm thấy bài tập phù hợp.',
+          style: TextStyle(color: Colors.white38),
+        ),
+      );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
-        final ex = filtered[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(ex.icon, color: AppColors.primary),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(ex.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text(ex.muscleGroup, style: const TextStyle(color: Colors.white38, fontSize: 12)),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context, ex),
-                icon: const Icon(Icons.add_circle, color: AppColors.primary),
-              ),
-            ],
-          ),
+        final exercise = filtered[index];
+        return ExercisePickerCard(
+          exercise: exercise,
+          actionLabel: 'Select',
+          actionIcon: Icons.check_rounded,
+          onAction: () => Navigator.pop(context, exercise),
         );
       },
     );
