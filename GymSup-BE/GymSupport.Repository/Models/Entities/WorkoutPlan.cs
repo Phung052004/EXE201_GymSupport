@@ -16,6 +16,8 @@ public class WorkoutPlan
 
     public string Goal { get; set; }
 
+    public string Description { get; set; } = "";
+
     public int DaysPerWeek { get; set; }
 
     public bool IsActive { get; set; } = true;

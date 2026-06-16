@@ -20,6 +20,8 @@ namespace GymSupport.Repository.Models.DTOs.AIModel
 
         public string Goal { get; set; } = "";
 
+        public string PlanDescription { get; set; } = "";
+
         public int DaysPerWeek { get; set; }
 
         public string DayOfWeek { get; set; } = "";

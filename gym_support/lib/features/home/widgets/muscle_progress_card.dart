@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import '../../../core/constants/app_colors.dart';
 
 class MuscleProgressGrid extends StatelessWidget {
@@ -15,8 +18,13 @@ class MuscleProgressGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const SizedBox(
-        height: 84,
-        child: Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2)),
+        height: 220,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+            strokeWidth: 2,
+          ),
+        ),
       );
     }
 
@@ -26,8 +34,8 @@ class MuscleProgressGrid extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Text(
           'Complete your first workout to start tracking your muscle progress.',
@@ -41,115 +49,232 @@ class MuscleProgressGrid extends StatelessWidget {
       );
     }
 
-    return GridView.builder(
-      itemCount: items.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        mainAxisExtent: 110,
-      ),
-      itemBuilder: (context, index) {
-        return MuscleProgressCard(data: items[index]);
-      },
+    final lagging = items
+        .where((item) => item.isLagging && item.totalExp > 0)
+        .take(4)
+        .toList();
+    final weakest = items.take(4).toList();
+    final priority = lagging.isNotEmpty ? lagging : weakest;
+
+    return Column(
+      children: [
+        MuscleBalanceMap(items: items),
+        const SizedBox(height: 14),
+        _PriorityMuscles(items: priority),
+      ],
     );
   }
 }
 
-class MuscleProgressCard extends StatelessWidget {
-  final MuscleProgressData data;
+class MuscleBalanceMap extends StatelessWidget {
+  final List<MuscleProgressData> items;
 
-  const MuscleProgressCard({super.key, required this.data});
+  const MuscleBalanceMap({super.key, required this.items});
 
   @override
   Widget build(BuildContext context) {
+    final byName = {for (final item in items) _normalize(item.name): item};
+
+    MuscleProgressData? find(List<String> keys) {
+      for (final key in keys) {
+        final value = byName[_normalize(key)];
+        if (value != null) return value;
+      }
+      return null;
+    }
+
+    final chest = find(['Chest', 'Pectorals', 'Nguc']);
+    final shoulders = find(['Shoulders', 'Delts', 'Vai']);
+    final biceps = find(['Biceps', 'Arms', 'Tay truoc']);
+    final triceps = find(['Triceps', 'Tay sau']);
+    final abs = find(['Abs', 'Core', 'Bung']);
+    final glutes = find(['Glutes', 'Mong']);
+    final legs = find(['Legs', 'Quads', 'Hamstrings', 'Chan']);
+    final calves = find(['Calves', 'Bap chan']);
+    final activeCount = items.where((item) => item.totalExp > 0).length;
+    final weakCount = items.where((item) => item.isLagging).length;
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        color: const Color(0xFF1D2527),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  data.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: _TopMetric(
+                  value: '$weakCount',
+                  label: 'WEAK MUSCLE\nGROUPS',
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  data.level,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                  ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _TopMetric(
+                  value: '$activeCount',
+                  label: 'ACTIVE MUSCLE\nGROUPS',
+                  alignEnd: true,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Stack(
-            children: [
-              Container(
-                height: 4,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(2),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 390,
+            child: Center(
+              child: _BodyFigure(
+                label: '',
+                muscles: _BodyMuscles(
+                  chest: chest,
+                  shoulders: shoulders,
+                  leftArm: biceps ?? triceps,
+                  rightArm: biceps ?? triceps,
+                  core: abs,
+                  hips: glutes,
+                  leftLeg: legs,
+                  rightLeg: legs,
+                  calves: calves,
                 ),
               ),
-              FractionallySizedBox(
-                widthFactor: data.progress,
-                child: Container(
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 0),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(
-                data.xp,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                ),
+          const SizedBox(height: 10),
+          Text(
+            'Highlighted muscles are the groups gaining or needing attention.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _normalize(String value) {
+    final lower = value.toLowerCase();
+    final folded = lower
+        .replaceAll(RegExp(r'[àáạảãâầấậẩẫăằắặẳẵ]'), 'a')
+        .replaceAll(RegExp(r'[èéẹẻẽêềếệểễ]'), 'e')
+        .replaceAll(RegExp(r'[ìíịỉĩ]'), 'i')
+        .replaceAll(RegExp(r'[òóọỏõôồốộổỗơờớợởỡ]'), 'o')
+        .replaceAll(RegExp(r'[ùúụủũưừứựửữ]'), 'u')
+        .replaceAll(RegExp(r'[ỳýỵỷỹ]'), 'y')
+        .replaceAll('đ', 'd');
+
+    return folded.replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+}
+
+class _TopMetric extends StatelessWidget {
+  final String value;
+  final String label;
+  final bool alignEnd;
+
+  const _TopMetric({
+    required this.value,
+    required this.label,
+    this.alignEnd = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            height: 1,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            height: 1.15,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BodyMuscles {
+  final MuscleProgressData? chest;
+  final MuscleProgressData? shoulders;
+  final MuscleProgressData? leftArm;
+  final MuscleProgressData? rightArm;
+  final MuscleProgressData? core;
+  final MuscleProgressData? hips;
+  final MuscleProgressData? leftLeg;
+  final MuscleProgressData? rightLeg;
+  final MuscleProgressData? calves;
+
+  const _BodyMuscles({
+    this.chest,
+    this.shoulders,
+    this.leftArm,
+    this.rightArm,
+    this.core,
+    this.hips,
+    this.leftLeg,
+    this.rightLeg,
+    this.calves,
+  });
+}
+
+class _BodyFigure extends StatelessWidget {
+  final String label;
+  final _BodyMuscles muscles;
+
+  const _BodyFigure({required this.label, required this.muscles});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 220,
+      child: Column(
+        children: [
+          if (label.isNotEmpty) ...[
+            Text(
+              label,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
               ),
-            ],
+            ),
+            const SizedBox(height: 8),
+          ],
+          Expanded(
+            child: Tooltip(
+              message:
+                  '$label muscle map. Red outline means this area is lagging.',
+              child: CustomPaint(
+                painter: _MuscleFigurePainter(
+                  muscles: muscles,
+                  isBack: label.toLowerCase() == 'back',
+                ),
+                child: const SizedBox.expand(),
+              ),
+            ),
           ),
         ],
       ),
@@ -157,16 +282,571 @@ class MuscleProgressCard extends StatelessWidget {
   }
 }
 
+class _MuscleFigurePainter extends CustomPainter {
+  final _BodyMuscles muscles;
+  final bool isBack;
+
+  const _MuscleFigurePainter({required this.muscles, required this.isBack});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = math.min(size.width / 124, size.height / 286);
+    final dx = (size.width - 124 * scale) / 2;
+    final dy = (size.height - 286 * scale) / 2;
+
+    Offset p(double x, double y) => Offset(dx + x * scale, dy + y * scale);
+
+    void draw(Path path, MuscleProgressData? data, {double alpha = 0.9}) {
+      final color = _figureColor(data);
+      final fill = Paint()
+        ..style = PaintingStyle.fill
+        ..color = color.withValues(alpha: data == null ? 0.88 : alpha);
+      final stroke = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = data?.isLagging == true ? 2.0 * scale : 1.15 * scale
+        ..color = data?.isLagging == true
+            ? const Color(0xFFFF6D65)
+            : const Color(0xFFEAF1EF).withValues(alpha: 0.78);
+
+      canvas.drawPath(path, fill);
+      canvas.drawPath(path, stroke);
+    }
+
+    Path oval(double left, double top, double right, double bottom) {
+      return Path()..addOval(
+        Rect.fromLTRB(
+          p(left, top).dx,
+          p(left, top).dy,
+          p(right, bottom).dx,
+          p(right, bottom).dy,
+        ),
+      );
+    }
+
+    Path path(List<Offset> points) {
+      final result = Path()..moveTo(points.first.dx, points.first.dy);
+      for (var i = 1; i < points.length; i++) {
+        result.lineTo(points[i].dx, points[i].dy);
+      }
+      return result..close();
+    }
+
+    Path curve(List<Offset> points) {
+      final result = Path()..moveTo(points[0].dx, points[0].dy);
+      for (var i = 1; i + 2 < points.length; i += 3) {
+        result.cubicTo(
+          points[i].dx,
+          points[i].dy,
+          points[i + 1].dx,
+          points[i + 1].dy,
+          points[i + 2].dx,
+          points[i + 2].dy,
+        );
+      }
+      return result..close();
+    }
+
+    canvas.drawShadow(
+      oval(25, 16, 99, 282),
+      Colors.black.withValues(alpha: 0.45),
+      12,
+      false,
+    );
+
+    draw(oval(48, 0, 76, 31), null, alpha: 0.58);
+    draw(path([p(52, 28), p(72, 28), p(78, 47), p(46, 47)]), null, alpha: 0.45);
+
+    if (isBack) {
+      _drawBack(canvas, p, draw, curve, path);
+    } else {
+      _drawFront(canvas, p, draw, curve, path);
+    }
+
+    final line = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.85 * scale
+      ..color = const Color(0xFF152023).withValues(alpha: 0.75);
+    canvas.drawLine(p(62, 49), p(62, 171), line);
+  }
+
+  void _drawFront(
+    Canvas canvas,
+    Offset Function(double, double) p,
+    void Function(Path, MuscleProgressData?, {double alpha}) draw,
+    Path Function(List<Offset>) curve,
+    Path Function(List<Offset>) path,
+  ) {
+    draw(
+      curve([
+        p(28, 48),
+        p(38, 38),
+        p(52, 39),
+        p(62, 54),
+        p(56, 75),
+        p(42, 82),
+        p(31, 69),
+        p(25, 61),
+        p(24, 54),
+        p(28, 48),
+      ]),
+      muscles.shoulders,
+    );
+    draw(
+      curve([
+        p(96, 48),
+        p(86, 38),
+        p(72, 39),
+        p(62, 54),
+        p(68, 75),
+        p(82, 82),
+        p(93, 69),
+        p(99, 61),
+        p(100, 54),
+        p(96, 48),
+      ]),
+      muscles.shoulders,
+    );
+    draw(
+      curve([
+        p(38, 58),
+        p(44, 47),
+        p(56, 51),
+        p(62, 61),
+        p(60, 84),
+        p(48, 94),
+        p(37, 84),
+        p(32, 74),
+        p(32, 65),
+        p(38, 58),
+      ]),
+      muscles.chest,
+    );
+    draw(
+      curve([
+        p(86, 58),
+        p(80, 47),
+        p(68, 51),
+        p(62, 61),
+        p(64, 84),
+        p(76, 94),
+        p(87, 84),
+        p(92, 74),
+        p(92, 65),
+        p(86, 58),
+      ]),
+      muscles.chest,
+    );
+    draw(
+      curve([
+        p(46, 92),
+        p(54, 88),
+        p(70, 88),
+        p(78, 92),
+        p(82, 125),
+        p(75, 154),
+        p(62, 164),
+        p(49, 154),
+        p(42, 125),
+        p(46, 92),
+      ]),
+      muscles.core,
+    );
+    draw(
+      curve([
+        p(36, 153),
+        p(47, 145),
+        p(77, 145),
+        p(88, 153),
+        p(82, 176),
+        p(68, 183),
+        p(62, 170),
+        p(56, 183),
+        p(42, 176),
+        p(36, 153),
+      ]),
+      muscles.hips,
+    );
+    _drawArms(p, draw, curve);
+    _drawLegs(p, draw, curve);
+  }
+
+  void _drawBack(
+    Canvas canvas,
+    Offset Function(double, double) p,
+    void Function(Path, MuscleProgressData?, {double alpha}) draw,
+    Path Function(List<Offset>) curve,
+    Path Function(List<Offset>) path,
+  ) {
+    draw(
+      curve([
+        p(28, 48),
+        p(42, 36),
+        p(54, 42),
+        p(62, 58),
+        p(54, 82),
+        p(38, 86),
+        p(27, 68),
+        p(23, 58),
+        p(24, 52),
+        p(28, 48),
+      ]),
+      muscles.shoulders,
+    );
+    draw(
+      curve([
+        p(96, 48),
+        p(82, 36),
+        p(70, 42),
+        p(62, 58),
+        p(70, 82),
+        p(86, 86),
+        p(97, 68),
+        p(101, 58),
+        p(100, 52),
+        p(96, 48),
+      ]),
+      muscles.shoulders,
+    );
+    draw(
+      curve([
+        p(39, 55),
+        p(52, 50),
+        p(59, 67),
+        p(62, 94),
+        p(56, 126),
+        p(43, 139),
+        p(34, 110),
+        p(29, 82),
+        p(31, 63),
+        p(39, 55),
+      ]),
+      muscles.chest,
+    );
+    draw(
+      curve([
+        p(85, 55),
+        p(72, 50),
+        p(65, 67),
+        p(62, 94),
+        p(68, 126),
+        p(81, 139),
+        p(90, 110),
+        p(95, 82),
+        p(93, 63),
+        p(85, 55),
+      ]),
+      muscles.chest,
+    );
+    draw(
+      curve([
+        p(47, 114),
+        p(54, 106),
+        p(70, 106),
+        p(77, 114),
+        p(81, 143),
+        p(74, 160),
+        p(62, 168),
+        p(50, 160),
+        p(43, 143),
+        p(47, 114),
+      ]),
+      muscles.core,
+      alpha: 0.86,
+    );
+    draw(
+      curve([
+        p(36, 153),
+        p(47, 145),
+        p(77, 145),
+        p(88, 153),
+        p(83, 178),
+        p(70, 184),
+        p(62, 171),
+        p(54, 184),
+        p(41, 178),
+        p(36, 153),
+      ]),
+      muscles.hips,
+    );
+    _drawArms(p, draw, curve);
+    _drawLegs(p, draw, curve);
+  }
+
+  void _drawArms(
+    Offset Function(double, double) p,
+    void Function(Path, MuscleProgressData?, {double alpha}) draw,
+    Path Function(List<Offset>) curve,
+  ) {
+    draw(
+      curve([
+        p(27, 66),
+        p(15, 76),
+        p(10, 101),
+        p(15, 125),
+        p(21, 136),
+        p(29, 117),
+        p(32, 86),
+        p(34, 73),
+        p(31, 67),
+        p(27, 66),
+      ]),
+      muscles.leftArm,
+    );
+    draw(
+      curve([
+        p(97, 66),
+        p(109, 76),
+        p(114, 101),
+        p(109, 125),
+        p(103, 136),
+        p(95, 117),
+        p(92, 86),
+        p(90, 73),
+        p(93, 67),
+        p(97, 66),
+      ]),
+      muscles.rightArm,
+    );
+    draw(
+      curve([
+        p(14, 126),
+        p(6, 138),
+        p(8, 154),
+        p(18, 162),
+        p(27, 154),
+        p(25, 139),
+        p(21, 132),
+        p(14, 126),
+      ]),
+      muscles.leftArm,
+      alpha: 0.82,
+    );
+    draw(
+      curve([
+        p(110, 126),
+        p(118, 138),
+        p(116, 154),
+        p(106, 162),
+        p(97, 154),
+        p(99, 139),
+        p(103, 132),
+        p(110, 126),
+      ]),
+      muscles.rightArm,
+      alpha: 0.82,
+    );
+  }
+
+  void _drawLegs(
+    Offset Function(double, double) p,
+    void Function(Path, MuscleProgressData?, {double alpha}) draw,
+    Path Function(List<Offset>) curve,
+  ) {
+    draw(
+      curve([
+        p(42, 174),
+        p(55, 170),
+        p(62, 185),
+        p(58, 225),
+        p(52, 245),
+        p(39, 238),
+        p(35, 207),
+        p(34, 185),
+        p(38, 176),
+        p(42, 174),
+      ]),
+      muscles.leftLeg,
+    );
+    draw(
+      curve([
+        p(82, 174),
+        p(69, 170),
+        p(62, 185),
+        p(66, 225),
+        p(72, 245),
+        p(85, 238),
+        p(89, 207),
+        p(90, 185),
+        p(86, 176),
+        p(82, 174),
+      ]),
+      muscles.rightLeg,
+    );
+    draw(
+      curve([
+        p(38, 236),
+        p(48, 229),
+        p(56, 241),
+        p(54, 276),
+        p(43, 282),
+        p(35, 267),
+        p(34, 247),
+        p(38, 236),
+      ]),
+      muscles.calves,
+      alpha: 0.84,
+    );
+    draw(
+      curve([
+        p(86, 236),
+        p(76, 229),
+        p(68, 241),
+        p(70, 276),
+        p(81, 282),
+        p(89, 267),
+        p(90, 247),
+        p(86, 236),
+      ]),
+      muscles.calves,
+      alpha: 0.84,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _MuscleFigurePainter oldDelegate) {
+    return oldDelegate.muscles != muscles || oldDelegate.isBack != isBack;
+  }
+}
+
+class _PriorityMuscles extends StatelessWidget {
+  final List<MuscleProgressData> items;
+
+  const _PriorityMuscles({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Weak Muscle Priority',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...items.map((item) => _PriorityRow(item: item)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PriorityRow extends StatelessWidget {
+  final MuscleProgressData item;
+
+  const _PriorityRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: _tierColor(item),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              item.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          Text(
+            'Lv ${item.level}  ${item.currentLevelExp}/${item.expToNextLevel} XP',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Color _tierColor(MuscleProgressData item) {
+  switch (item.tier.toLowerCase()) {
+    case 'champion':
+      return const Color(0xFF7C63FF);
+    case 'diamond':
+      return const Color(0xFF48A7FF);
+    case 'platinum':
+      return const Color(0xFFE24D5C);
+    case 'gold':
+      return const Color(0xFFE8C547);
+    case 'silver':
+      return const Color(0xFFBFC7D5);
+    case 'bronze':
+      return const Color(0xFFB87333);
+    case 'iron':
+    default:
+      return const Color(0xFF6B7280);
+  }
+}
+
+Color _figureColor(MuscleProgressData? item) {
+  if (item == null || item.totalExp <= 0) {
+    return const Color(0xFFF3D9D4);
+  }
+
+  if (item.isLagging) {
+    return const Color(0xFFFF6F66);
+  }
+
+  final heat = item.progress.clamp(0.0, 1.0);
+  return Color.lerp(
+    const Color(0xFFFFB1A9),
+    const Color(0xFFFF4E45),
+    0.35 + heat * 0.65,
+  )!;
+}
+
 class MuscleProgressData {
+  final String id;
   final String name;
-  final String level;
+  final String category;
+  final int level;
+  final int totalExp;
+  final int currentLevelExp;
+  final int expToNextLevel;
   final double progress;
-  final String xp;
+  final String tier;
+  final bool isLagging;
 
   const MuscleProgressData({
+    required this.id,
     required this.name,
+    required this.category,
     required this.level,
+    required this.totalExp,
+    required this.currentLevelExp,
+    required this.expToNextLevel,
     required this.progress,
-    required this.xp,
+    required this.tier,
+    required this.isLagging,
   });
 }

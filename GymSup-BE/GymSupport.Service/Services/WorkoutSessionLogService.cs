@@ -7,15 +7,26 @@ namespace GymSupport.Service.Services;
 
 public class WorkoutSessionLogService : IWorkoutSessionLogService
 {
+    private const int ExpPerLevel = 100;
+
     private readonly IWorkoutSessionLogRepository _sessionLogRepository;
     private readonly IWorkoutPlanRepository _workoutPlanRepository;
+    private readonly IExerciseRepository _exerciseRepository;
+    private readonly IMuscleRepository _muscleRepository;
+    private readonly IUserMuscleProgressRepository _muscleProgressRepository;
 
     public WorkoutSessionLogService(
         IWorkoutSessionLogRepository sessionLogRepository,
-        IWorkoutPlanRepository workoutPlanRepository)
+        IWorkoutPlanRepository workoutPlanRepository,
+        IExerciseRepository exerciseRepository,
+        IMuscleRepository muscleRepository,
+        IUserMuscleProgressRepository muscleProgressRepository)
     {
         _sessionLogRepository = sessionLogRepository;
         _workoutPlanRepository = workoutPlanRepository;
+        _exerciseRepository = exerciseRepository;
+        _muscleRepository = muscleRepository;
+        _muscleProgressRepository = muscleProgressRepository;
     }
 
     public async Task<WorkoutSessionLog> StartSessionAsync(
@@ -45,15 +56,27 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
             throw new Exception("Không tìm thấy buổi tập trong workout plan.");
         }
 
+        var catalogExercises = (await _exerciseRepository.GetAllAsync())
+            .ToDictionary(x => x.Id, x => x);
+
         var exerciseLogs = planSession.Exercises
-            .Select((exercise, index) => new WorkoutExerciseLog
+            .Select((exercise, index) =>
             {
-                ExerciseId = exercise.ExerciseId,
-                ExerciseName = exercise.ExerciseName,
-                MuscleIds = new List<string>(),
-                OrderIndex = index + 1,
-                Status = "PENDING",
-                Sets = new List<WorkoutSetLog>()
+                catalogExercises.TryGetValue(exercise.ExerciseId, out var catalog);
+
+                return new WorkoutExerciseLog
+                {
+                    ExerciseId = exercise.ExerciseId,
+                    ExerciseName = exercise.ExerciseName,
+                    MuscleIds = catalog?.MuscleImpacts
+                        .Where(x => !string.IsNullOrWhiteSpace(x.MuscleId))
+                        .Select(x => x.MuscleId)
+                        .Distinct()
+                        .ToList() ?? new List<string>(),
+                    OrderIndex = index + 1,
+                    Status = "PENDING",
+                    Sets = new List<WorkoutSetLog>()
+                };
             })
             .ToList();
 
@@ -177,6 +200,9 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
             }
         }
 
+        session.MuscleExpGains = await ApplyMuscleExpAsync(session);
+        session.TotalExpGained = session.MuscleExpGains.Sum(x => x.ExpGained);
+
         await _sessionLogRepository.UpdateAsync(session.Id, session);
 
         return session;
@@ -186,5 +212,133 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
         string userId)
     {
         return await _sessionLogRepository.GetByUserIdAsync(userId);
+    }
+
+    private async Task<List<MuscleExpGain>> ApplyMuscleExpAsync(
+        WorkoutSessionLog session)
+    {
+        var completedExercises = session.Exercises
+            .Where(x => x.Sets.Any(set => set.Status == "COMPLETED"))
+            .ToList();
+
+        if (!completedExercises.Any())
+        {
+            return new List<MuscleExpGain>();
+        }
+
+        var exercises = (await _exerciseRepository.GetAllAsync())
+            .ToDictionary(x => x.Id, x => x);
+        var muscles = (await _muscleRepository.GetAllAsync())
+            .ToDictionary(x => x.Id, x => x);
+        var expByMuscle = new Dictionary<string, int>();
+
+        foreach (var exerciseLog in completedExercises)
+        {
+            if (!exercises.TryGetValue(exerciseLog.ExerciseId, out var exercise))
+            {
+                continue;
+            }
+
+            var completedSets = exerciseLog.Sets
+                .Where(x => x.Status == "COMPLETED")
+                .ToList();
+            var exerciseExp = completedSets.Sum(CalculateSetExp);
+            if (exerciseExp <= 0)
+            {
+                continue;
+            }
+
+            var impacts = exercise.MuscleImpacts
+                .Where(x => !string.IsNullOrWhiteSpace(x.MuscleId))
+                .ToList();
+            if (!impacts.Any())
+            {
+                continue;
+            }
+
+            var totalImpact = impacts.Sum(x => Math.Max(0, x.Percentage));
+            if (totalImpact <= 0)
+            {
+                totalImpact = impacts.Count;
+            }
+
+            foreach (var impact in impacts)
+            {
+                var weight = Math.Max(0, impact.Percentage);
+                if (weight <= 0)
+                {
+                    weight = 1;
+                }
+
+                var gained = Math.Max(
+                    1,
+                    (int)Math.Round(exerciseExp * (weight / (double)totalImpact)));
+                expByMuscle[impact.MuscleId] =
+                    expByMuscle.GetValueOrDefault(impact.MuscleId) + gained;
+            }
+        }
+
+        var gains = new List<MuscleExpGain>();
+        foreach (var item in expByMuscle)
+        {
+            if (!muscles.TryGetValue(item.Key, out var muscle))
+            {
+                continue;
+            }
+
+            var existing = await _muscleProgressRepository.GetByUserAndMuscleAsync(
+                session.UserId,
+                item.Key);
+            var oldTotalExp = existing?.TotalExp ?? 0;
+            var newTotalExp = oldTotalExp + item.Value;
+            var oldLevel = CalculateLevel(oldTotalExp);
+            var newLevel = CalculateLevel(newTotalExp);
+
+            var progress = existing ?? new UserMuscleProgress
+            {
+                UserId = session.UserId,
+                MuscleId = item.Key
+            };
+            progress.MuscleName = string.IsNullOrWhiteSpace(muscle.Name)
+                ? muscle.Category
+                : muscle.Name;
+            progress.MuscleCategory = muscle.Category ?? "";
+            progress.TotalExp = newTotalExp;
+            progress.Level = newLevel;
+            progress.CurrentLevelExp = newTotalExp % ExpPerLevel;
+            progress.ExpToNextLevel = ExpPerLevel;
+
+            await _muscleProgressRepository.UpsertAsync(progress);
+
+            gains.Add(new MuscleExpGain
+            {
+                MuscleId = item.Key,
+                MuscleName = progress.MuscleName,
+                ExpGained = item.Value,
+                OldLevel = oldLevel,
+                NewLevel = newLevel,
+                IsLevelUp = newLevel > oldLevel
+            });
+        }
+
+        return gains
+            .OrderByDescending(x => x.ExpGained)
+            .ToList();
+    }
+
+    private static int CalculateSetExp(WorkoutSetLog set)
+    {
+        var reps = Math.Max(0, set.Reps ?? 0);
+        var weight = Math.Max(0, set.Weight ?? 0);
+        var duration = Math.Max(0, set.DurationSeconds ?? 0);
+        var volumeBonus = (int)Math.Floor(weight * reps / 120.0);
+        var durationBonus = duration / 60;
+
+        return Math.Max(8, 10 + reps + volumeBonus + durationBonus);
+    }
+
+    private static int CalculateLevel(int totalExp)
+    {
+        return Math.Max(1, totalExp / ExpPerLevel + 1);
     }
 }

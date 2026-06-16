@@ -5,6 +5,7 @@ public class CreateRoutineDto
     public string UserId { get; set; }
     public string Name { get; set; }
     public string Goal { get; set; }
+    public string Description { get; set; } = "";
     public int DaysPerWeek { get; set; }
     public List<RoutineSessionDto> Sessions { get; set; } = [];
 }

@@ -11,6 +11,9 @@ class WorkoutSessionScreen extends StatefulWidget {
   final String dayName;
   final String focus;
   final List<WorkoutExercise> exercises;
+  final Map<String, List<bool>> initialCompletedSets;
+  final Map<String, List<int>> initialReps;
+  final Map<String, List<double>> initialWeights;
 
   const WorkoutSessionScreen({
     super.key,
@@ -19,6 +22,9 @@ class WorkoutSessionScreen extends StatefulWidget {
     required this.dayName,
     required this.focus,
     required this.exercises,
+    this.initialCompletedSets = const {},
+    this.initialReps = const {},
+    this.initialWeights = const {},
   });
 
   @override
@@ -43,14 +49,31 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     _timer = Timer.periodic(const Duration(seconds: 1), _updateTime);
 
     for (var ex in widget.exercises) {
-      _completedSets[ex.exerciseId] = List.generate(ex.sets, (_) => false);
-      _repsControllers[ex.exerciseId] = List.generate(
+      final completed = widget.initialCompletedSets[ex.exerciseId] ?? const [];
+      final reps = widget.initialReps[ex.exerciseId] ?? const [];
+      final weights = widget.initialWeights[ex.exerciseId] ?? const [];
+      final setCount = [
         ex.sets,
-        (_) => TextEditingController(text: _extractReps(ex.reps)),
+        completed.length,
+        reps.length,
+        weights.length,
+      ].reduce((value, element) => value > element ? value : element);
+
+      _completedSets[ex.exerciseId] = List.generate(
+        setCount,
+        (index) => index < completed.length ? completed[index] : false,
+      );
+      _repsControllers[ex.exerciseId] = List.generate(
+        setCount,
+        (index) => TextEditingController(
+          text: index < reps.length ? '${reps[index]}' : _extractReps(ex.reps),
+        ),
       );
       _weightControllers[ex.exerciseId] = List.generate(
-        ex.sets,
-        (_) => TextEditingController(text: '0'),
+        setCount,
+        (index) => TextEditingController(
+          text: index < weights.length ? '${weights[index]}' : '0',
+        ),
       );
     }
   }
@@ -118,7 +141,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   Future<void> _finishWorkout() async {
     setState(() => _isSaving = true);
     try {
-      final result = await BackendApi.completeWorkout(email: '');
+      final result = await BackendApi.completeWorkout(
+        email: '',
+        sessionLogId: widget.logId,
+      );
       if (!mounted) return;
       _stopwatch.stop();
       _timer.cancel();
@@ -304,7 +330,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         ), // Sample 1 warmup set
 
         _buildSectionHeader('SETS'),
-        ...List.generate(ex.sets, (i) => _buildSetRow(ex, i)),
+        ...List.generate(
+          _completedSets[ex.exerciseId]?.length ?? ex.sets,
+          (i) => _buildSetRow(ex, i),
+        ),
 
         const SizedBox(height: 40),
       ],

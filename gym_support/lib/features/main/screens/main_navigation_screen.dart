@@ -229,6 +229,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final backendExp = int.tryParse(
       backendResult?['totalExpGained']?.toString() ?? '',
     );
+    final muscleExpGains = backendResult?['muscleExpGains'] is List
+        ? backendResult!['muscleExpGains'] as List
+        : const [];
 
     if (mounted) {
       setState(() {
@@ -245,6 +248,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       'durationSeconds': durationSeconds,
       'totalSets': (backendSets ?? 0) > 0 ? backendSets : completedSets,
       'totalExpGained': backendExp ?? 0,
+      'muscleExpGains': muscleExpGains,
     };
   }
 

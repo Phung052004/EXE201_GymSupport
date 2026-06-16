@@ -21,6 +21,9 @@ class PerfectWorkoutDialog extends StatelessWidget {
     final durationSeconds = _intValue('durationSeconds');
     final minutes = (durationSeconds / 60).ceil();
     final calories = completedCount * 12;
+    final muscleExpGains = result['muscleExpGains'] is List
+        ? result['muscleExpGains'] as List
+        : const [];
     final completionPercent = totalExercises == 0
         ? 0
         : ((completedCount / totalExercises) * 100).round().clamp(0, 100);
@@ -193,6 +196,78 @@ class PerfectWorkoutDialog extends StatelessWidget {
                 ],
               ),
             ),
+            if (muscleExpGains.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'MUSCLE EXP',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ...muscleExpGains.take(4).map((gain) {
+                      final item = gain is Map ? gain : {};
+                      final name = item['muscleName']?.toString() ?? 'Muscle';
+                      final exp = item['expGained']?.toString() ?? '0';
+                      final isLevelUp = item['isLevelUp'] == true;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isLevelUp
+                                  ? Icons.workspace_premium
+                                  : Icons.bolt_rounded,
+                              color: isLevelUp
+                                  ? AppColors.primary
+                                  : AppColors.secondary,
+                              size: 17,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '+$exp XP',
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 18),
             GestureDetector(
               onTap: onGoHome,

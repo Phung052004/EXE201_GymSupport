@@ -1044,13 +1044,17 @@ class BackendApi {
     required int daysPerWeek,
     String? email,
   }) async {
-    final reply = await sendAiCoachMessage(
-      message:
-          'Hãy tạo đề xuất lịch tập $daysPerWeek ngày/tuần cho $name. '
-          'Thông tin: giới tính $gender, tuổi $age, cân nặng ${weight}kg, '
-          'chiều cao ${height}cm, mục tiêu $goal. '
-          'Hãy trình bày lịch tập chi tiết theo từng ngày và hỏi tôi xác nhận trước khi lưu.',
-    );
+    final prompt = [
+      'Hay tao de xuat lich tap $daysPerWeek ngay/tuan cho $name.',
+      'Thong tin: gioi tinh $gender, tuoi $age, can nang ${weight}kg, chieu cao ${height}cm, muc tieu $goal.',
+      'Bat buoc dat mot ten lich cu the, khong dung ten chung chung.',
+      'Viet mo ta ngan cho lich va ghi ro gia dinh neu thieu thong tin.',
+      'Moi ngay phai co ten buoi/focus, warm-up, bai tap chinh, sets, reps, rest, ghi chu ky thuat ngan cho tung bai va cooldown/phuc hoi.',
+      'Uu tien Upper/Lower split neu phu hop.',
+      'Cuoi phan hoi hay hoi toi xac nhan truoc khi luu lich vao he thong.',
+    ].join(' ');
+
+    final reply = await sendAiCoachMessage(message: prompt);
 
     return {
       'data': {'aiResponse': reply},
@@ -1274,6 +1278,7 @@ class BackendApi {
 
   static Future<Map<String, dynamic>> completeWorkout({
     required String email,
+    String? sessionLogId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final planId =
@@ -1290,23 +1295,40 @@ class BackendApi {
       return {'success': true};
     }
 
-    String? logId;
+    String? logId = sessionLogId;
     Map<String, dynamic>? finishedLog;
-    try {
-      if (planId != null && sessionId != null) {
-        final started = await _post(
-          '/api/workout-session-logs/start',
-          body: {
-            'userId': userId,
-            'workoutPlanId': planId,
-            'planSessionId': sessionId,
-          },
-        );
-        logId = started is Map<String, dynamic>
-            ? _value<String>(started, 'id')
-            : null;
+
+    if (logId == null || logId.isEmpty) {
+      try {
+        if (planId != null && sessionId != null) {
+          final started = await _post(
+            '/api/workout-session-logs/start',
+            body: {
+              'userId': userId,
+              'workoutPlanId': planId,
+              'planSessionId': sessionId,
+            },
+          );
+          logId = started is Map<String, dynamic>
+              ? _value<String>(started, 'id')
+              : null;
+        }
+      } catch (_) {
+        try {
+          final active = await _get(
+            '/api/workout-session-logs/active/$userId',
+            auth: true,
+          );
+          logId = active is Map<String, dynamic>
+              ? _value<String>(active, 'id')
+              : null;
+        } catch (_) {
+          logId = null;
+        }
       }
-    } catch (_) {
+    }
+
+    if (logId == null || logId.isEmpty) {
       try {
         final active = await _get(
           '/api/workout-session-logs/active/$userId',
@@ -1328,6 +1350,27 @@ class BackendApi {
         );
         if (decoded is Map<String, dynamic>) {
           finishedLog = decoded;
+        }
+      } else if (planId != null && sessionId != null) {
+        final started = await _post(
+          '/api/workout-session-logs/start',
+          body: {
+            'userId': userId,
+            'workoutPlanId': planId,
+            'planSessionId': sessionId,
+          },
+        );
+        logId = started is Map<String, dynamic>
+            ? _value<String>(started, 'id')
+            : null;
+        if (logId != null && logId.isNotEmpty) {
+          final decoded = await _put(
+            '/api/workout-session-logs/$logId/finish',
+            auth: true,
+          );
+          if (decoded is Map<String, dynamic>) {
+            finishedLog = decoded;
+          }
         }
       }
     } catch (_) {
@@ -1355,7 +1398,32 @@ class BackendApi {
       'totalSets': _value<num>(finishedLog ?? {}, 'totalSets')?.toInt() ?? 0,
       'totalExpGained':
           _value<num>(finishedLog ?? {}, 'totalExpGained')?.toInt() ?? 0,
+      'muscleExpGains':
+          _value<List>(finishedLog ?? {}, 'muscleExpGains') ??
+          _value<List>(finishedLog ?? {}, 'MuscleExpGains') ??
+          const [],
     };
+  }
+
+  static Future<List<Map<String, dynamic>>> getUserMuscleProgress([
+    String? userId,
+  ]) async {
+    final resolvedUserId = userId ?? await currentUserId();
+    if (resolvedUserId == null || resolvedUserId.isEmpty) {
+      return <Map<String, dynamic>>[];
+    }
+
+    final decoded = await _get(
+      '/api/muscle-progress/user/${Uri.encodeComponent(resolvedUserId)}',
+      auth: true,
+    );
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
   }
 
   static Future<List<Map<String, dynamic>>> getWorkoutHistory({
@@ -1627,10 +1695,7 @@ class BackendApi {
     final exerciseMaps = await _exerciseDetailMaps();
     final todayPlan = _todaySessionFromPlans(plans, exerciseMaps);
     final nutrition = _nutritionFromCustomer(customer);
-    final muscleProgress = _muscleProgressFromData(
-      history: history,
-      exerciseMaps: exerciseMaps,
-    );
+    final muscleProgress = await getUserMuscleProgress(userId);
 
     return {
       'history': history,
@@ -1956,67 +2021,5 @@ class BackendApi {
       'protein': '${(weight * 1.8).round()}g',
       'water': '${(weight * 35 / 1000).toStringAsFixed(1)}L',
     };
-  }
-
-  static List<Map<String, dynamic>> _muscleProgressFromData({
-    required List<Map<String, dynamic>> history,
-    required Map<String, dynamic> exerciseMaps,
-  }) {
-    final expByMuscle = <String, int>{};
-
-    for (final log in history) {
-      final gains = _value<List>(log, 'muscleExpGains') ?? const [];
-      for (final rawGain in gains.whereType<Map>()) {
-        final gain = Map<String, dynamic>.from(rawGain);
-        final name = _value<String>(gain, 'muscleName');
-        if (name == null || name.isEmpty) continue;
-        expByMuscle[name] =
-            (expByMuscle[name] ?? 0) +
-            (_value<num>(gain, 'expGained')?.toInt() ?? 0);
-      }
-    }
-
-    if (expByMuscle.isEmpty) {
-      final primaryMuscleByExerciseId =
-          exerciseMaps['primaryMuscleByExerciseId'] as Map<String, String>;
-      final exerciseCounts = <String, int>{};
-      for (final log in history) {
-        final status = (_value<String>(log, 'status') ?? '').toUpperCase();
-        if (status != 'COMPLETED') continue;
-
-        final exercises = _value<List>(log, 'exercises') ?? const [];
-        for (final rawExercise in exercises.whereType<Map>()) {
-          final exercise = Map<String, dynamic>.from(rawExercise);
-          final exerciseId = _value<String>(exercise, 'exerciseId');
-          final muscle = exerciseId == null
-              ? null
-              : primaryMuscleByExerciseId[exerciseId];
-          if (muscle == null || muscle == 'Unknown') continue;
-          exerciseCounts[muscle] = (exerciseCounts[muscle] ?? 0) + 1;
-        }
-      }
-      exerciseCounts.forEach((muscle, count) {
-        expByMuscle[muscle] = count * 25;
-      });
-    }
-
-    final items =
-        expByMuscle.entries.map((entry) {
-          final exp = entry.value;
-          final level = (exp ~/ 100) + 1;
-          final progressXp = exp % 100;
-          return {
-            'name': entry.key,
-            'level': 'Lv $level',
-            'progress': progressXp / 100,
-            'xp': '$progressXp/100 XP',
-          };
-        }).toList()..sort((a, b) {
-          final axp = int.tryParse(a['xp'].toString().split('/').first) ?? 0;
-          final bxp = int.tryParse(b['xp'].toString().split('/').first) ?? 0;
-          return bxp.compareTo(axp);
-        });
-
-    return items;
   }
 }

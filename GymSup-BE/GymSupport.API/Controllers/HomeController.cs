@@ -1,4 +1,5 @@
 using GymSupport.Repository.Interfaces;
+using GymSupport.Repository.Models.DTOs.WorkoutPlan;
 using GymSupport.Repository.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,19 +17,22 @@ public class HomeController : ControllerBase
     private readonly ICustomerRepository _customerRepository;
     private readonly IExerciseRepository _exerciseRepository;
     private readonly IMuscleRepository _muscleRepository;
+    private readonly IUserMuscleProgressRepository _muscleProgressRepository;
 
     public HomeController(
         IWorkoutPlanRepository workoutPlanRepository,
         IWorkoutSessionLogRepository workoutSessionLogRepository,
         ICustomerRepository customerRepository,
         IExerciseRepository exerciseRepository,
-        IMuscleRepository muscleRepository)
+        IMuscleRepository muscleRepository,
+        IUserMuscleProgressRepository muscleProgressRepository)
     {
         _workoutPlanRepository = workoutPlanRepository;
         _workoutSessionLogRepository = workoutSessionLogRepository;
         _customerRepository = customerRepository;
         _exerciseRepository = exerciseRepository;
         _muscleRepository = muscleRepository;
+        _muscleProgressRepository = muscleProgressRepository;
     }
 
     [HttpGet("{userId}")]
@@ -51,7 +55,8 @@ public class HomeController : ControllerBase
 
         var todayPlan = BuildTodayPlan(plans, exercises, muscles);
         var nutrition = BuildNutrition(customer);
-        var muscleProgress = BuildMuscleProgress(history, exercises, muscles);
+        var userMuscleProgress = await _muscleProgressRepository.GetByUserIdAsync(userId);
+        var muscleProgress = BuildMuscleProgress(userMuscleProgress, muscles);
 
         return Ok(new
         {
@@ -233,63 +238,55 @@ public class HomeController : ControllerBase
         };
     }
 
-    private static List<object> BuildMuscleProgress(
-        List<WorkoutSessionLog> history,
-        List<Exercise> exercises,
+    private static List<MuscleProgressDto> BuildMuscleProgress(
+        List<UserMuscleProgress> progress,
         List<Muscle> muscles)
     {
-        var expByMuscle = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        const int expPerLevel = 100;
+        var progressByMuscle = progress.ToDictionary(x => x.MuscleId, x => x);
+        var averageExp = progress.Any() ? progress.Average(x => x.TotalExp) : 0;
 
-        foreach (var log in history)
-        {
-            foreach (var gain in log.MuscleExpGains)
+        return muscles
+            .Select(muscle =>
             {
-                if (string.IsNullOrWhiteSpace(gain.MuscleName))
-                    continue;
+                progressByMuscle.TryGetValue(muscle.Id, out var item);
+                var totalExp = item?.TotalExp ?? 0;
+                var level = Math.Max(1, totalExp / expPerLevel + 1);
+                var currentLevelExp = totalExp % expPerLevel;
 
-                expByMuscle[gain.MuscleName] = expByMuscle.GetValueOrDefault(gain.MuscleName) + gain.ExpGained;
-            }
-        }
-
-        if (!expByMuscle.Any())
-        {
-            var exerciseMap = exercises.ToDictionary(x => x.Id, x => x);
-            var muscleMap = muscles.ToDictionary(x => x.Id, x => x);
-
-            foreach (var log in history.Where(x => x.Status == "COMPLETED"))
-            {
-                foreach (var item in log.Exercises)
+                return new MuscleProgressDto
                 {
-                    if (!exerciseMap.TryGetValue(item.ExerciseId, out var exercise))
-                        continue;
-
-                    var impact = exercise.MuscleImpacts.FirstOrDefault();
-                    if (impact == null || !muscleMap.TryGetValue(impact.MuscleId, out var muscle))
-                        continue;
-
-                    var muscleName = string.IsNullOrWhiteSpace(muscle.Name) ? muscle.Category : muscle.Name;
-                    expByMuscle[muscleName] = expByMuscle.GetValueOrDefault(muscleName) + 25;
-                }
-            }
-        }
-
-        return expByMuscle
-            .OrderByDescending(x => x.Value)
-            .Select(x =>
-            {
-                var exp = x.Value;
-                var level = exp / 100 + 1;
-                var progressXp = exp % 100;
-
-                return new
-                {
-                    name = x.Key,
-                    level = $"Lv {level}",
-                    progress = progressXp / 100.0,
-                    xp = $"{progressXp}/100 XP"
-                } as object;
+                    MuscleId = muscle.Id,
+                    Name = string.IsNullOrWhiteSpace(muscle.Name)
+                        ? muscle.Category
+                        : muscle.Name,
+                    Category = muscle.Category ?? "",
+                    TotalExp = totalExp,
+                    Level = level,
+                    CurrentLevelExp = currentLevelExp,
+                    ExpToNextLevel = expPerLevel,
+                    Progress = currentLevelExp / (double)expPerLevel,
+                    Tier = ResolveTier(level),
+                    IsLagging = totalExp < Math.Max(expPerLevel, averageExp * 0.7)
+                };
             })
+            .OrderBy(x => x.TotalExp)
+            .ThenBy(x => x.Name)
             .ToList();
+    }
+
+    private static string ResolveTier(int level)
+    {
+        return level switch
+        {
+            >= 12 => "Champion",
+            >= 10 => "Diamond",
+            >= 8 => "Platinum",
+            >= 6 => "Gold",
+            >= 4 => "Silver",
+            >= 2 => "Bronze",
+            _ => "Iron"
+        };
     }
 
     private static int CalculateStreak(List<WorkoutSessionLog> history)

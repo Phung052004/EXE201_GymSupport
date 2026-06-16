@@ -11,6 +11,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
     final int totalSets = summary['totalSets'] ?? 0;
     final int totalExp = summary['totalExpGained'] ?? 0;
     final List exercises = summary['exercises'] ?? [];
+    final List muscleExpGains = summary['muscleExpGains'] ?? [];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -20,20 +21,31 @@ class WorkoutSummaryScreen extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 40),
-              const Icon(Icons.check_circle, color: Color(0xFF12E67F), size: 100),
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFF12E67F),
+                size: 100,
+              ),
               const SizedBox(height: 24),
               const Text(
                 'Workout Completed!',
-                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Great job pushing through your limits!',
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 16,
+                ),
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -51,43 +63,130 @@ class WorkoutSummaryScreen extends StatelessWidget {
                       children: [
                         _buildStat('SETS', totalSets.toString()),
                         _buildStat('EXP', '+$totalExp'),
-                        _buildStat('STATUS', 'COMPLETED', color: const Color(0xFF12E67F)),
+                        _buildStat(
+                          'STATUS',
+                          'COMPLETED',
+                          color: const Color(0xFF12E67F),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 32),
+              if (muscleExpGains.isNotEmpty) ...[
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Muscle EXP Gained',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...muscleExpGains.map((gain) {
+                  final item = gain is Map ? gain : {};
+                  final name = item['muscleName']?.toString() ?? 'Muscle';
+                  final exp = item['expGained']?.toString() ?? '0';
+                  final isLevelUp = item['isLevelUp'] == true;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isLevelUp
+                            ? AppColors.primary.withValues(alpha: 0.35)
+                            : Colors.white.withValues(alpha: 0.06),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isLevelUp ? Icons.workspace_premium : Icons.bolt,
+                          color: isLevelUp
+                              ? AppColors.primary
+                              : AppColors.secondary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '+$exp XP',
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 24),
+              ],
+
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Completed Exercises:', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'Completed Exercises:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
-              
-              ...exercises.map((ex) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
+
+              ...exercises.map(
+                (ex) => Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        ex['name'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${ex['sets']} sets',
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(ex['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text('${ex['sets']} sets', style: const TextStyle(color: Colors.white70)),
-                  ],
-                ),
-              )).toList(),
-              
+              ),
+
               const SizedBox(height: 40),
-              
+
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+                  onPressed: () =>
+                      Navigator.popUntil(context, (route) => route.isFirst),
                   child: const Text('Back Home'),
                 ),
               ),
@@ -96,7 +195,10 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 onPressed: () {
                   // Navigate to history
                 },
-                child: const Text('View History', style: TextStyle(color: AppColors.primary)),
+                child: const Text(
+                  'View History',
+                  style: TextStyle(color: AppColors.primary),
+                ),
               ),
             ],
           ),
@@ -111,8 +213,18 @@ class WorkoutSummaryScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white54, fontSize: 14),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -121,9 +233,23 @@ class WorkoutSummaryScreen extends StatelessWidget {
   Widget _buildStat(String label, String value, {Color? color}) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white38,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(color: color ?? Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+        Text(
+          value,
+          style: TextStyle(
+            color: color ?? Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ],
     );
   }

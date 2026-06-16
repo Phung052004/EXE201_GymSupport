@@ -84,6 +84,7 @@ public class WorkoutPlansController : ControllerBase
             UserId = dto.UserId,
             Name = dto.Name,
             Goal = dto.Goal,
+            Description = dto.Description,
             DaysPerWeek = dto.DaysPerWeek,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,

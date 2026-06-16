@@ -76,15 +76,41 @@ class _HomeScreenState extends State<HomeScreen> {
               ? progress.whereType<Map>().map((item) {
                   final data = Map<String, dynamic>.from(item);
                   return MuscleProgressData(
+                    id:
+                        data['muscleId']?.toString() ??
+                        data['id']?.toString() ??
+                        '',
                     name: data['name']?.toString() ?? 'Unknown',
-                    level: data['level']?.toString() ?? 'Lv 1',
+                    category: data['category']?.toString() ?? '',
+                    level:
+                        int.tryParse(
+                          data['level']
+                                  ?.toString()
+                                  .replaceAll('Lv', '')
+                                  .trim() ??
+                              '',
+                        ) ??
+                        1,
+                    totalExp:
+                        int.tryParse(data['totalExp']?.toString() ?? '') ?? 0,
+                    currentLevelExp:
+                        int.tryParse(
+                          data['currentLevelExp']?.toString() ?? '',
+                        ) ??
+                        _xpCurrent(data['xp']),
+                    expToNextLevel:
+                        int.tryParse(
+                          data['expToNextLevel']?.toString() ?? '',
+                        ) ??
+                        100,
                     progress: (data['progress'] is num)
                         ? (data['progress'] as num)
                               .toDouble()
                               .clamp(0.0, 1.0)
                               .toDouble()
                         : 0,
-                    xp: data['xp']?.toString() ?? '0/100 XP',
+                    tier: data['tier']?.toString() ?? 'Iron',
+                    isLagging: data['isLagging'] == true,
                   );
                 }).toList()
               : const [];
@@ -100,6 +126,11 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  int _xpCurrent(dynamic value) {
+    final raw = value?.toString() ?? '';
+    return int.tryParse(raw.split('/').first.trim()) ?? 0;
   }
 
   @override
@@ -191,18 +222,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
 
                 NutritionPlanCard(
-                  calories:
-                      _workout != null
-                          ? '${_workout!['nutrition']?['calories'] ?? '—'}'
-                          : '—',
-                  protein:
-                      _workout != null
-                          ? '${_workout!['nutrition']?['protein'] ?? '—'}'
-                          : '—',
-                  water:
-                      _workout != null
-                          ? '${_workout!['nutrition']?['water'] ?? '—'}'
-                          : '—',
+                  calories: _workout != null
+                      ? '${_workout!['nutrition']?['calories'] ?? '—'}'
+                      : '—',
+                  protein: _workout != null
+                      ? '${_workout!['nutrition']?['protein'] ?? '—'}'
+                      : '—',
+                  water: _workout != null
+                      ? '${_workout!['nutrition']?['water'] ?? '—'}'
+                      : '—',
                   bmi: widget.bmi,
                 ),
 
