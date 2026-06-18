@@ -25,10 +25,10 @@ class GoalOptionCard extends StatelessWidget {
           color: isSelected
               ? goal.color.withValues(alpha: 0.15)
               : AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? goal.color : Colors.transparent,
-            width: 2,
+            color: isSelected ? AppColors.primary : AppColors.outline,
+            width: 1.5,
           ),
         ),
         child: Row(
@@ -37,13 +37,13 @@ class GoalOptionCard extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? goal.color
-                    : Colors.white.withValues(alpha: 0.05),
+                    ? AppColors.primary
+                    : AppColors.surface2,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 goal.icon,
-                color: isSelected ? AppColors.textDark : Colors.white70,
+                color: AppColors.ink,
                 size: 24,
               ),
             ),
@@ -55,7 +55,7 @@ class GoalOptionCard extends StatelessWidget {
                   Text(
                     goal.title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
@@ -64,7 +64,7 @@ class GoalOptionCard extends StatelessWidget {
                   Text(
                     goal.subtitle,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: AppColors.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -73,7 +73,7 @@ class GoalOptionCard extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle, color: goal.color, size: 24),
+              const Icon(Icons.check_circle, color: AppColors.ink, size: 24),
           ],
         ),
       ),

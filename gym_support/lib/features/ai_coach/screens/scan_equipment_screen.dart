@@ -63,7 +63,8 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     if (file != null) {
       setState(() {
         _imagesByMode[_currentMode] = file;
-        _resultsByMode[_currentMode] = null; // Clear previous result for this mode
+        _resultsByMode[_currentMode] =
+            null; // Clear previous result for this mode
         _errorsByMode[_currentMode] = null;
       });
     }
@@ -72,7 +73,10 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
   Future<void> _analyzeImage() async {
     final image = _imagesByMode[_currentMode];
     if (image == null) {
-      setState(() => _errorsByMode[_currentMode] = 'Vui lòng chọn ảnh trước khi phân tích.');
+      setState(
+        () => _errorsByMode[_currentMode] =
+            'Vui lòng chọn ảnh trước khi phân tích.',
+      );
       return;
     }
 
@@ -95,7 +99,8 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorsByMode[_currentMode] = 'Không thể phân tích ảnh. Vui lòng thử lại.';
+        _errorsByMode[_currentMode] =
+            'Không thể phân tích ảnh. Vui lòng thử lại.';
       });
     } finally {
       if (mounted) {
@@ -109,7 +114,10 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('AI Analysis', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'AI Analysis',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -172,13 +180,16 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     String guide = '';
     switch (_currentMode) {
       case 'body_check':
-        guide = 'Chụp ảnh toàn thân hoặc nửa thân rõ ràng, đủ sáng. Kết quả chỉ mang tính tham khảo, không phải chẩn đoán y tế.';
+        guide =
+            'Chụp ảnh toàn thân hoặc nửa thân rõ ràng, đủ sáng. Kết quả chỉ mang tính tham khảo, không phải chẩn đoán y tế.';
         break;
       case 'form_check':
-        guide = 'Chụp rõ toàn bộ động tác, tốt nhất từ bên hông hoặc góc 45 độ. Nếu đang đau, hãy dừng tập và hỏi chuyên gia.';
+        guide =
+            'Chụp rõ toàn bộ động tác, tốt nhất từ bên hông hoặc góc 45 độ. Nếu đang đau, hãy dừng tập và hỏi chuyên gia.';
         break;
       case 'equipment_info':
-        guide = 'Chụp rõ máy tập hoặc dụng cụ, tránh ảnh quá gần làm mất toàn cảnh máy.';
+        guide =
+            'Chụp rõ máy tập hoặc dụng cụ, tránh ảnh quá gần làm mất toàn cảnh máy.';
         break;
     }
     return Container(
@@ -195,7 +206,12 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
           Expanded(
             child: Text(
               guide,
-              style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -212,22 +228,41 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: AppColors.outline),
           boxShadow: [
-            if (image != null) BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
+            if (image != null)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
           ],
         ),
         child: image != null
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Image.file(File(image.path), fit: BoxFit.cover, width: double.infinity),
+                child: Image.file(
+                  File(image.path),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
               )
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_a_photo_outlined, size: 48, color: Colors.white.withOpacity(0.2)),
+                  const Icon(
+                    Icons.add_a_photo_outlined,
+                    size: 48,
+                    color: AppColors.primaryDark,
+                  ),
                   const SizedBox(height: 12),
-                  Text('Bấm để chọn ảnh', style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14)),
+                  Text(
+                    'Bấm để chọn ảnh',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.4),
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -238,14 +273,19 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.white),
-              title: const Text('Máy ảnh', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Máy ảnh',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickImage(ImageSource.camera);
@@ -253,7 +293,10 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: Colors.white),
-              title: const Text('Thư viện', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Thư viện',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickImage(ImageSource.gallery);
@@ -279,12 +322,24 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.textDark,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              icon: isLoading 
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textDark))
-                : const Icon(Icons.auto_awesome, size: 20),
-              label: Text(isLoading ? 'Đang phân tích...' : 'Bắt đầu Analyze', style: const TextStyle(fontWeight: FontWeight.bold)),
+              icon: isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.textDark,
+                      ),
+                    )
+                  : const Icon(Icons.auto_awesome, size: 20),
+              label: Text(
+                isLoading ? 'Đang phân tích...' : 'Bắt đầu Analyze',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         if (hasImage && !isLoading) ...[
@@ -311,7 +366,10 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
 
     if (error != null) {
       return Center(
-        child: Text(error, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+        child: Text(
+          error,
+          style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+        ),
       );
     }
 
@@ -334,9 +392,18 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
   Widget _buildEmptyState() {
     String msg = '';
     switch (_currentMode) {
-      case 'body_check': msg = 'Bạn chưa phân tích vóc dáng.\nHãy chọn ảnh cơ thể rõ ràng rồi bấm Analyze.'; break;
-      case 'form_check': msg = 'Bạn chưa kiểm tra form tập.\nHãy chọn ảnh tư thế tập luyện rồi bấm Analyze.'; break;
-      case 'equipment_info': msg = 'Bạn chưa phân tích máy tập.\nHãy chọn ảnh máy tập hoặc dụng cụ rồi bấm Analyze.'; break;
+      case 'body_check':
+        msg =
+            'Bạn chưa phân tích vóc dáng.\nHãy chọn ảnh cơ thể rõ ràng rồi bấm Analyze.';
+        break;
+      case 'form_check':
+        msg =
+            'Bạn chưa kiểm tra form tập.\nHãy chọn ảnh tư thế tập luyện rồi bấm Analyze.';
+        break;
+      case 'equipment_info':
+        msg =
+            'Bạn chưa phân tích máy tập.\nHãy chọn ảnh máy tập hoặc dụng cụ rồi bấm Analyze.';
+        break;
     }
     return Center(
       child: Padding(
@@ -344,7 +411,11 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
         child: Text(
           msg,
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13, height: 1.5),
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            height: 1.5,
+          ),
         ),
       ),
     );
@@ -354,12 +425,38 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     return Column(
       children: [
         _buildSummaryCard(data),
-        _buildListSection('Nhận xét vóc dáng', data['bodyObservations'], Icons.visibility_outlined),
-        _buildListSection('Nhóm cơ nên ưu tiên', data['priorityMuscles'], Icons.star_outline, isPrimary: true),
-        _buildListSection('Nhóm cơ liên quan', data['muscles'], Icons.fitness_center),
-        _buildListSection('Bài tập gợi ý', data['suggestedExercises'], Icons.directions_run),
-        _buildListSection('Lời khuyên tập luyện', data['trainingAdvice'], Icons.lightbulb_outline),
-        _buildListSection('Cảnh báo', data['warnings'], Icons.warning_amber_rounded, color: Colors.orangeAccent),
+        _buildListSection(
+          'Nhận xét vóc dáng',
+          data['bodyObservations'],
+          Icons.visibility_outlined,
+        ),
+        _buildListSection(
+          'Nhóm cơ nên ưu tiên',
+          data['priorityMuscles'],
+          Icons.star_outline,
+          isPrimary: true,
+        ),
+        _buildListSection(
+          'Nhóm cơ liên quan',
+          data['muscles'],
+          Icons.fitness_center,
+        ),
+        _buildListSection(
+          'Bài tập gợi ý',
+          data['suggestedExercises'],
+          Icons.directions_run,
+        ),
+        _buildListSection(
+          'Lời khuyên tập luyện',
+          data['trainingAdvice'],
+          Icons.lightbulb_outline,
+        ),
+        _buildListSection(
+          'Cảnh báo',
+          data['warnings'],
+          Icons.warning_amber_rounded,
+          color: Colors.orangeAccent,
+        ),
         const SizedBox(height: 20),
         _buildSendToChatButton(data),
       ],
@@ -370,12 +467,34 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     return Column(
       children: [
         _buildSummaryCard(data),
-        _buildListSection('Vật thể phát hiện', data['detectedItems'], Icons.search),
-        _buildListSection('Nhận xét tư thế', data['bodyObservations'], Icons.accessibility_new),
-        _buildListSection('Feedback về form', data['formFeedback'], Icons.check_circle_outline, color: AppColors.primary),
+        _buildListSection(
+          'Vật thể phát hiện',
+          data['detectedItems'],
+          Icons.search,
+        ),
+        _buildListSection(
+          'Nhận xét tư thế',
+          data['bodyObservations'],
+          Icons.accessibility_new,
+        ),
+        _buildListSection(
+          'Feedback về form',
+          data['formFeedback'],
+          Icons.check_circle_outline,
+          color: AppColors.primary,
+        ),
         _buildListSection('Cơ tham gia', data['muscles'], Icons.fitness_center),
-        _buildListSection('Lời khuyên kỹ thuật', data['trainingAdvice'], Icons.build_circle_outlined),
-        _buildListSection('Cảnh báo an toàn', data['warnings'], Icons.security, color: Colors.redAccent),
+        _buildListSection(
+          'Lời khuyên kỹ thuật',
+          data['trainingAdvice'],
+          Icons.build_circle_outlined,
+        ),
+        _buildListSection(
+          'Cảnh báo an toàn',
+          data['warnings'],
+          Icons.security,
+          color: Colors.redAccent,
+        ),
         const SizedBox(height: 20),
         _buildSendToChatButton(data),
       ],
@@ -386,11 +505,33 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     return Column(
       children: [
         _buildSummaryCard(data),
-        _buildListSection('Vật thể phát hiện', data['detectedItems'], Icons.category_outlined),
-        _buildListSection('Nhóm cơ tác động', data['muscles'], Icons.bolt, isPrimary: true),
-        _buildListSection('Bài tập thực hiện', data['suggestedExercises'], Icons.play_circle_outline),
-        _buildListSection('Cách dùng / Lời khuyên', data['trainingAdvice'], Icons.help_outline),
-        _buildListSection('Cảnh báo an toàn', data['warnings'], Icons.warning_amber_rounded, color: Colors.orangeAccent),
+        _buildListSection(
+          'Vật thể phát hiện',
+          data['detectedItems'],
+          Icons.category_outlined,
+        ),
+        _buildListSection(
+          'Nhóm cơ tác động',
+          data['muscles'],
+          Icons.bolt,
+          isPrimary: true,
+        ),
+        _buildListSection(
+          'Bài tập thực hiện',
+          data['suggestedExercises'],
+          Icons.play_circle_outline,
+        ),
+        _buildListSection(
+          'Cách dùng / Lời khuyên',
+          data['trainingAdvice'],
+          Icons.help_outline,
+        ),
+        _buildListSection(
+          'Cảnh báo an toàn',
+          data['warnings'],
+          Icons.warning_amber_rounded,
+          color: Colors.orangeAccent,
+        ),
         const SizedBox(height: 20),
         _buildSendToChatButton(data),
       ],
@@ -411,21 +552,43 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title.toUpperCase(), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 16)),
+          Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
+          ),
           if (summary.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(summary, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.5)),
+            Text(
+              summary,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildListSection(String title, dynamic list, IconData icon, {bool isPrimary = false, Color? color}) {
-    if (list == null || (list is List && list.isEmpty)) return const SizedBox.shrink();
-    
+  Widget _buildListSection(
+    String title,
+    dynamic list,
+    IconData icon, {
+    bool isPrimary = false,
+    Color? color,
+  }) {
+    if (list == null || (list is List && list.isEmpty))
+      return const SizedBox.shrink();
+
     final items = list is List ? list : [list];
-    final themeColor = color ?? (isPrimary ? AppColors.primary : Colors.white70);
+    final themeColor =
+        color ?? (isPrimary ? AppColors.primaryDark : AppColors.textPrimary);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -442,20 +605,40 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
             children: [
               Icon(icon, color: themeColor, size: 18),
               const SizedBox(width: 10),
-              Text(title, style: TextStyle(color: themeColor, fontWeight: FontWeight.w900, fontSize: 13)),
+              Text(
+                title,
+                style: TextStyle(
+                  color: themeColor,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          ...items.map((item) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('• ', style: TextStyle(color: Colors.white24)),
-                Expanded(child: Text(item.toString(), style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4))),
-              ],
-            ),
-          )).toList(),
+          ...items
+              .map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('• ', style: TextStyle(color: Colors.white24)),
+                      Expanded(
+                        child: Text(
+                          item.toString(),
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
         ],
       ),
     );
@@ -475,10 +658,15 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: AppColors.primary),
           foregroundColor: AppColors.primary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
         icon: const Icon(Icons.chat_bubble_outline, size: 18),
-        label: const Text('Gửi vào Chat AI', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Gửi vào Chat AI',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -493,12 +681,12 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     buffer.writeln('[$prefix]');
     buffer.writeln('Title: ${data['title'] ?? 'N/A'}');
     buffer.writeln('Summary: ${data['summary'] ?? ''}');
-    
+
     // Add a few highlights based on mode
     if (_currentMode == 'form_check' && data['formFeedback'] != null) {
       buffer.writeln('Feedback: ${data['formFeedback']}');
     }
-    
+
     return buffer.toString().trim();
   }
 }
@@ -507,7 +695,11 @@ class _ModeTab extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
-  const _ModeTab({required this.label, required this.isActive, required this.onTap});
+  const _ModeTab({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -517,11 +709,18 @@ class _ModeTab extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(color: isActive ? AppColors.primary : Colors.transparent, borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: TextStyle(color: isActive ? AppColors.textDark : Colors.white60, fontWeight: FontWeight.w900, fontSize: 12),
+            style: TextStyle(
+              color: isActive ? AppColors.textDark : AppColors.textSecondary,
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+            ),
           ),
         ),
       ),

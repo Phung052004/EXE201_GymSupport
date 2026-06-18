@@ -5,6 +5,11 @@ import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/models/workout_models.dart';
 import 'workout_summary_screen.dart';
 
+const _figmaLime = Color(0xFFB7FF2A);
+const _figmaInk = Color(0xFF172027);
+const _figmaPaper = Color(0xFFF7F7F8);
+const _figmaMuted = Color(0xFF777C80);
+
 class WorkoutSessionScreen extends StatefulWidget {
   final String logId;
   final String planName;
@@ -41,6 +46,8 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   final Map<String, List<TextEditingController>> _weightControllers = {};
 
   bool _isSaving = false;
+  final Set<String> _savingSets = {};
+  int _selectedExerciseIndex = 0;
 
   @override
   void initState() {
@@ -115,14 +122,23 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   }
 
   Future<void> _doneSet(WorkoutExercise ex, int setIndex) async {
+    final saveKey = '${ex.exerciseId}:$setIndex';
+    if (_savingSets.contains(saveKey)) return;
+
     final repsText = _repsControllers[ex.exerciseId]![setIndex].text;
     final weightText = _weightControllers[ex.exerciseId]![setIndex].text;
 
     final reps = int.tryParse(repsText) ?? 0;
     final weight = double.tryParse(weightText) ?? 0.0;
+    if (reps <= 0 || weight < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nhập số reps hợp lệ trước khi lưu set.')),
+      );
+      return;
+    }
 
     setState(() {
-      _completedSets[ex.exerciseId]![setIndex] = true;
+      _savingSets.add(saveKey);
     });
 
     try {
@@ -133,12 +149,38 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         reps: reps,
         weight: weight,
       );
+      if (mounted) {
+        setState(() {
+          _completedSets[ex.exerciseId]![setIndex] = true;
+        });
+      }
     } catch (e) {
       debugPrint('Error saving set: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Không thể lưu set: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _savingSets.remove(saveKey));
+      }
     }
   }
 
   Future<void> _finishWorkout() async {
+    if (_savingSets.isNotEmpty) return;
+    final completedSetCount = _completedSets.values.fold<int>(
+      0,
+      (sum, sets) => sum + sets.where((done) => done).length,
+    );
+    if (completedSetCount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hoàn thành ít nhất một set trước nhé.')),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
       final result = await BackendApi.completeWorkout(
@@ -185,20 +227,26 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _figmaPaper,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.expand_more, color: Colors.white70),
+          icon: const Icon(Icons.arrow_back_ios_new, color: _figmaInk),
           onPressed: () => Navigator.pop(context),
         ),
-        backgroundColor: Colors.transparent,
+        foregroundColor: _figmaInk,
+        backgroundColor: _figmaPaper,
         elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Workout Session',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        ),
         actions: [
           Container(
             margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: _figmaInk,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -220,15 +268,186 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       ),
       body: Column(
         children: [
+          _buildSessionOverview(),
+          if (widget.exercises.length > 1) _buildExerciseTabs(),
           Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.zero,
-              itemCount: widget.exercises.length,
-              itemBuilder: (context, index) =>
-                  _buildExerciseBlock(widget.exercises[index]),
-            ),
+            child: widget.exercises.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No exercises in this session.',
+                      style: TextStyle(color: _figmaMuted),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    key: ValueKey(_selectedExerciseIndex),
+                    padding: const EdgeInsets.only(top: 4),
+                    child: _buildExerciseBlock(
+                      widget.exercises[_selectedExerciseIndex],
+                    ),
+                  ),
           ),
           _buildBottomBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExerciseTabs() {
+    return SizedBox(
+      height: 50,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        scrollDirection: Axis.horizontal,
+        itemCount: widget.exercises.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final exercise = widget.exercises[index];
+          final selected = _selectedExerciseIndex == index;
+          final sets = _completedSets[exercise.exerciseId] ?? const <bool>[];
+          final done = sets.isNotEmpty && sets.every((value) => value);
+
+          return InkWell(
+            onTap: () => setState(() => _selectedExerciseIndex = index),
+            borderRadius: BorderRadius.circular(18),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              constraints: const BoxConstraints(minWidth: 112),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: selected ? _figmaInk : Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: selected ? _figmaInk : AppColors.outline,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: done ? _figmaLime : AppColors.surface2,
+                      shape: BoxShape.circle,
+                    ),
+                    child: done
+                        ? const Icon(Icons.check, size: 14, color: _figmaInk)
+                        : Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: _figmaInk,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 130),
+                    child: Text(
+                      exercise.exerciseName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: selected ? Colors.white : _figmaInk,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSessionOverview() {
+    final totalSets = _completedSets.values.fold<int>(
+      0,
+      (sum, sets) => sum + sets.length,
+    );
+    final completedSets = _completedSets.values.fold<int>(
+      0,
+      (sum, sets) => sum + sets.where((done) => done).length,
+    );
+    final progress = totalSets == 0 ? 0.0 : completedSets / totalSets;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _figmaInk,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.planName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      [
+                        widget.dayName,
+                        widget.focus,
+                      ].where((value) => value.trim().isNotEmpty).join('  •  '),
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: _figmaLime,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$completedSets/$totalSets sets',
+                  style: const TextStyle(
+                    color: _figmaInk,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 7,
+              backgroundColor: Colors.white.withValues(alpha: 0.07),
+              valueColor: const AlwaysStoppedAnimation(_figmaLime),
+            ),
+          ),
         ],
       ),
     );
@@ -238,81 +457,60 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Exercise Image Section
         Container(
-          height: 250,
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: NetworkImage(
-                'https://via.placeholder.com/400x300',
-              ), // Replace with actual exercise image if available
-              fit: BoxFit.cover,
+          margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [_figmaInk, const Color(0xFF2E383F)],
             ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: _figmaLime.withValues(alpha: 0.55)),
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.3),
-                  Colors.transparent,
-                  Colors.black,
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Thumbnails
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: SizedBox(
-            height: 60,
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: 5,
-              itemBuilder: (context, i) => Container(
-                width: 60,
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: i == 2
-                      ? Border.all(color: AppColors.primary, width: 2)
-                      : null,
-                  image: const DecorationImage(
-                    image: NetworkImage('https://via.placeholder.com/60'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Text(
-                  ex.exerciseName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: _figmaLime,
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: const Icon(
+                  Icons.fitness_center_rounded,
+                  color: _figmaInk,
                 ),
               ),
-              const Icon(Icons.more_horiz, color: Colors.white70),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ex.exerciseName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${ex.sets} sets  •  ${ex.reps} reps  •  ${ex.restTime}s rest',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         _buildAiFeedbackBox(),
 
         const SizedBox(height: 24),
@@ -320,14 +518,8 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
 
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Divider(color: Colors.white10),
+          child: Divider(color: Colors.black12),
         ),
-
-        _buildSectionHeader('WARMUP'),
-        ...List.generate(
-          1,
-          (i) => _buildSetRow(ex, i, isWarmup: true),
-        ), // Sample 1 warmup set
 
         _buildSectionHeader('SETS'),
         ...List.generate(
@@ -345,17 +537,17 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface2,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+        border: Border.all(color: _figmaLime),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'ADJUSTED FOR TODAY',
+            'TRAINING TIP',
             style: TextStyle(
-              color: AppColors.primary,
+              color: _figmaInk,
               fontSize: 10,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.1,
@@ -363,8 +555,8 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           ),
           SizedBox(height: 8),
           Text(
-            "You reported moderate energy, so I've eased weights slightly. Hit your reps clean at 95.0kg and you're right on track.",
-            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+            'Ưu tiên kỹ thuật chuẩn. Ghi reps và mức tạ thực tế, sau đó chạm dấu ✓ để lưu set và nhận Muscle XP.',
+            style: TextStyle(color: _figmaMuted, fontSize: 13, height: 1.4),
           ),
         ],
       ),
@@ -381,7 +573,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
             child: Text(
               'SET',
               style: TextStyle(
-                color: Colors.white38,
+                color: _figmaMuted,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
@@ -392,7 +584,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
             child: Text(
               'PREV',
               style: TextStyle(
-                color: Colors.white38,
+                color: _figmaMuted,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
@@ -403,7 +595,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
               child: Text(
                 'KG',
                 style: TextStyle(
-                  color: Colors.white38,
+                  color: _figmaMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
@@ -415,7 +607,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
               child: Text(
                 'REPS',
                 style: TextStyle(
-                  color: Colors.white38,
+                  color: _figmaMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
@@ -433,17 +625,17 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          const Expanded(child: Divider(color: Colors.white10, endIndent: 10)),
+          const Expanded(child: Divider(color: Colors.black12, endIndent: 10)),
           Text(
             title,
             style: const TextStyle(
-              color: Colors.white24,
+              color: _figmaMuted,
               fontSize: 10,
               fontWeight: FontWeight.bold,
               letterSpacing: 2,
             ),
           ),
-          const Expanded(child: Divider(color: Colors.white10, indent: 10)),
+          const Expanded(child: Divider(color: Colors.black12, indent: 10)),
         ],
       ),
     );
@@ -459,6 +651,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
 
     final displayIndex = isWarmup ? 'W${setIndex + 1}' : '${setIndex + 1}';
     final isDone = !isWarmup && _completedSets[ex.exerciseId]![setIndex];
+    final isSavingSet = _savingSets.contains('${ex.exerciseId}:$setIndex');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -469,7 +662,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
             child: Text(
               displayIndex,
               style: const TextStyle(
-                color: Colors.white70,
+                color: _figmaInk,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -478,7 +671,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
             width: 80,
             child: Text(
               '25,0 kgx10',
-              style: TextStyle(color: Colors.white38, fontSize: 12),
+              style: TextStyle(color: _figmaMuted, fontSize: 12),
             ),
           ),
 
@@ -506,18 +699,24 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           SizedBox(
             width: 50,
             child: IconButton(
-              onPressed: isDone || isWarmup
+              onPressed: isDone || isWarmup || isSavingSet
                   ? null
                   : () => _doneSet(ex, setIndex),
-              icon: Icon(
-                isDone || isWarmup
-                    ? Icons.check_circle
-                    : Icons.check_circle_outline,
-                color: isDone || isWarmup
-                    ? (isWarmup ? Colors.white12 : AppColors.primary)
-                    : Colors.white12,
-                size: 28,
-              ),
+              icon: isSavingSet
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      isDone || isWarmup
+                          ? Icons.check_circle
+                          : Icons.check_circle_outline,
+                      color: isDone || isWarmup
+                          ? (isWarmup ? Colors.black12 : _figmaInk)
+                          : Colors.black26,
+                      size: 28,
+                    ),
             ),
           ),
         ],
@@ -535,21 +734,17 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       height: 40,
       decoration: BoxDecoration(
         color: highlight
-            ? AppColors.primary.withValues(alpha: 0.12)
-            : (isReadOnly
-                  ? Colors.transparent
-                  : Colors.white.withValues(alpha: 0.05)),
+            ? _figmaLime.withValues(alpha: 0.45)
+            : (isReadOnly ? Colors.transparent : const Color(0xFFEEEEF0)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: TextField(
         controller: controller,
         enabled: !isReadOnly,
-        keyboardType: TextInputType.number,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: highlight
-              ? AppColors.primary
-              : (isReadOnly ? Colors.white60 : AppColors.accent),
+          color: highlight ? _figmaInk : (isReadOnly ? _figmaMuted : _figmaInk),
           fontSize: 14,
           fontWeight: FontWeight.bold,
         ),
@@ -558,7 +753,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
           suffixText: suffix,
-          suffixStyle: const TextStyle(fontSize: 9, color: Colors.white38),
+          suffixStyle: const TextStyle(fontSize: 9, color: _figmaMuted),
         ),
       ),
     );
@@ -568,14 +763,21 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: Colors.white10)),
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.black12)),
       ),
       child: Row(
         children: [
           Expanded(
             child: OutlinedButton(
               onPressed: () => Navigator.pop(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _figmaInk,
+                side: const BorderSide(color: _figmaInk),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
               child: const Text('Cancel'),
             ),
           ),
@@ -583,7 +785,16 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: _isSaving ? null : _finishWorkout,
+              onPressed: _isSaving || _savingSets.isNotEmpty
+                  ? null
+                  : _finishWorkout,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _figmaLime,
+                foregroundColor: _figmaInk,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
               child: _isSaving
                   ? const SizedBox(
                       height: 20,

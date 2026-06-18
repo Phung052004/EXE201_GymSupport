@@ -67,12 +67,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           title: const Text(
             'Đăng xuất?',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w900),
           ),
           content: Text(
             'Bạn có chắc muốn đăng xuất khỏi GymSupport không?',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.62),
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.w600,
               height: 1.4,
             ),
@@ -85,7 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Text(
                 'Hủy',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.65),
+                  color: AppColors.textSecondary,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -220,7 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text(
               'SETTINGS & PREFERENCES',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.32),
+                color: AppColors.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.8,
@@ -360,7 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Text(
                     'Chỉnh sửa chỉ số cơ thể',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
@@ -531,7 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Text(
                 'Chỉnh sửa Goals',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
@@ -540,14 +540,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               TextField(
                 controller: controller,
                 maxLines: 3,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Ví dụ: Tăng cơ, Giảm mỡ, Cải thiện sức bền',
                   hintStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: AppColors.textSecondary,
                   ),
                   filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.04),
+                  fillColor: AppColors.surface2,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
@@ -641,7 +641,7 @@ class ProfileTopBar extends StatelessWidget {
           child: Text(
             'Profile',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 28,
               fontWeight: FontWeight.w900,
             ),
@@ -651,7 +651,7 @@ class ProfileTopBar extends StatelessWidget {
           onTap: onSettingsTap,
           child: Icon(
             Icons.settings,
-            color: Colors.white.withValues(alpha: 0.55),
+            color: AppColors.textSecondary,
             size: 23,
           ),
         ),
@@ -683,7 +683,7 @@ class ProfileInfoSheet extends StatelessWidget {
             width: 46,
             height: 5,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: AppColors.outline,
               borderRadius: BorderRadius.circular(99),
             ),
           ),
@@ -693,7 +693,7 @@ class ProfileInfoSheet extends StatelessWidget {
             child: Text(
               title,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 21,
                 fontWeight: FontWeight.w900,
               ),
@@ -741,7 +741,7 @@ class InfoRow extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.42),
+                color: AppColors.textSecondary,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -756,7 +756,7 @@ class InfoRow extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w900,
               ),
@@ -787,14 +787,14 @@ class _MetricField extends StatelessWidget {
       controller: controller,
       keyboardType: TextInputType.number,
       onChanged: onChanged,
-      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+      style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800),
       decoration: InputDecoration(
         labelText: label,
         suffixText: suffix,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-        suffixStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        suffixStyle: const TextStyle(color: AppColors.textSecondary),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.04),
+        fillColor: AppColors.surface2,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,

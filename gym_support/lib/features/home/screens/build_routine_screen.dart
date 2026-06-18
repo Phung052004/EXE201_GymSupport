@@ -25,14 +25,21 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
   final TextEditingController _goalController = TextEditingController();
   final TextEditingController _levelController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
-  
+
   int _daysPerWeek = 3;
+  int _selectedDayIndex = 0;
   final List<WorkoutDayData> _dayDataList = [];
 
   bool _isSaving = false;
 
   final List<String> _weekdays = [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
   ];
 
   @override
@@ -48,14 +55,19 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
     setState(() {
       if (_dayDataList.length < _daysPerWeek) {
         for (int i = _dayDataList.length; i < _daysPerWeek; i++) {
-          _dayDataList.add(WorkoutDayData(
-            dayNumber: i + 1,
-            weekday: _weekdays[i % 7],
-            dayName: 'Workout Day ${i + 1}',
-          ));
+          _dayDataList.add(
+            WorkoutDayData(
+              dayNumber: i + 1,
+              weekday: _weekdays[i % 7],
+              dayName: 'Workout Day ${i + 1}',
+            ),
+          );
         }
       } else if (_dayDataList.length > _daysPerWeek) {
         _dayDataList.removeRange(_daysPerWeek, _dayDataList.length);
+      }
+      if (_selectedDayIndex >= _dayDataList.length) {
+        _selectedDayIndex = _dayDataList.length - 1;
       }
     });
   }
@@ -84,7 +96,7 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
       _showError('Please enter routine name');
       return;
     }
-    
+
     for (int i = 0; i < _dayDataList.length; i++) {
       final day = _dayDataList[i];
       if (day.dayName.trim().isEmpty) {
@@ -110,22 +122,30 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
         "name": name,
         "goal": _goalController.text.trim(),
         "daysPerWeek": _daysPerWeek,
-        "sessions": _dayDataList.map((day) => {
-          "dayOfWeek": day.weekday,
-          "focus": day.dayName.isEmpty ? "Workout Session" : day.dayName,
-          "exercises": day.exercises.map((ex) => {
-            "exerciseId": ex.exerciseId,
-            "exerciseName": ex.exerciseName,
-            "sets": ex.sets,
-            "reps": ex.reps,
-            "notes": ex.note
-          }).toList()
-        }).toList()
+        "sessions": _dayDataList
+            .map(
+              (day) => {
+                "dayOfWeek": day.weekday,
+                "focus": day.dayName.isEmpty ? "Workout Session" : day.dayName,
+                "exercises": day.exercises
+                    .map(
+                      (ex) => {
+                        "exerciseId": ex.exerciseId,
+                        "exerciseName": ex.exerciseName,
+                        "sets": ex.sets,
+                        "reps": ex.reps,
+                        "notes": ex.note,
+                      },
+                    )
+                    .toList(),
+              },
+            )
+            .toList(),
       };
 
       await BackendApi.createRoutineWithSessions(payload);
       if (!mounted) return;
-      
+
       if (widget.onRoutineSaved != null) {
         await widget.onRoutineSaved!();
       } else {
@@ -139,7 +159,9 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.redAccent));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+    );
   }
 
   @override
@@ -147,7 +169,13 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Build Routine', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Build Routine',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -162,12 +190,42 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
                 children: [
                   _buildMainInfoCard(),
                   const SizedBox(height: 32),
-                  const Text(
-                    'WORKOUT DAYS',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'WORKOUT DAYS',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      Text(
+                        '${_selectedDayIndex + 1}/$_daysPerWeek',
+                        style: const TextStyle(
+                          color: AppColors.primaryDark,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
+                  _buildDayTabs(),
                   const SizedBox(height: 16),
-                  ..._dayDataList.asMap().entries.map((entry) => _buildDayCard(entry.key, entry.value)).toList(),
+                  if (_dayDataList.isNotEmpty)
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 240),
+                      child: KeyedSubtree(
+                        key: ValueKey(_selectedDayIndex),
+                        child: _buildDayCard(
+                          _selectedDayIndex,
+                          _dayDataList[_selectedDayIndex],
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -190,13 +248,29 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTextFieldModern('ROUTINE NAME', _nameController, Icons.edit_note_rounded),
+          _buildTextFieldModern(
+            'ROUTINE NAME',
+            _nameController,
+            Icons.edit_note_rounded,
+          ),
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildTextFieldModern('GOAL', _goalController, Icons.flag_rounded)),
+              Expanded(
+                child: _buildTextFieldModern(
+                  'GOAL',
+                  _goalController,
+                  Icons.flag_rounded,
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: _buildTextFieldModern('LEVEL', _levelController, Icons.bolt_rounded)),
+              Expanded(
+                child: _buildTextFieldModern(
+                  'LEVEL',
+                  _levelController,
+                  Icons.bolt_rounded,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -206,11 +280,104 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
     );
   }
 
-  Widget _buildTextFieldModern(String label, TextEditingController controller, IconData icon) {
+  Widget _buildDayTabs() {
+    return SizedBox(
+      height: 72,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _dayDataList.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final selected = index == _selectedDayIndex;
+          final day = _dayDataList[index];
+          return InkWell(
+            onTap: () => setState(() => _selectedDayIndex = index),
+            borderRadius: BorderRadius.circular(18),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 86,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.ink : AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: selected ? AppColors.ink : AppColors.outline,
+                ),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.ink.withValues(alpha: .18),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'DAY ${index + 1}',
+                    style: TextStyle(
+                      color: selected
+                          ? AppColors.primary
+                          : AppColors.primaryDark,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const Spacer(),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          day.weekday.substring(0, 3),
+                          style: TextStyle(
+                            color: selected
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (day.exercises.isNotEmpty)
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTextFieldModern(
+    String label,
+    TextEditingController controller,
+    IconData icon,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -221,7 +388,11 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
           ),
           child: TextField(
             controller: controller,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
             decoration: InputDecoration(
               border: InputBorder.none,
               icon: Icon(icon, color: AppColors.primary, size: 20),
@@ -236,7 +407,15 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('DAYS PER WEEK', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        const Text(
+          'DAYS PER WEEK',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -247,7 +426,11 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 18),
+              const Icon(
+                Icons.calendar_today_rounded,
+                color: AppColors.primary,
+                size: 18,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonHideUnderline(
@@ -255,10 +438,21 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
                     value: _daysPerWeek,
                     dropdownColor: AppColors.surface2,
                     isExpanded: true,
-                    items: List.generate(7, (i) => i + 1).map((d) => DropdownMenuItem(
-                      value: d,
-                      child: Text('$d Days', style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-                    )).toList(),
+                    items: List.generate(7, (i) => i + 1)
+                        .map(
+                          (d) => DropdownMenuItem(
+                            value: d,
+                            child: Text(
+                              '$d Days',
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
                     onChanged: (val) {
                       if (val != null) {
                         setState(() => _daysPerWeek = val);
@@ -291,21 +485,42 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('DAY ${index + 1}', style: const TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w900)),
+                child: Text(
+                  'DAY ${index + 1}',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
               DropdownButton<String>(
                 value: day.weekday,
                 dropdownColor: AppColors.surface2,
                 underline: const SizedBox(),
-                items: _weekdays.map((w) => DropdownMenuItem(
-                  value: w,
-                  child: Text(w, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
-                )).toList(),
+                items: _weekdays
+                    .map(
+                      (w) => DropdownMenuItem(
+                        value: w,
+                        child: Text(
+                          w,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (v) => setState(() => day.weekday = v!),
               ),
             ],
@@ -314,37 +529,71 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
           TextField(
             onChanged: (v) => day.dayName = v,
             controller: TextEditingController(text: day.dayName),
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w900),
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
             decoration: const InputDecoration(
               hintText: 'Add session focus (e.g. Chest)',
-              hintStyle: TextStyle(color: Colors.white10, fontSize: 16),
+              hintStyle: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+              ),
               border: InputBorder.none,
               isDense: true,
               contentPadding: EdgeInsets.zero,
             ),
           ),
           const SizedBox(height: 4),
-          Divider(color: Colors.white.withOpacity(0.05)),
+          const Divider(color: AppColors.outline),
           const SizedBox(height: 8),
           if (day.exercises.isEmpty)
-             Center(
-               child: Padding(
-                 padding: const EdgeInsets.all(20),
-                 child: Text('No exercises added yet.', style: TextStyle(color: Colors.white.withOpacity(0.1), fontSize: 13, fontStyle: FontStyle.italic)),
-               ),
-             ),
-          ...day.exercises.asMap().entries.map((exEntry) => _buildExerciseRow(index, exEntry.key, exEntry.value)).toList(),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: const Text(
+                  'No exercises added yet.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+          ...day.exercises
+              .asMap()
+              .entries
+              .map(
+                (exEntry) =>
+                    _buildExerciseRow(index, exEntry.key, exEntry.value),
+              )
+              .toList(),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: TextButton.icon(
               onPressed: () => _addExercise(index),
-              icon: const Icon(Icons.add_circle_outline_rounded, size: 20, color: AppColors.accent),
-              label: const Text('Add Exercise', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 13)),
+              icon: const Icon(
+                Icons.add_circle_outline_rounded,
+                size: 20,
+                color: AppColors.accent,
+              ),
+              label: const Text(
+                'Add Exercise',
+                style: TextStyle(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 backgroundColor: AppColors.accent.withOpacity(0.05),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -360,21 +609,45 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.fitness_center_rounded, color: AppColors.textSecondary, size: 16),
+            decoration: BoxDecoration(
+              color: AppColors.surface2,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.fitness_center_rounded,
+              color: AppColors.textSecondary,
+              size: 16,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(ex.exerciseName, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700)),
-                Text('${ex.sets} Sets • ${ex.reps} Reps', style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                Text(
+                  ex.exerciseName,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${ex.sets} Sets • ${ex.reps} Reps',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 18),
+            icon: const Icon(
+              Icons.close_rounded,
+              color: Colors.redAccent,
+              size: 18,
+            ),
             onPressed: () => _removeExercise(dayIndex, exIndex),
           ),
         ],
@@ -387,7 +660,13 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppColors.background,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, -5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -398,13 +677,29 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
             onPressed: _isSaving ? null : _saveRoutine,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              foregroundColor: AppColors.ink,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               elevation: 0,
             ),
-            child: _isSaving 
-              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : const Text('SAVE ROUTINE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 1)),
+            child: _isSaving
+                ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: AppColors.ink,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'SAVE ROUTINE',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
           ),
         ),
       ),
@@ -418,7 +713,11 @@ class WorkoutDayData {
   String dayName;
   List<WorkoutExercise> exercises = [];
 
-  WorkoutDayData({required this.dayNumber, required this.weekday, required this.dayName});
+  WorkoutDayData({
+    required this.dayNumber,
+    required this.weekday,
+    required this.dayName,
+  });
 
   Map<String, dynamic> toJson() {
     return {
@@ -426,7 +725,10 @@ class WorkoutDayData {
       "dayOfWeek": weekday,
       "dayName": dayName,
       "focus": dayName.isEmpty ? "Workout Session" : dayName,
-      "targetMuscleGroups": exercises.map((e) => e.muscleGroup).toSet().toList(),
+      "targetMuscleGroups": exercises
+          .map((e) => e.muscleGroup)
+          .toSet()
+          .toList(),
       "exercises": exercises.map((e) => e.toJson()).toList(),
     };
   }

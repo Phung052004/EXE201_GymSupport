@@ -29,7 +29,7 @@ class ScheduleOptionCard extends StatelessWidget {
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
-                : Colors.white.withValues(alpha: 0.03),
+                : AppColors.outline,
             width: 1.3,
           ),
           boxShadow: isSelected
@@ -63,7 +63,7 @@ class ScheduleOptionCard extends StatelessWidget {
                   Text(
                     schedule.title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
@@ -81,7 +81,7 @@ class ScheduleOptionCard extends StatelessWidget {
                   Text(
                     schedule.description,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.45),
+                      color: AppColors.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -97,14 +97,14 @@ class ScheduleOptionCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primary
-                    : Colors.white.withValues(alpha: 0.06),
+                    : AppColors.surface2,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 isSelected ? Icons.check : Icons.add,
                 color: isSelected
                     ? AppColors.textDark
-                    : Colors.white.withValues(alpha: 0.45),
+                    : AppColors.textSecondary,
                 size: 18,
               ),
             ),

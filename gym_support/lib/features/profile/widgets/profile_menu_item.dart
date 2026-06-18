@@ -26,6 +26,7 @@ class ProfileMenuItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.outline),
         ),
         child: Row(
           children: [
@@ -33,31 +34,23 @@ class ProfileMenuItem extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
+                color: AppColors.primary.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(11),
               ),
-              child: Icon(
-                icon,
-                color: Colors.white.withValues(alpha: 0.55),
-                size: 18,
-              ),
+              child: Icon(icon, color: AppColors.primaryDark, size: 18),
             ),
             const SizedBox(width: 13),
             Expanded(
               child: Text(
                 title,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: Colors.white.withValues(alpha: 0.25),
-              size: 22,
-            ),
+            Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 22),
           ],
         ),
       ),

@@ -5,6 +5,11 @@ import 'package:gym_support/models/workout_models.dart';
 import 'workout_plans_screen.dart';
 import 'workout_session_screen.dart';
 
+const _figmaLime = Color(0xFFB7FF2A);
+const _figmaInk = Color(0xFF172027);
+const _figmaPaper = Color(0xFFF7F7F8);
+const _figmaMuted = Color(0xFF777C80);
+
 class TodayWorkoutScreen extends StatefulWidget {
   const TodayWorkoutScreen({super.key});
 
@@ -171,13 +176,14 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _figmaPaper,
       appBar: AppBar(
         title: const Text(
           'Today Workout',
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
-        backgroundColor: Colors.transparent,
+        foregroundColor: _figmaInk,
+        backgroundColor: _figmaPaper,
         elevation: 0,
         actions: [
           if (_activePlan != null)
@@ -193,9 +199,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return const Center(child: CircularProgressIndicator(color: _figmaLime));
     }
 
     if (_error != null) {
@@ -208,7 +212,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70),
+                style: const TextStyle(color: _figmaMuted),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -252,14 +256,12 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: _figmaInk,
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.25),
-              ),
+              border: Border.all(color: _figmaLime.withValues(alpha: 0.35)),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.08),
+                  color: _figmaLime.withValues(alpha: 0.12),
                   blurRadius: 24,
                   offset: const Offset(0, 12),
                 ),
@@ -274,12 +276,12 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
+                        color: _figmaLime,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.play_arrow_rounded,
-                        color: AppColors.primary,
+                        color: _figmaInk,
                         size: 28,
                       ),
                     ),
@@ -288,7 +290,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                       child: Text(
                         'UNFINISHED WORKOUT',
                         style: TextStyle(
-                          color: AppColors.primary,
+                          color: _figmaLime,
                           fontSize: 12,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 1,
@@ -336,8 +338,8 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                         ? null
                         : _continueActiveWorkout,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.textDark,
+                      backgroundColor: _figmaLime,
+                      foregroundColor: _figmaInk,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -358,7 +360,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
           const Text(
             'REMAINING EXERCISES',
             style: TextStyle(
-              color: Colors.white,
+              color: _figmaInk,
               fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
@@ -378,9 +380,9 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.surface2,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                border: Border.all(color: AppColors.outline),
               ),
               child: Row(
                 children: [
@@ -388,9 +390,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                     done >= total
                         ? Icons.check_circle
                         : Icons.timelapse_rounded,
-                    color: done >= total
-                        ? AppColors.primary
-                        : AppColors.secondary,
+                    color: done >= total ? _figmaLime : AppColors.secondary,
                     size: 20,
                   ),
                   const SizedBox(width: 12),
@@ -398,7 +398,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                     child: Text(
                       exercise.exerciseName,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: _figmaInk,
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
@@ -407,7 +407,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                   Text(
                     '$done/$total sets',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.55),
+                      color: _figmaMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                     ),
@@ -435,7 +435,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
             Text(
               value,
               style: const TextStyle(
-                color: Colors.white,
+                color: _figmaInk,
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
               ),
@@ -526,13 +526,13 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.fitness_center, size: 80, color: Colors.white10),
+            const Icon(Icons.fitness_center, size: 80, color: _figmaLime),
             const SizedBox(height: 24),
             const Text(
               'Bạn chưa chọn lịch tập nào',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white,
+                color: _figmaInk,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -541,7 +541,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
             const Text(
               'Hãy chọn hoặc tạo một lịch tập để bắt đầu theo dõi quá trình luyện tập.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+              style: TextStyle(color: _figmaMuted, fontSize: 14),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -565,7 +565,219 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
     );
   }
 
+  Future<void> _startWorkoutDay(WorkoutDay day) async {
+    setState(() => _selectedDay = day);
+    await _startWorkout();
+  }
+
   Widget _buildActiveState() {
+    final sessions = _activePlan!.workoutDays;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Workout sessions',
+                    style: TextStyle(
+                      color: _figmaInk,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.7,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _activePlan!.name,
+                    style: const TextStyle(
+                      color: _figmaMuted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton.filledTonal(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const WorkoutPlansScreen()),
+                ).then((_) => _loadActivePlan());
+              },
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: _figmaInk,
+              ),
+              icon: const Icon(Icons.swap_horiz_rounded),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEEEFF2),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.outline),
+          ),
+          child: Column(
+            children: sessions
+                .asMap()
+                .entries
+                .map<Widget>((entry) {
+                  final index = entry.key;
+                  final day = entry.value;
+                  final isToday =
+                      day.weekday.trim().toLowerCase() ==
+                      _todayWeekday.trim().toLowerCase();
+                  final subtitle = [
+                    day.weekday,
+                    '${day.exercises.length} exercises',
+                  ].where((value) => value.trim().isNotEmpty).join('  •  ');
+
+                  return Container(
+                    constraints: const BoxConstraints(minHeight: 96),
+                    margin: EdgeInsets.only(
+                      bottom: index == sessions.length - 1 ? 0 : 8,
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 68,
+                          height: 68,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                _figmaInk,
+                                index.isEven
+                                    ? const Color(0xFF3B464D)
+                                    : const Color(0xFF515A61),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Icon(
+                                index.isEven
+                                    ? Icons.fitness_center_rounded
+                                    : Icons.sports_gymnastics_rounded,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                              Positioned(
+                                top: 6,
+                                right: 7,
+                                child: Text(
+                                  '${index + 1}',
+                                  style: const TextStyle(
+                                    color: _figmaLime,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      day.focus.trim().isEmpty
+                                          ? day.dayName
+                                          : day.focus,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: _figmaInk,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isToday) ...[
+                                    const SizedBox(width: 6),
+                                    const Text(
+                                      'TODAY',
+                                      style: TextStyle(
+                                        color: _figmaMuted,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _figmaMuted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        SizedBox(
+                          height: 48,
+                          child: FilledButton(
+                            onPressed: () => _startWorkoutDay(day),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: _figmaLime,
+                              foregroundColor: _figmaInk,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              shape: const StadiumBorder(),
+                            ),
+                            child: Icon(
+                              isToday
+                                  ? Icons.play_arrow_rounded
+                                  : Icons.arrow_forward_rounded,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                })
+                .toList(growable: false),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Kept temporarily as a reference while the new session-card layout rolls out.
+  // ignore: unused_element
+  Widget _buildLegacyActiveState() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(22),
       child: Column(
@@ -575,15 +787,13 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: _figmaInk,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.2),
-              ),
+              border: Border.all(color: _figmaLime.withValues(alpha: 0.45)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.star, color: AppColors.primary, size: 28),
+                const Icon(Icons.star, color: _figmaLime, size: 28),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -617,7 +827,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                       ),
                     ).then((_) => _loadActivePlan());
                   },
-                  icon: const Icon(Icons.swap_horiz, color: AppColors.primary),
+                  icon: const Icon(Icons.swap_horiz, color: _figmaLime),
                 ),
               ],
             ),
@@ -627,47 +837,65 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
           const Text(
             'SELECT WORKOUT DAY',
             style: TextStyle(
-              color: Colors.white,
+              color: _figmaInk,
               fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 12),
 
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<WorkoutDay>(
-                value: _selectedDay,
-                isExpanded: true,
-                dropdownColor: AppColors.surface,
-                items: _activePlan!.workoutDays.map((day) {
-                  final isToday =
-                      day.weekday.trim().toLowerCase() ==
-                      _todayWeekday.trim().toLowerCase();
-                  return DropdownMenuItem<WorkoutDay>(
-                    value: day,
-                    child: Text(
-                      '${day.dayName} (${day.weekday})${isToday ? " - TODAY" : ""}',
-                      style: TextStyle(
-                        color: isToday ? AppColors.primary : Colors.white,
-                        fontWeight: isToday
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+          SizedBox(
+            height: 48,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _activePlan!.workoutDays.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final day = _activePlan!.workoutDays[index];
+                final selected = day.id == _selectedDay?.id;
+                final isToday =
+                    day.weekday.trim().toLowerCase() ==
+                    _todayWeekday.trim().toLowerCase();
+
+                return InkWell(
+                  onTap: () => setState(() => _selectedDay = day),
+                  borderRadius: BorderRadius.circular(14),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: selected ? _figmaLime : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: selected
+                            ? _figmaLime
+                            : Colors.black.withValues(alpha: 0.10),
                       ),
                     ),
-                  );
-                }).toList(),
-                onChanged: (day) {
-                  setState(() {
-                    _selectedDay = day;
-                  });
-                },
-              ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      children: [
+                        if (isToday) ...[
+                          Icon(
+                            Icons.bolt_rounded,
+                            size: 15,
+                            color: selected ? _figmaInk : _figmaInk,
+                          ),
+                          const SizedBox(width: 5),
+                        ],
+                        Text(
+                          day.dayName,
+                          style: TextStyle(
+                            color: _figmaInk,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
 
@@ -675,7 +903,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
           Text(
             _selectedDay?.dayName.toUpperCase() ?? 'EXERCISES',
             style: const TextStyle(
-              color: Colors.white,
+              color: _figmaInk,
               fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
@@ -690,21 +918,21 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: Colors.black.withValues(alpha: 0.07),
                   ),
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 14,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                      backgroundColor: _figmaLime,
                       child: Text(
                         '$index',
                         style: const TextStyle(
-                          color: AppColors.primary,
+                          color: _figmaInk,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -718,7 +946,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                           Text(
                             ex.exerciseName,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: _figmaInk,
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
@@ -727,7 +955,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                           Text(
                             '${ex.sets} sets x ${ex.reps}',
                             style: const TextStyle(
-                              color: Colors.white54,
+                              color: _figmaMuted,
                               fontSize: 13,
                             ),
                           ),
@@ -746,13 +974,13 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
             child: ElevatedButton(
               onPressed: _selectedDay == null ? null : _startWorkout,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textDark,
+                backgroundColor: _figmaLime,
+                foregroundColor: _figmaInk,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 8,
-                shadowColor: AppColors.primary.withValues(alpha: 0.4),
+                shadowColor: _figmaLime.withValues(alpha: 0.35),
               ),
               child: const Text(
                 'START WORKOUT',

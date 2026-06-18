@@ -179,7 +179,7 @@ class _AuthScreenState extends State<AuthScreen> {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              border: Border.all(color: AppColors.outline),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -187,16 +187,25 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 10),
                 const Icon(
                   Icons.fitness_center,
-                  color: AppColors.primary,
-                  size: 56,
+                  color: AppColors.ink,
+                  size: 42,
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  width: 44,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   'GymSupport',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
+                    color: AppColors.textPrimary,
+                    fontSize: 26,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -205,7 +214,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   isLoginMode ? 'Đăng nhập để tiếp tục' : 'Tạo tài khoản mới',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.65),
+                    color: AppColors.textSecondary,
                     fontSize: 14,
                   ),
                 ),
@@ -220,9 +229,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   borderRadius: BorderRadius.circular(14),
                   selectedColor: AppColors.textDark,
                   fillColor: AppColors.primary,
-                  borderColor: Colors.white.withValues(alpha: 0.08),
+                  borderColor: AppColors.outline,
                   selectedBorderColor: AppColors.primary,
-                  color: Colors.white.withValues(alpha: 0.72),
+                  color: AppColors.textSecondary,
                   children: const [
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 18),
@@ -239,14 +248,14 @@ class _AuthScreenState extends State<AuthScreen> {
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: _inputDecoration('Email'),
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 14),
                 TextField(
                   controller: passwordController,
                   obscureText: true,
                   decoration: _inputDecoration('Password'),
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.textPrimary),
                 ),
                 if (!isLoginMode) ...[
                   const SizedBox(height: 14),
@@ -254,13 +263,13 @@ class _AuthScreenState extends State<AuthScreen> {
                     controller: confirmPasswordController,
                     obscureText: true,
                     decoration: _inputDecoration('Confirm Password'),
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 14),
                   TextField(
                     controller: nameController,
                     decoration: _inputDecoration('Full name'),
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: AppColors.textPrimary),
                   ),
                 ],
                 const SizedBox(height: 24),
@@ -268,6 +277,10 @@ class _AuthScreenState extends State<AuthScreen> {
                   height: 56,
                   child: ElevatedButton(
                     onPressed: isLoading ? null : submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.ink,
+                      foregroundColor: Colors.white,
+                    ),
                     child: Text(
                       isLoading
                           ? 'Please wait...'
@@ -286,9 +299,9 @@ class _AuthScreenState extends State<AuthScreen> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
+      labelStyle: const TextStyle(color: AppColors.textSecondary),
       filled: true,
-      fillColor: AppColors.background,
+      fillColor: AppColors.surface2,
     );
   }
 }

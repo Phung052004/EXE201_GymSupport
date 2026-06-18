@@ -196,7 +196,7 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.ink,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),

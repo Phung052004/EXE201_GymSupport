@@ -1281,6 +1281,36 @@ class BackendApi {
     String? sessionLogId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+
+    // The live workout screen already owns a real session log. Finish that
+    // log directly instead of depending on optional legacy preference keys.
+    if (sessionLogId != null && sessionLogId.isNotEmpty) {
+      final decoded = await _put(
+        '/api/workout-session-logs/${Uri.encodeComponent(sessionLogId)}/finish',
+        auth: true,
+      );
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('Không thể hoàn thành buổi tập. Vui lòng thử lại.');
+      }
+
+      await prefs.remove(_currentWorkoutPlanKey);
+      await prefs.remove(_currentWorkoutSessionKey);
+      await prefs.remove(_currentWorkoutIsQuickKey);
+
+      return {
+        'success': true,
+        'log': decoded,
+        'totalDurationSeconds':
+            _value<num>(decoded, 'totalDurationSeconds')?.toInt() ?? 0,
+        'totalSets': _value<num>(decoded, 'totalSets')?.toInt() ?? 0,
+        'totalExpGained': _value<num>(decoded, 'totalExpGained')?.toInt() ?? 0,
+        'muscleExpGains':
+            _value<List>(decoded, 'muscleExpGains') ??
+            _value<List>(decoded, 'MuscleExpGains') ??
+            const [],
+      };
+    }
+
     final planId =
         prefs.getString(_currentWorkoutPlanKey) ??
         prefs.getString(_quickWorkoutPlanKey);

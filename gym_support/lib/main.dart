@@ -20,7 +20,7 @@ class GymSupportApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
-          brightness: Brightness.dark,
+          brightness: Brightness.light,
           primary: AppColors.primary,
           secondary: AppColors.secondary,
           surface: AppColors.surface,
@@ -28,7 +28,7 @@ class GymSupportApp extends StatelessWidget {
           onSurface: AppColors.textPrimary,
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppColors.background,
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
         ),
@@ -43,11 +43,11 @@ class GymSupportApp extends StatelessWidget {
           fillColor: AppColors.surface,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFF22303C)),
+            borderSide: const BorderSide(color: AppColors.outline),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFF22303C)),
+            borderSide: const BorderSide(color: AppColors.outline),
           ),
           focusedBorder: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(14)),

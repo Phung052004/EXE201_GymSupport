@@ -44,13 +44,13 @@ class HomeHeader extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.15),
+                    color: AppColors.surfaceSelected,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     goals.first.toUpperCase(),
                     style: const TextStyle(
-                      color: AppColors.primary,
+                      color: AppColors.ink,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,
@@ -73,12 +73,12 @@ class HomeHeader extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.10),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
             ],
-            border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+            border: Border.all(color: AppColors.outline, width: 1),
           ),
         ),
       ],

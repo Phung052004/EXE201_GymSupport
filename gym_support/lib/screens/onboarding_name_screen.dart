@@ -96,7 +96,7 @@ class _OnboardingNameScreenState extends State<OnboardingNameScreen> {
                       'Welcome to GymSupport',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
                       ),
@@ -105,7 +105,7 @@ class _OnboardingNameScreenState extends State<OnboardingNameScreen> {
                     const Text(
                       "Let's personalize your fitness journey",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                     ),
                     const SizedBox(height: 28),
                     const StepIndicator(currentStep: 1, totalSteps: 3),
@@ -115,7 +115,7 @@ class _OnboardingNameScreenState extends State<OnboardingNameScreen> {
                       child: Text(
                         'Tell us about yourself',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                         ),
@@ -149,7 +149,7 @@ class _OnboardingNameScreenState extends State<OnboardingNameScreen> {
                               child: Text(
                                 nameController.text,
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
                                 ),

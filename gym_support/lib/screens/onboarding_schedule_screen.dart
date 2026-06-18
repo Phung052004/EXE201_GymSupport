@@ -176,7 +176,7 @@ class _OnboardingScheduleScreenState extends State<OnboardingScheduleScreen> {
                         child: Text(
                           'Choose your training schedule',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.92),
+                            color: AppColors.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                           ),
@@ -190,7 +190,7 @@ class _OnboardingScheduleScreenState extends State<OnboardingScheduleScreen> {
                         child: Text(
                           'Bạn có thể thay đổi lịch tập sau trong phần Profile.',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45),
+                            color: AppColors.textSecondary,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),

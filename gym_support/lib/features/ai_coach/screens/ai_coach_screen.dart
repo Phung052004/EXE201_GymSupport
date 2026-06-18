@@ -174,7 +174,7 @@ class _AiCoachScreenState extends State<AiCoachScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('AI ANALYSIS MODES', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+            const Text('AI ANALYSIS MODES', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
             const SizedBox(height: 20),
             _buildModeItem(ctx, 'Equipment Scan', 'Identify gym gear & get guides', Icons.fitness_center_rounded, 'equipment_info'),
             _buildModeItem(ctx, 'Form Check', 'Analyze your exercise posture', Icons.accessibility_new_rounded, 'form_check'),
@@ -217,9 +217,9 @@ class _AiCoachScreenState extends State<AiCoachScreen>
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: AppColors.surface2,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(color: AppColors.outline),
           ),
           child: Row(
             children: [
@@ -233,12 +233,13 @@ class _AiCoachScreenState extends State<AiCoachScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                    Text(sub, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
+                    Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 2),
+                    Text(sub, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 14),
+              const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondary, size: 14),
             ],
           ),
         ),
@@ -293,7 +294,7 @@ class _AiCoachScreenState extends State<AiCoachScreen>
                           Text(
                             'AI Coach',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               fontSize: 21,
                               fontWeight: FontWeight.w900,
                             ),
@@ -310,7 +311,7 @@ class _AiCoachScreenState extends State<AiCoachScreen>
                       Text(
                         'Powered by GymSupport AI',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.42),
+                          color: AppColors.textSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -390,7 +391,8 @@ class AiInputBar extends StatelessWidget {
       padding: const EdgeInsets.only(left: 16, right: 6),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Row(
         children: [
@@ -400,12 +402,12 @@ class AiInputBar extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: AppColors.surface2,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.camera_alt_rounded,
-                color: Colors.white,
+                color: AppColors.ink,
                 size: 19,
               ),
             ),
@@ -417,7 +419,7 @@ class AiInputBar extends StatelessWidget {
               minLines: 1,
               maxLines: 4,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -426,7 +428,7 @@ class AiInputBar extends StatelessWidget {
                     ? 'AI is typing...'
                     : 'E.g. Give me a chest workout...',
                 hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.28),
+                  color: AppColors.textSecondary,
                   fontSize: 14,
                 ),
                 border: InputBorder.none,
@@ -475,7 +477,11 @@ class AiMessageBubble extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isUser ? AppColors.primary : AppColors.surface,
+          color: isUser ? Colors.white : AppColors.surface2,
+          border: Border.all(
+            color: isUser ? AppColors.ink : Colors.transparent,
+            width: isUser ? 1 : 0,
+          ),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -501,9 +507,7 @@ class AiMessageBubble extends StatelessWidget {
             Text(
               message.text,
               style: TextStyle(
-                color: isUser
-                    ? AppColors.textDark
-                    : Colors.white.withValues(alpha: 0.86),
+                color: AppColors.textPrimary,
                 fontSize: 13,
                 height: 1.45,
                 fontWeight: FontWeight.w600,
@@ -586,7 +590,7 @@ class _Dot extends StatelessWidget {
       width: active ? 8 : 6,
       height: active ? 8 : 6,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: active ? 0.9 : 0.4),
+        color: AppColors.ink.withValues(alpha: active ? 0.9 : 0.35),
         shape: BoxShape.circle,
       ),
     );
@@ -615,7 +619,7 @@ class _ExerciseSuggestions extends StatelessWidget {
           Text(
             'Gợi ý bài tập',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.55),
+              color: AppColors.textSecondary,
               fontSize: 12,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.4,
@@ -633,14 +637,12 @@ class _ExerciseSuggestions extends StatelessWidget {
                         label: Text(
                           exercise.name,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppColors.ink,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        backgroundColor: AppColors.primary.withValues(
-                          alpha: 0.18,
-                        ),
+                        backgroundColor: AppColors.surfaceSelected,
                         onPressed: () => onTapSuggestion(exercise.name),
                       ),
                     ),

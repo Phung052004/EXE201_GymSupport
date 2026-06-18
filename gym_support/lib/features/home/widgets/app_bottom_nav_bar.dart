@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/constants/app_colors.dart';
 
 class AppBottomNavBar extends StatelessWidget {
@@ -11,85 +12,81 @@ class AppBottomNavBar extends StatelessWidget {
     required this.onTap,
   });
 
+  static const items = [
+    BottomNavItemData(icon: Icons.home_rounded, label: 'Home'),
+    BottomNavItemData(icon: Icons.auto_awesome_rounded, label: 'AI Coach'),
+    BottomNavItemData(icon: Icons.fitness_center_rounded, label: 'Workout'),
+    BottomNavItemData(icon: Icons.rocket_launch_rounded, label: 'Routine'),
+    BottomNavItemData(icon: Icons.person_outline_rounded, label: 'Profile'),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final items = [
-      const BottomNavItemData(icon: Icons.grid_view_rounded, label: 'Home'),
-      const BottomNavItemData(icon: Icons.smart_toy_rounded, label: 'AI Coach'),
-      const BottomNavItemData(
-        icon: Icons.fitness_center_rounded,
-        label: 'Workout',
-      ),
-      const BottomNavItemData(
-        icon: Icons.calendar_today_rounded,
-        label: 'Routine',
-      ),
-      const BottomNavItemData(icon: Icons.person_rounded, label: 'Profile'),
-    ];
-
-    return Container(
-      height: 85,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: 68,
+        margin: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: AppColors.ink,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.16),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 24,
-            offset: const Offset(0, -8),
-          ),
-        ],
-      ),
-      child: SafeArea(
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List.generate(items.length, (index) {
             final item = items[index];
-            final isSelected = currentIndex == index;
+            final selected = currentIndex == index;
 
             return Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onTap(index),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.primary.withValues(alpha: 0.14)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        item.icon,
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
-                        size: 24,
-                      ),
+              flex: selected ? 2 : 1,
+              child: Semantics(
+                button: true,
+                selected: selected,
+                label: item.label,
+                child: InkWell(
+                  onTap: () => onTap(index),
+                  borderRadius: BorderRadius.circular(22),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    height: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: selected ? AppColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(22),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.label,
-                      style: TextStyle(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
-                        fontSize: 10,
-                        fontWeight: isSelected
-                            ? FontWeight.w800
-                            : FontWeight.w600,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          item.icon,
+                          color: selected ? AppColors.ink : Colors.white,
+                          size: 20,
+                        ),
+                        if (selected) ...[
+                          const SizedBox(width: 7),
+                          Flexible(
+                            child: Text(
+                              item.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.fade,
+                              style: const TextStyle(
+                                color: AppColors.ink,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             );

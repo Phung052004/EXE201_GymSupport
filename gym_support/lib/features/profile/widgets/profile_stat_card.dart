@@ -24,6 +24,14 @@ class ProfileStatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.outline),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: .05),
+            blurRadius: 16,
+            offset: const Offset(0, 7),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,7 +41,7 @@ class ProfileStatCard extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 25,
               fontWeight: FontWeight.w900,
               height: 1,
@@ -44,8 +52,8 @@ class ProfileStatCard extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.35),
+            style: const TextStyle(
+              color: AppColors.textSecondary,
               fontSize: 11,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.3,

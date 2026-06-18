@@ -27,7 +27,7 @@ class AppTextField extends StatelessWidget {
       onChanged: onChanged,
       readOnly: readOnly,
       style: const TextStyle(
-        color: Colors.white,
+        color: AppColors.textPrimary,
         fontSize: 15,
         fontWeight: FontWeight.w500,
       ),
@@ -35,11 +35,11 @@ class AppTextField extends StatelessWidget {
         hintText: hintText,
         suffixText: suffixText,
         suffixStyle: TextStyle(
-          color: Colors.white.withValues(alpha: 0.45),
+          color: AppColors.textSecondary,
           fontSize: 14,
           fontWeight: FontWeight.w700,
         ),
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+        hintStyle: const TextStyle(color: AppColors.textSecondary),
         filled: true,
         fillColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(

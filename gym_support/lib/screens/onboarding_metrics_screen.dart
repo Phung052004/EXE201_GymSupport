@@ -63,7 +63,7 @@ class _OnboardingMetricsScreenState extends State<OnboardingMetricsScreen> {
   }
 
   Color getBmiColor() {
-    if (bmi == null) return Colors.white.withValues(alpha: 0.5);
+    if (bmi == null) return AppColors.textSecondary;
     if (bmi! < 18.5) return Colors.orange;
     if (bmi! < 25) return const Color(0xFF12E67F);
     if (bmi! < 30) return Colors.amber;
@@ -122,7 +122,7 @@ class _OnboardingMetricsScreenState extends State<OnboardingMetricsScreen> {
                       'Welcome to GymSupport',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
                       ),
@@ -132,7 +132,7 @@ class _OnboardingMetricsScreenState extends State<OnboardingMetricsScreen> {
                       "Hi ${widget.name}, let's track your physical metrics",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.55),
+                        color: AppColors.textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -144,7 +144,7 @@ class _OnboardingMetricsScreenState extends State<OnboardingMetricsScreen> {
                       child: Text(
                         'Your body metrics',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                         ),
@@ -184,7 +184,7 @@ class _OnboardingMetricsScreenState extends State<OnboardingMetricsScreen> {
                           const Text(
                             'BODY MASS INDEX (BMI)',
                             style: TextStyle(
-                              color: Colors.white54,
+                              color: AppColors.textSecondary,
                               fontSize: 12,
                             ),
                           ),
@@ -203,7 +203,7 @@ class _OnboardingMetricsScreenState extends State<OnboardingMetricsScreen> {
                                 ? 'Nhập thông số để tính BMI'
                                 : getBmiStatus(),
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: AppColors.textSecondary,
                               fontSize: 13,
                             ),
                           ),

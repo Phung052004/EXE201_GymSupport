@@ -130,7 +130,7 @@ class _OnboardingGoalScreenState extends State<OnboardingGoalScreen> {
                         child: Text(
                           "What's your goal?",
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.92),
+                            color: AppColors.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                           ),

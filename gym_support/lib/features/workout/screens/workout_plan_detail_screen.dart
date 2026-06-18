@@ -135,7 +135,7 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
                 onPressed: _isLoading ? null : _applyPlan,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.ink,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   elevation: 0,
@@ -157,7 +157,7 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,7 +225,7 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: AppColors.surface2,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -245,9 +245,9 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +296,7 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -350,15 +350,15 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
           ),
           if (day.dayName.toLowerCase().contains('monday')) ...[
              const SizedBox(height: 16),
-             const Divider(color: Colors.white10),
+             const Divider(color: AppColors.outline),
              const SizedBox(height: 8),
              Row(
                children: [
-                 const Icon(Icons.check_circle_rounded, color: Color(0xFF12E67F), size: 14),
+                 const Icon(Icons.check_circle_rounded, color: AppColors.accent, size: 14),
                  const SizedBox(width: 8),
                  const Text(
                    'Completed this week',
-                   style: TextStyle(color: Color(0xFF12E67F), fontSize: 11, fontWeight: FontWeight.bold),
+                   style: TextStyle(color: AppColors.accent, fontSize: 11, fontWeight: FontWeight.bold),
                  ),
                ],
              ),

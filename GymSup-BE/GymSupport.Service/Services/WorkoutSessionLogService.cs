@@ -125,8 +125,8 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
             throw new Exception("Chỉ có thể thêm set khi buổi tập đang diễn ra.");
         }
 
-        var exerciseLog =
-            session.Exercises.FirstOrDefault(x => x.Id == exerciseLogId);
+        var exerciseLog = session.Exercises.FirstOrDefault(
+            x => x.Id == exerciseLogId || x.ExerciseId == exerciseLogId);
 
         if (exerciseLog == null)
         {
@@ -144,7 +144,21 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
             CreatedAt = DateTime.UtcNow
         };
 
-        exerciseLog.Sets.Add(setLog);
+        var existingSet = exerciseLog.Sets.FirstOrDefault(
+            x => x.SetNumber == dto.SetNumber);
+        if (existingSet == null)
+        {
+            exerciseLog.Sets.Add(setLog);
+        }
+        else
+        {
+            existingSet.Weight = setLog.Weight;
+            existingSet.Reps = setLog.Reps;
+            existingSet.DurationSeconds = setLog.DurationSeconds;
+            existingSet.Rpe = setLog.Rpe;
+            existingSet.Status = "COMPLETED";
+            existingSet.CreatedAt = setLog.CreatedAt;
+        }
         exerciseLog.Status = "IN_PROGRESS";
 
         session.TotalSets = session.Exercises

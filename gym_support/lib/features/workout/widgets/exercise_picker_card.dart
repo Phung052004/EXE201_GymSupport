@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../models/exercise.dart';
+import '../screens/exercise_detail_screen.dart';
 
 class ExercisePickerCard extends StatelessWidget {
   final Exercise exercise;
@@ -154,7 +155,19 @@ class ExercisePickerCard extends StatelessWidget {
   }
 }
 
-Future<void> showExerciseDetailSheet(BuildContext context, Exercise exercise) {
+Future<void> showExerciseDetailSheet(
+  BuildContext context,
+  Exercise exercise,
+) async {
+  await Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => ExerciseDetailScreen(exercise: exercise)),
+  );
+}
+
+Future<void> showExerciseDetailSheetLegacy(
+  BuildContext context,
+  Exercise exercise,
+) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,

@@ -35,7 +35,7 @@ class MuscleProgressGrid extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          border: Border.all(color: AppColors.outline),
         ),
         child: Text(
           'Complete your first workout to start tracking your muscle progress.',
@@ -66,14 +66,23 @@ class MuscleProgressGrid extends StatelessWidget {
   }
 }
 
-class MuscleBalanceMap extends StatelessWidget {
+class MuscleBalanceMap extends StatefulWidget {
   final List<MuscleProgressData> items;
 
   const MuscleBalanceMap({super.key, required this.items});
 
   @override
+  State<MuscleBalanceMap> createState() => _MuscleBalanceMapState();
+}
+
+class _MuscleBalanceMapState extends State<MuscleBalanceMap> {
+  bool _showBack = false;
+
+  @override
   Widget build(BuildContext context) {
-    final byName = {for (final item in items) _normalize(item.name): item};
+    final byName = {
+      for (final item in widget.items) _normalize(item.name): item,
+    };
 
     MuscleProgressData? find(List<String> keys) {
       for (final key in keys) {
@@ -88,11 +97,35 @@ class MuscleBalanceMap extends StatelessWidget {
     final biceps = find(['Biceps', 'Arms', 'Tay truoc']);
     final triceps = find(['Triceps', 'Tay sau']);
     final abs = find(['Abs', 'Core', 'Bung']);
+    final back = find(['Back', 'Lats', 'Traps', 'Lung']);
     final glutes = find(['Glutes', 'Mong']);
     final legs = find(['Legs', 'Quads', 'Hamstrings', 'Chan']);
     final calves = find(['Calves', 'Bap chan']);
-    final activeCount = items.where((item) => item.totalExp > 0).length;
-    final weakCount = items.where((item) => item.isLagging).length;
+    final activeCount = widget.items.where((item) => item.totalExp > 0).length;
+    final weakCount = widget.items.where((item) => item.isLagging).length;
+    final displayedMuscles = _showBack
+        ? _BodyMuscles(
+            chest: back,
+            shoulders: shoulders,
+            leftArm: triceps,
+            rightArm: triceps,
+            core: back,
+            hips: glutes,
+            leftLeg: legs,
+            rightLeg: legs,
+            calves: calves,
+          )
+        : _BodyMuscles(
+            chest: chest,
+            shoulders: shoulders,
+            leftArm: biceps ?? triceps,
+            rightArm: biceps ?? triceps,
+            core: abs,
+            hips: glutes,
+            leftLeg: legs,
+            rightLeg: legs,
+            calves: calves,
+          );
 
     return Container(
       width: double.infinity,
@@ -123,23 +156,15 @@ class MuscleBalanceMap extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
+          _BodySideSelector(
+            showBack: _showBack,
+            onChanged: (value) => setState(() => _showBack = value),
+          ),
+          const SizedBox(height: 10),
           SizedBox(
             height: 390,
             child: Center(
-              child: _BodyFigure(
-                label: '',
-                muscles: _BodyMuscles(
-                  chest: chest,
-                  shoulders: shoulders,
-                  leftArm: biceps ?? triceps,
-                  rightArm: biceps ?? triceps,
-                  core: abs,
-                  hips: glutes,
-                  leftLeg: legs,
-                  rightLeg: legs,
-                  calves: calves,
-                ),
-              ),
+              child: _BodyFigure(isBack: _showBack, muscles: displayedMuscles),
             ),
           ),
           const SizedBox(height: 10),
@@ -170,6 +195,57 @@ class MuscleBalanceMap extends StatelessWidget {
         .replaceAll('đ', 'd');
 
     return folded.replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+}
+
+class _BodySideSelector extends StatelessWidget {
+  final bool showBack;
+  final ValueChanged<bool> onChanged;
+
+  const _BodySideSelector({required this.showBack, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 38,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [_sideButton('Front', false), _sideButton('Back', true)],
+      ),
+    );
+  }
+
+  Widget _sideButton(String label, bool value) {
+    final selected = showBack == value;
+    return Tooltip(
+      message: 'View ${label.toLowerCase()} muscle groups',
+      child: InkWell(
+        onTap: () => onChanged(value),
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? AppColors.textDark : AppColors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -241,47 +317,77 @@ class _BodyMuscles {
 }
 
 class _BodyFigure extends StatelessWidget {
-  final String label;
+  final bool isBack;
   final _BodyMuscles muscles;
 
-  const _BodyFigure({required this.label, required this.muscles});
+  const _BodyFigure({required this.isBack, required this.muscles});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: 220,
-      child: Column(
-        children: [
-          if (label.isNotEmpty) ...[
-            Text(
-              label,
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
+      child: Tooltip(
+        message:
+            '${isBack ? 'Back' : 'Front'} muscle map. Highlighted areas use your real muscle EXP.',
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              isBack
+                  ? 'assets/body/body_back.png'
+                  : 'assets/body/body_front.png',
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
             ),
-            const SizedBox(height: 8),
+            ..._maskLayers(),
           ],
-          Expanded(
-            child: Tooltip(
-              message:
-                  '$label muscle map. Red outline means this area is lagging.',
-              child: CustomPaint(
-                painter: _MuscleFigurePainter(
-                  muscles: muscles,
-                  isBack: label.toLowerCase() == 'back',
-                ),
-                child: const SizedBox.expand(),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
+
+  List<Widget> _maskLayers() {
+    final side = isBack ? 'back' : 'front';
+    final entries = isBack
+        ? <(String, MuscleProgressData?)>[
+            ('back', muscles.chest),
+            ('shoulders', muscles.shoulders),
+            ('arms', muscles.leftArm),
+            ('glutes', muscles.hips),
+            ('legs', muscles.leftLeg),
+            ('calves', muscles.calves),
+          ]
+        : <(String, MuscleProgressData?)>[
+            ('chest', muscles.chest),
+            ('shoulders', muscles.shoulders),
+            ('arms', muscles.leftArm),
+            ('core', muscles.core),
+            ('glutes', muscles.hips),
+            ('legs', muscles.leftLeg),
+            ('calves', muscles.calves),
+          ];
+
+    return entries
+        .where((entry) => entry.$2 != null && entry.$2!.totalExp > 0)
+        .map(
+          (entry) => IgnorePointer(
+            child: Image.asset(
+              'assets/body/masks/${side}_${entry.$1}.png',
+              fit: BoxFit.contain,
+              color: _figureColor(
+                entry.$2,
+              ).withValues(alpha: entry.$2!.isLagging ? 0.94 : 0.86),
+              colorBlendMode: BlendMode.srcIn,
+              filterQuality: FilterQuality.high,
+            ),
+          ),
+        )
+        .toList(growable: false);
+  }
 }
 
+// Kept as a code-only fallback while the mask assets are rolled out.
+// ignore: unused_element
 class _MuscleFigurePainter extends CustomPainter {
   final _BodyMuscles muscles;
   final bool isBack;
@@ -297,14 +403,15 @@ class _MuscleFigurePainter extends CustomPainter {
     Offset p(double x, double y) => Offset(dx + x * scale, dy + y * scale);
 
     void draw(Path path, MuscleProgressData? data, {double alpha = 0.9}) {
+      if (data == null || data.totalExp <= 0) return;
       final color = _figureColor(data);
       final fill = Paint()
         ..style = PaintingStyle.fill
-        ..color = color.withValues(alpha: data == null ? 0.88 : alpha);
+        ..color = color.withValues(alpha: alpha);
       final stroke = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = data?.isLagging == true ? 2.0 * scale : 1.15 * scale
-        ..color = data?.isLagging == true
+        ..strokeWidth = data.isLagging ? 2.0 * scale : 1.15 * scale
+        ..color = data.isLagging
             ? const Color(0xFFFF6D65)
             : const Color(0xFFEAF1EF).withValues(alpha: 0.78);
 
@@ -346,13 +453,6 @@ class _MuscleFigurePainter extends CustomPainter {
       return result..close();
     }
 
-    canvas.drawShadow(
-      oval(25, 16, 99, 282),
-      Colors.black.withValues(alpha: 0.45),
-      12,
-      false,
-    );
-
     draw(oval(48, 0, 76, 31), null, alpha: 0.58);
     draw(path([p(52, 28), p(72, 28), p(78, 47), p(46, 47)]), null, alpha: 0.45);
 
@@ -361,12 +461,6 @@ class _MuscleFigurePainter extends CustomPainter {
     } else {
       _drawFront(canvas, p, draw, curve, path);
     }
-
-    final line = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.85 * scale
-      ..color = const Color(0xFF152023).withValues(alpha: 0.75);
-    canvas.drawLine(p(62, 49), p(62, 171), line);
   }
 
   void _drawFront(

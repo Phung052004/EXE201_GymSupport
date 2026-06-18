@@ -33,7 +33,7 @@ class TodayPlanCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.outline),
       ),
       child: const Center(
         child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
@@ -48,10 +48,10 @@ class TodayPlanCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.outline),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.07),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -93,7 +93,7 @@ class TodayPlanCard extends StatelessWidget {
               onPressed: onBuildRoutine,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.ink,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 0,
@@ -123,10 +123,10 @@ class TodayPlanCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.outline),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -222,7 +222,7 @@ class TodayPlanCard extends StatelessWidget {
                           onPressed: () {},
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
+                            foregroundColor: AppColors.ink,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             elevation: 0,

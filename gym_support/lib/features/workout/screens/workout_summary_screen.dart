@@ -23,14 +23,14 @@ class WorkoutSummaryScreen extends StatelessWidget {
               const SizedBox(height: 40),
               const Icon(
                 Icons.check_circle,
-                color: Color(0xFF12E67F),
+                color: AppColors.primary,
                 size: 100,
               ),
               const SizedBox(height: 24),
               const Text(
                 'Workout Completed!',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
                 ),
@@ -39,7 +39,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
               Text(
                 'Great job pushing through your limits!',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: AppColors.textSecondary,
                   fontSize: 16,
                 ),
               ),
@@ -57,7 +57,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                     _buildSummaryRow('Plan', summary['planName']),
                     _buildSummaryRow('Day', summary['dayName']),
                     _buildSummaryRow('Duration', summary['duration']),
-                    const Divider(color: Colors.white10, height: 32),
+                    const Divider(color: AppColors.outline, height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
@@ -66,7 +66,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                         _buildStat(
                           'STATUS',
                           'COMPLETED',
-                          color: const Color(0xFF12E67F),
+                          color: AppColors.accent,
                         ),
                       ],
                     ),
@@ -81,7 +81,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                   child: Text(
                     'Muscle EXP Gained',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -103,7 +103,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                       border: Border.all(
                         color: isLevelUp
                             ? AppColors.primary.withValues(alpha: 0.35)
-                            : Colors.white.withValues(alpha: 0.06),
+                            : AppColors.outline,
                       ),
                     ),
                     child: Row(
@@ -120,7 +120,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                           child: Text(
                             name,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -144,7 +144,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 child: Text(
                   'Completed Exercises:',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -166,13 +166,13 @@ class WorkoutSummaryScreen extends StatelessWidget {
                       Text(
                         ex['name'],
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         '${ex['sets']} sets',
-                        style: const TextStyle(color: Colors.white70),
+                        style: const TextStyle(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -215,12 +215,12 @@ class WorkoutSummaryScreen extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.white54, fontSize: 14),
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
           ),
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -236,7 +236,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: Colors.white38,
+            color: AppColors.textSecondary,
             fontSize: 11,
             fontWeight: FontWeight.bold,
           ),
@@ -245,7 +245,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            color: color ?? Colors.white,
+            color: color ?? AppColors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),

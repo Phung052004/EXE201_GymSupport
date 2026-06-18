@@ -17,14 +17,14 @@ class SecondaryButton extends StatelessWidget {
         child: Container(
           height: 56,
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.surface2,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Center(
             child: Text(
               text,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.75),
+                color: AppColors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),

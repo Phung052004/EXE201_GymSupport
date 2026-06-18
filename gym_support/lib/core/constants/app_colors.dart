@@ -3,16 +3,23 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const Color primary = Color(0xFF38E7C7);
-  static const Color accent = Color(0xFFA3FF4A);
-  static const Color background = Color(0xFF080C10);
-  static const Color surface = Color(0xFF111820);
-  static const Color surface2 = Color(0xFF18232D);
-  static const Color textPrimary = Color(0xFFF4F7FA);
-  static const Color textSecondary = Color(0xFF8B98A7);
+  static const Color primary = Color(0xFFB7FF2A);
+  static const Color accent = Color(0xFF8DDC18);
+  static const Color primaryDark = Color(0xFF5F9F00);
+  static const Color violet = Color(0xFF7657FF);
+  static const Color blue = Color(0xFF3B82F6);
+  static const Color orange = Color(0xFFFF7A30);
+  static const Color background = Color(0xFFF6F6F8);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surface2 = Color(0xFFEBECEF);
+  static const Color textPrimary = Color(0xFF172027);
+  static const Color textSecondary = Color(0xFF7A7F84);
 
   // Legacy support or variations
-  static const Color secondary = Color(0xFF63A8FF);
-  static const Color surfaceSelected = Color(0xFF123D3C);
-  static const Color textDark = Color(0xFF071013);
+  static const Color secondary = Color(0xFF71808D);
+  static const Color surfaceSelected = Color(0xFFE9FFC0);
+  static const Color textDark = Color(0xFF172027);
+  static const Color ink = Color(0xFF172027);
+  static const Color outline = Color(0xFFE0E2E5);
+  static const Color danger = Color(0xFFE95858);
 }

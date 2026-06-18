@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/constants/app_colors.dart';
 
 class InputLabel extends StatelessWidget {
   final String text;
@@ -12,7 +13,7 @@ class InputLabel extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.45),
+          color: AppColors.textSecondary,
           fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 1,

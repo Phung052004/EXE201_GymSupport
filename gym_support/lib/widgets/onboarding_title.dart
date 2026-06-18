@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/constants/app_colors.dart';
 
 class OnboardingTitle extends StatelessWidget {
   const OnboardingTitle({super.key});
@@ -9,7 +10,7 @@ class OnboardingTitle extends StatelessWidget {
       'Welcome to GymSupport',
       textAlign: TextAlign.center,
       style: TextStyle(
-        color: Colors.white,
+        color: AppColors.textPrimary,
         fontSize: 26,
         fontWeight: FontWeight.w800,
       ),

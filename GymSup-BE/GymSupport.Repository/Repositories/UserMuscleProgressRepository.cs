@@ -1,6 +1,7 @@
 using GymCoach.Api.Config;
 using GymSupport.Repository.Interfaces;
 using GymSupport.Repository.Models.Entities;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace GymSupport.Repository.Repositories;
@@ -31,6 +32,11 @@ public class UserMuscleProgressRepository : IUserMuscleProgressRepository
 
     public async Task UpsertAsync(UserMuscleProgress progress)
     {
+        if (!ObjectId.TryParse(progress.Id, out _))
+        {
+            progress.Id = ObjectId.GenerateNewId().ToString();
+        }
+
         progress.UpdatedAt = DateTime.UtcNow;
 
         await _collection.ReplaceOneAsync(

@@ -134,7 +134,7 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: plan.isActive ? AppColors.primary.withOpacity(0.5) : Colors.white.withOpacity(0.05),
+          color: plan.isActive ? AppColors.primary : AppColors.outline,
           width: plan.isActive ? 2 : 1,
         ),
         boxShadow: [
@@ -160,7 +160,7 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
                   end: Alignment.bottomRight,
                   colors: plan.isActive 
                       ? [AppColors.primary, AppColors.primary.withOpacity(0.6)]
-                      : [AppColors.surface2, AppColors.surface],
+                      : [AppColors.ink, const Color(0xFF303A42)],
                 ),
               ),
               child: Stack(
@@ -182,8 +182,8 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
                       children: [
                         Text(
                           plan.name.toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: plan.isActive ? AppColors.ink : Colors.white,
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
@@ -194,12 +194,12 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
                             margin: const EdgeInsets.only(top: 4),
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: AppColors.ink.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
                               'ACTIVE NOW',
-                              style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
+                              style: TextStyle(color: AppColors.ink, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
                             ),
                           ),
                       ],
@@ -233,7 +233,7 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.textPrimary,
-                            side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                            side: const BorderSide(color: AppColors.outline),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
@@ -246,9 +246,9 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
                           onPressed: plan.isActive ? null : () => _applyPlan(plan.id),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor: Colors.white.withOpacity(0.05),
-                            disabledForegroundColor: Colors.white.withOpacity(0.2),
+                            foregroundColor: AppColors.ink,
+                            disabledBackgroundColor: AppColors.surface2,
+                            disabledForegroundColor: AppColors.textSecondary,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             elevation: 0,

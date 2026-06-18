@@ -23,7 +23,7 @@ class NutritionPlanCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Column(
         children: [

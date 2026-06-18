@@ -26,7 +26,7 @@ class StepIndicator extends StatelessWidget {
           decoration: BoxDecoration(
             color: isActive
                 ? AppColors.primary
-                : Colors.white.withValues(alpha: 0.12),
+                : AppColors.outline,
             borderRadius: BorderRadius.circular(99),
           ),
         );
