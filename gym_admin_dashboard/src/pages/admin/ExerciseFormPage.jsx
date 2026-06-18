@@ -1,4 +1,4 @@
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import FormInput from '../../components/common/FormInput.jsx'
@@ -7,8 +7,6 @@ import { adminApi } from '../../services/adminApi.js'
 const emptyExercise = {
   name: '',
   description: '',
-  mainMuscleGroup: '',
-  secondaryMuscleGroups: '',
   difficulty: '',
   equipment: '',
   instruction: '',
@@ -17,10 +15,10 @@ const emptyExercise = {
   tips: '',
   imageUrl: '',
   videoUrl: '',
-  defaultSets: '',
+  defaultSets: 0,
   defaultReps: '',
-  restTime: '',
-  status: 'Active',
+  restTimeSeconds: 0,
+  muscleImpacts: [],
 }
 
 export default function ExerciseFormPage() {
@@ -32,9 +30,7 @@ export default function ExerciseFormPage() {
 
   useEffect(() => {
     adminApi.getMuscleGroups().then((data) => {
-      const names = data.map((item) => item.name)
-      setMuscleOptions(names)
-      setForm((current) => current.mainMuscleGroup ? current : { ...current, mainMuscleGroup: names[0] || '' })
+      setMuscleOptions(data)
     })
   }, [])
 
@@ -43,27 +39,73 @@ export default function ExerciseFormPage() {
     adminApi.getExerciseById(id).then((data) => {
       if (!data) return
       setForm({
-        ...data,
-        secondaryMuscleGroups: data.secondaryMuscleGroups?.join(', ') || '',
+        name: data.name || '',
+        description: data.description || '',
+        difficulty: data.difficulty || '',
+        equipment: data.equipment || '',
+        instruction: data.instruction || '',
+        safetyNotes: data.safetyNotes || '',
+        commonMistakes: data.commonMistakes || '',
+        tips: data.tips || '',
+        imageUrl: data.imageUrl || '',
+        videoUrl: data.videoUrl || '',
+        defaultSets: data.defaultSets || 0,
+        defaultReps: data.defaultReps || '',
+        restTimeSeconds: data.restTimeSeconds || 0,
+        muscleImpacts: data.muscleImpacts || [],
       })
     })
   }, [id])
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
 
+  const addMuscleImpact = () => {
+    setForm((current) => ({
+      ...current,
+      muscleImpacts: [...current.muscleImpacts, { muscleId: '', percentage: 0 }],
+    }))
+  }
+
+  const removeMuscleImpact = (index) => {
+    setForm((current) => ({
+      ...current,
+      muscleImpacts: current.muscleImpacts.filter((_, i) => i !== index),
+    }))
+  }
+
+  const updateMuscleImpact = (index, key, value) => {
+    setForm((current) => ({
+      ...current,
+      muscleImpacts: current.muscleImpacts.map((impact, i) =>
+        i === index ? { ...impact, [key]: key === 'percentage' ? Number(value) : value } : impact
+      ),
+    }))
+  }
+
   const submit = async (event) => {
     event.preventDefault()
     const nextErrors = {}
     if (!form.name.trim()) nextErrors.name = 'Exercise name is required'
+    if (!form.muscleImpacts.length) nextErrors.muscleImpacts = 'At least one muscle group is required'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
 
     await adminApi.saveExercise({
-      ...form,
-      id,
+      name: form.name,
+      description: form.description,
+      difficulty: form.difficulty,
+      equipment: form.equipment,
+      instruction: form.instruction,
+      safetyNotes: form.safetyNotes,
+      commonMistakes: form.commonMistakes,
+      tips: form.tips,
+      imageUrl: form.imageUrl,
+      videoUrl: form.videoUrl,
       defaultSets: Number(form.defaultSets),
-      secondaryMuscleGroups: form.secondaryMuscleGroups.split(',').map((item) => item.trim()).filter(Boolean),
-      muscleImpacts: [{ muscle: form.mainMuscleGroup, percent: 70 }],
+      defaultReps: form.defaultReps,
+      restTimeSeconds: Number(form.restTimeSeconds),
+      muscleImpacts: form.muscleImpacts,
+      ...(id && { id }),
     })
     navigate('/admin/exercises')
   }
@@ -75,16 +117,13 @@ export default function ExerciseFormPage() {
         <h2 className="text-lg font-black text-slate-950">{id ? 'Edit Exercise' : 'Add Exercise'}</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <FormInput label="Exercise Name" value={form.name} onChange={(e) => update('name', e.target.value)} error={errors.name} />
-          <FormInput label="Main Muscle Group" as="select" value={form.mainMuscleGroup} onChange={(e) => update('mainMuscleGroup', e.target.value)} options={muscleOptions} />
-          <FormInput label="Secondary Muscle Groups" value={form.secondaryMuscleGroups} onChange={(e) => update('secondaryMuscleGroups', e.target.value)} placeholder="Triceps, Shoulders" />
           <FormInput label="Difficulty" as="select" value={form.difficulty} onChange={(e) => update('difficulty', e.target.value)} options={['Beginner', 'Intermediate', 'Advanced']} />
           <FormInput label="Equipment" value={form.equipment} onChange={(e) => update('equipment', e.target.value)} />
           <FormInput label="Default Sets" type="number" value={form.defaultSets} onChange={(e) => update('defaultSets', e.target.value)} />
           <FormInput label="Default Reps" value={form.defaultReps} onChange={(e) => update('defaultReps', e.target.value)} />
-          <FormInput label="Rest Time" value={form.restTime} onChange={(e) => update('restTime', e.target.value)} />
+          <FormInput label="Rest Time (seconds)" type="number" value={form.restTimeSeconds} onChange={(e) => update('restTimeSeconds', e.target.value)} />
           <FormInput label="Image URL" value={form.imageUrl} onChange={(e) => update('imageUrl', e.target.value)} />
           <FormInput label="Video URL" value={form.videoUrl} onChange={(e) => update('videoUrl', e.target.value)} />
-          <FormInput label="Status" as="select" value={form.status} onChange={(e) => update('status', e.target.value)} options={['Active', 'Hidden']} />
           <div className="md:col-span-2">
             <FormInput label="Description" as="textarea" rows="3" value={form.description} onChange={(e) => update('description', e.target.value)} />
           </div>
@@ -101,6 +140,58 @@ export default function ExerciseFormPage() {
             <FormInput label="Tips" as="textarea" rows="3" value={form.tips} onChange={(e) => update('tips', e.target.value)} />
           </div>
         </div>
+
+        {/* Muscle Impacts Section */}
+        <div className="mt-6 border-t pt-6">
+          <div className="mb-4 flex items-center justify-between">
+            <label className="text-sm font-semibold text-slate-950">Muscle Impacts</label>
+            <button type="button" onClick={addMuscleImpact} className="btn-secondary flex items-center gap-2 text-sm">
+              <Plus size={16} /> Add Muscle Group
+            </button>
+          </div>
+          {errors.muscleImpacts && <p className="mb-3 text-sm text-red-600">{errors.muscleImpacts}</p>}
+          
+          <div className="space-y-3">
+            {form.muscleImpacts.length === 0 ? (
+              <p className="text-sm text-slate-500">No muscle groups added yet. Click "Add Muscle Group" to get started.</p>
+            ) : (
+              form.muscleImpacts.map((impact, index) => (
+                <div key={index} className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <select
+                    value={impact.muscleId}
+                    onChange={(e) => updateMuscleImpact(index, 'muscleId', e.target.value)}
+                    className="flex-1 rounded border border-slate-300 px-2 py-2 text-sm"
+                  >
+                    <option value="">Select muscle group</option>
+                    {muscleOptions.map((muscle) => (
+                      <option key={muscle.id || muscle.name} value={muscle.id || muscle.name}>
+                        {muscle.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={impact.percentage}
+                    onChange={(e) => updateMuscleImpact(index, 'percentage', e.target.value)}
+                    placeholder="Percentage"
+                    className="w-24 rounded border border-slate-300 px-2 py-2 text-sm"
+                  />
+                  <span className="flex items-center text-sm font-medium text-slate-600">%</span>
+                  <button
+                    type="button"
+                    onClick={() => removeMuscleImpact(index)}
+                    className="rounded bg-red-100 p-2 text-red-600 hover:bg-red-200"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         <div className="mt-6 flex justify-end">
           <button className="btn-primary" type="submit"><Save size={16} /> Save Exercise</button>
         </div>
