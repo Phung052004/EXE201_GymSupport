@@ -1,23 +1,146 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/backend_api.dart';
+import '../../../core/services/session_store.dart';
 import '../widgets/muscle_progress_card.dart';
 
 class MuscleDetailScreen extends StatefulWidget {
-  final List<MuscleProgressData> items;
+  final List<MuscleProgressData>? items;
 
-  const MuscleDetailScreen({super.key, required this.items});
+  const MuscleDetailScreen({super.key, this.items});
 
   @override
   State<MuscleDetailScreen> createState() => _MuscleDetailScreenState();
 }
 
 class _MuscleDetailScreenState extends State<MuscleDetailScreen> {
+  List<MuscleProgressData> _muscles = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMuscleProgress();
+  }
+
+  Future<void> _loadMuscleProgress() async {
+    try {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+
+      final data = await BackendApi.getUserMuscleProgress();
+
+      if (!mounted) return;
+
+      final muscles = data
+          .map((item) => MuscleProgressData(
+                id: item['id'] ?? '',
+                name: item['name'] ?? '',
+                category: item['category'] ?? '',
+                level: (item['level'] as num?)?.toInt() ?? 0,
+                totalExp: (item['totalExp'] as num?)?.toInt() ?? 0,
+                currentLevelExp: (item['currentLevelExp'] as num?)?.toInt() ?? 0,
+                expToNextLevel:
+                    (item['expToNextLevel'] as num?)?.toInt() ?? 0,
+                progress: (item['progress'] as num?)?.toDouble() ?? 0.0,
+                tier: item['tier'] ?? '',
+                isLagging: (item['isLagging'] as bool?) ?? false,
+              ))
+          .toList();
+
+      setState(() {
+        _muscles = muscles;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _loading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new),
+            color: AppColors.textPrimary,
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Muscle Progress',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+          ),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new),
+            color: AppColors.textPrimary,
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Muscle Progress',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Error loading muscle data',
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadMuscleProgress,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final byName = {
-      for (final item in widget.items) _normalize(item.name): item,
+      for (final item in _muscles) _normalize(item.name): item,
     };
 
     MuscleProgressData? find(List<String> keys) {
@@ -65,11 +188,12 @@ class _MuscleDetailScreenState extends State<MuscleDetailScreen> {
     );
 
     // Get all muscles with exp
-    final allMuscles = widget.items.where((m) => m.totalExp > 0).toList()
+    final allMuscles = _muscles.toList()
       ..sort((a, b) {
-        // Sort by: lagging first, then by level descending
+        // Sort by: lagging first, then by level descending, then by name
         if (a.isLagging != b.isLagging) return a.isLagging ? -1 : 1;
-        return b.level.compareTo(a.level);
+        if (b.level != a.level) return b.level.compareTo(a.level);
+        return a.name.compareTo(b.name);
       });
 
     return Scaffold(
@@ -187,6 +311,27 @@ class _MuscleDetailScreenState extends State<MuscleDetailScreen> {
   }
 }
 
+// Helper function to get tier color based on tier string
+Color _getTierColor(String tier) {
+  switch (tier.toLowerCase()) {
+    case 'champion':
+      return const Color(0xFF9C27B0);
+    case 'diamond':
+      return const Color(0xFF2196F3);
+    case 'platinum':
+      return const Color(0xFFE91E63);
+    case 'gold':
+      return const Color(0xFFFFC107);
+    case 'silver':
+      return const Color(0xFFC0C0C0);
+    case 'bronze':
+      return const Color(0xFFCD7F32);
+    case 'iron':
+    default:
+      return const Color(0xFF808080);
+  }
+}
+
 class _MuscleListItem extends StatelessWidget {
   final MuscleProgressData muscle;
 
@@ -194,6 +339,8 @@ class _MuscleListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tierColor = _getTierColor(muscle.tier);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -201,27 +348,21 @@ class _MuscleListItem extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: muscle.isLagging
-              ? const Color(0xFFFF6D65).withValues(alpha: 0.3)
-              : AppColors.outline,
+          color: tierColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
         children: [
-          // Orange dot for weak muscles
-          if (muscle.isLagging) ...[
-            Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFFF9B6D),
-              ),
+          // Tier colored dot
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: tierColor,
             ),
-            const SizedBox(width: 10),
-          ] else ...[
-            const SizedBox(width: 20),
-          ],
+          ),
+          const SizedBox(width: 10),
           // Muscle name
           Expanded(
             child: Column(
@@ -331,7 +472,7 @@ class _BodyFigure extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 180,
+      width: 140,
       child: Stack(
         fit: StackFit.expand,
         children: [
