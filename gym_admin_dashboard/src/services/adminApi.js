@@ -135,6 +135,25 @@ const normalizeExercise = (exercise, muscleLookup = { byId: {}, byName: {} }) =>
   }
 }
 
+async function uploadFile(file) {
+  const body = new FormData()
+  body.append('file', file)
+  const headers = {}
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const response = await fetch(`${API_BASE_URL}/media/upload`, {
+    method: 'POST',
+    headers,
+    body,
+  })
+  const payload = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(payload?.message || 'Upload file thất bại')
+  }
+  return payload
+}
+
 const exercisePayload = async (payload) => {
   const muscles = await adminApi.getMuscleGroups()
   const muscleLookup = buildMuscleLookup(muscles)
@@ -219,6 +238,7 @@ const normalizeDashboard = (data) => ({
 })
 
 export const adminApi = {
+  uploadMedia: uploadFile,
   getDashboard: async () => normalizeDashboard(await request('/admin/dashboard/summary', { emptyValue: {} })),
 
   getUsers: async () => {

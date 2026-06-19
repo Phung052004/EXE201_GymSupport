@@ -1,9 +1,11 @@
 using GymCoach.Api.Config;
 using GymSupport.Repository.Interfaces;
 using GymSupport.Repository.Models.Entities;
+using CloudinaryDotNet;
 using GymSupport.Repository.Repositories;
 using GymSupport.Service.Interfaces;
 using GymSupport.Service.Services;
+using GymSupport.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -14,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<CloudinaryMediaService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -119,6 +122,11 @@ builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanReposito
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+
+
+
+
+
 
 var app = builder.Build();
 

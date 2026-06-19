@@ -27,6 +27,7 @@ export default function ExerciseFormPage() {
   const [form, setForm] = useState(emptyExercise)
   const [muscleOptions, setMuscleOptions] = useState([])
   const [errors, setErrors] = useState({})
+  const [uploading, setUploading] = useState({ image: false, video: false })
 
   useEffect(() => {
     adminApi.getMuscleGroups().then((data) => {
@@ -58,6 +59,20 @@ export default function ExerciseFormPage() {
   }, [id])
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
+
+  const uploadMedia = async (file, kind) => {
+    if (!file) return
+    setUploading((current) => ({ ...current, [kind]: true }))
+    setErrors((current) => ({ ...current, [kind]: '' }))
+    try {
+      const result = await adminApi.uploadMedia(file)
+      update(kind === 'image' ? 'imageUrl' : 'videoUrl', result.url)
+    } catch (error) {
+      setErrors((current) => ({ ...current, [kind]: error.message }))
+    } finally {
+      setUploading((current) => ({ ...current, [kind]: false }))
+    }
+  }
 
   const addMuscleImpact = () => {
     setForm((current) => ({
@@ -122,8 +137,20 @@ export default function ExerciseFormPage() {
           <FormInput label="Default Sets" type="number" value={form.defaultSets} onChange={(e) => update('defaultSets', e.target.value)} />
           <FormInput label="Default Reps" value={form.defaultReps} onChange={(e) => update('defaultReps', e.target.value)} />
           <FormInput label="Rest Time (seconds)" type="number" value={form.restTimeSeconds} onChange={(e) => update('restTimeSeconds', e.target.value)} />
-          <FormInput label="Image URL" value={form.imageUrl} onChange={(e) => update('imageUrl', e.target.value)} />
-          <FormInput label="Video URL" value={form.videoUrl} onChange={(e) => update('videoUrl', e.target.value)} />
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-950">Exercise image</label>
+            <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading.image} onChange={(e) => uploadMedia(e.target.files?.[0], 'image')} className="w-full rounded border border-slate-300 px-3 py-2 text-sm" />
+            {uploading.image && <p className="mt-1 text-sm text-slate-500">Uploading image...</p>}
+            {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image}</p>}
+            {form.imageUrl && <img src={form.imageUrl} alt="Exercise preview" className="mt-2 h-32 w-full rounded object-cover" />}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-950">Exercise video</label>
+            <input type="file" accept="video/mp4,video/quicktime,video/webm" disabled={uploading.video} onChange={(e) => uploadMedia(e.target.files?.[0], 'video')} className="w-full rounded border border-slate-300 px-3 py-2 text-sm" />
+            {uploading.video && <p className="mt-1 text-sm text-slate-500">Uploading video...</p>}
+            {errors.video && <p className="mt-1 text-sm text-red-600">{errors.video}</p>}
+            {form.videoUrl && <video src={form.videoUrl} controls className="mt-2 h-32 w-full rounded bg-black object-contain" />}
+          </div>
           <div className="md:col-span-2">
             <FormInput label="Description" as="textarea" rows="3" value={form.description} onChange={(e) => update('description', e.target.value)} />
           </div>
@@ -193,7 +220,7 @@ export default function ExerciseFormPage() {
         </div>
 
         <div className="mt-6 flex justify-end">
-          <button className="btn-primary" type="submit"><Save size={16} /> Save Exercise</button>
+          <button className="btn-primary" type="submit" disabled={uploading.image || uploading.video}><Save size={16} /> Save Exercise</button>
         </div>
       </div>
     </form>
