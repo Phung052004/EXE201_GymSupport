@@ -81,51 +81,96 @@ class _MuscleBalanceMapState extends State<MuscleBalanceMap> {
 
   @override
   Widget build(BuildContext context) {
-    final byName = {
-      for (final item in widget.items) _normalize(item.name): item,
-    };
+    // final byName = {
+    //   for (final item in widget.items) _normalize(item.name): item,
+    // };
 
+    // MuscleProgressData? find(List<String> keys) {
+    //   for (final key in keys) {
+    //     final value = byName[_normalize(key)];
+    //     if (value != null) return value;
+    //   }
+    //   return null;
+    // }
     MuscleProgressData? find(List<String> keys) {
-      for (final key in keys) {
-        final value = byName[_normalize(key)];
-        if (value != null) return value;
-      }
-      return null;
+      final normalizedKeys = keys.map(_normalize).toList();
+
+      // 1. Tìm tất cả các nhóm cơ có Tên hoặc Category chứa từ khóa
+      final matches = widget.items.where((item) {
+        final normName = _normalize(item.name);
+        final normCat = _normalize(item.category);
+
+        return normalizedKeys.any(
+          (key) => normName.contains(key) || normCat.contains(key),
+        );
+      }).toList();
+
+      if (matches.isEmpty) return null;
+
+      // 2. Nếu có nhiều nhóm cơ con (VD: Ngực trên, Ngực giữa),
+      // ưu tiên lấy nhóm cơ có EXP cao nhất để đại diện phủ màu
+      matches.sort((a, b) => b.totalExp.compareTo(a.totalExp));
+      return matches.first;
     }
 
-    final chest = find(['Chest', 'Pectorals', 'Nguc']);
-    final shoulders = find(['Shoulders', 'Delts', 'Vai']);
-    final biceps = find(['Biceps', 'Arms', 'Tay truoc']);
-    final triceps = find(['Triceps', 'Tay sau']);
-    final abs = find(['Abs', 'Core', 'Bung']);
-    final back = find(['Back', 'Lats', 'Traps', 'Lung']);
-    final glutes = find(['Glutes', 'Mong']);
-    final legs = find(['Legs', 'Quads', 'Hamstrings', 'Chan']);
-    final calves = find(['Calves', 'Bap chan']);
+    // --- 1. Nhóm Gom Cụm ---
+    final chest = find(['Ngực', 'Chest']);
+    final biceps = find(['Tay trước', 'Biceps']);
+    final triceps = find(['Tay sau', 'Triceps']);
+    final quads = find(['Đùi trước', 'Quadriceps', 'Quads']);
+    final hamstrings = find(['Đùi sau', 'Hamstrings']);
+    final glute = find(['Mông', 'Glute']);
+
+    // --- 2. Nhóm Vai ---
+    final vaiTruoc = find(['Vai trước', 'Anterior Deltoid']);
+    final vaiGiua = find(['Vai giữa', 'Lateral Deltoid']);
+    final vaiSau = find(['Vai sau', 'Posterior Deltoid']);
+
+    // --- 3. Nhóm Bụng (ĐÃ THÊM CORE) ---
+    final abs = find(['Cơ thẳng bụng', 'Rectus Abdominis', 'Abs']);
+    final obliques = find(['Cơ liên sườn', 'Obliques']);
+    final core = find([
+      'Cơ bụng ngang',
+      'Cơ cốt lõi',
+      'Core',
+      'Cơ lõi',
+    ]); // <-- Thêm dòng này
+
+    // --- 4. Nhóm Lưng ---
+    final traps = find(['Cầu vai', 'Trapezius', 'Traps']);
+    final lats = find(['Lưng xô', 'Latissimus Dorsi', 'Lats']);
+    final rhomboids = find(['Lưng giữa', 'Rhomboids']);
+    final lowerBack = find(['Dựng cột sống', 'Lower back', 'Erector']);
+
+    // --- 5. Bắp chân ---
+    final calvesData = find(['Bắp chân', 'Calves']);
+
     final activeCount = widget.items.where((item) => item.totalExp > 0).length;
     final weakCount = widget.items.where((item) => item.isLagging).length;
+
     final displayedMuscles = _showBack
         ? _BodyMuscles(
-            chest: back,
-            shoulders: shoulders,
-            leftArm: triceps,
-            rightArm: triceps,
-            core: back,
-            hips: glutes,
-            leftLeg: legs,
-            rightLeg: legs,
-            calves: calves,
+            triceps: triceps,
+            hamstrings: hamstrings,
+            glute: glute,
+            shouldersPosterior: vaiSau,
+            shouldersLateral: vaiGiua,
+            traps: traps,
+            lats: lats,
+            rhomboids: rhomboids,
+            lowerBack: lowerBack,
+            calvesBack: calvesData,
           )
         : _BodyMuscles(
             chest: chest,
-            shoulders: shoulders,
-            leftArm: biceps ?? triceps,
-            rightArm: biceps ?? triceps,
-            core: abs,
-            hips: glutes,
-            leftLeg: legs,
-            rightLeg: legs,
-            calves: calves,
+            biceps: biceps,
+            quads: quads,
+            shouldersAnterior: vaiTruoc,
+            shouldersLateral: vaiGiua,
+            abs: abs,
+            obliques: obliques,
+            core: core, // <-- Truyền core vào đây
+            calvesFront: calvesData,
           );
 
     return Container(
@@ -317,27 +362,66 @@ class _TopMetric extends StatelessWidget {
 }
 
 class _BodyMuscles {
+  // Các nhóm cơ chung/gom cụm
   final MuscleProgressData? chest;
-  final MuscleProgressData? shoulders;
-  final MuscleProgressData? leftArm;
-  final MuscleProgressData? rightArm;
-  final MuscleProgressData? core;
-  final MuscleProgressData? hips;
-  final MuscleProgressData? leftLeg;
-  final MuscleProgressData? rightLeg;
-  final MuscleProgressData? calves;
+  final MuscleProgressData? biceps;
+  final MuscleProgressData? triceps;
+  final MuscleProgressData? quads;
+  final MuscleProgressData? hamstrings;
+  final MuscleProgressData? glute;
+
+  // Vai (Chia nhỏ)
+  final MuscleProgressData? shouldersAnterior;
+  final MuscleProgressData? shouldersLateral;
+  final MuscleProgressData? shouldersPosterior;
+
+  // Bụng/Core (Chia nhỏ) 👇 ĐÃ THÊM CORE
+  final MuscleProgressData? abs; // Cơ thẳng bụng
+  final MuscleProgressData? obliques; // Cơ liên sườn
+  final MuscleProgressData? core; // Cơ cốt lõi / Cơ bụng ngang
+
+  // Lưng (Chia nhỏ)
+  final MuscleProgressData? traps;
+  final MuscleProgressData? lats;
+  final MuscleProgressData? rhomboids;
+  final MuscleProgressData? lowerBack;
+
+  // Bắp chân (Chia 2 mặt)
+  final MuscleProgressData? calvesFront;
+  final MuscleProgressData? calvesBack;
 
   const _BodyMuscles({
     this.chest,
-    this.shoulders,
-    this.leftArm,
-    this.rightArm,
-    this.core,
-    this.hips,
-    this.leftLeg,
-    this.rightLeg,
-    this.calves,
+    this.biceps,
+    this.triceps,
+    this.quads,
+    this.hamstrings,
+    this.glute,
+    this.shouldersAnterior,
+    this.shouldersLateral,
+    this.shouldersPosterior,
+    this.abs,
+    this.obliques,
+    this.core, // <-- Thêm vào đây
+    this.traps,
+    this.lats,
+    this.rhomboids,
+    this.lowerBack,
+    this.calvesFront,
+    this.calvesBack,
   });
+
+  // Cầu nối giữ tương thích với CustomPainter cũ
+  MuscleProgressData? get shoulders =>
+      shouldersAnterior ?? shouldersLateral ?? shouldersPosterior;
+  MuscleProgressData? get hips => glute;
+  MuscleProgressData? get leftArm => biceps ?? triceps;
+  MuscleProgressData? get rightArm => biceps ?? triceps;
+  MuscleProgressData? get leftLeg =>
+      quads ?? hamstrings ?? calvesFront ?? calvesBack;
+  MuscleProgressData? get rightLeg =>
+      quads ?? hamstrings ?? calvesFront ?? calvesBack;
+  MuscleProgressData? get calves => calvesFront ?? calvesBack;
 }
 
 class _BodyFigure extends StatelessWidget {
@@ -372,23 +456,33 @@ class _BodyFigure extends StatelessWidget {
 
   List<Widget> _maskLayers() {
     final side = isBack ? 'back' : 'front';
+
     final entries = isBack
         ? <(String, MuscleProgressData?)>[
-            ('back', muscles.chest),
-            ('shoulders', muscles.shoulders),
-            ('arms', muscles.leftArm),
-            ('glutes', muscles.hips),
-            ('legs', muscles.leftLeg),
-            ('calves', muscles.calves),
+            ('triceps', muscles.triceps),
+            ('hamstrings', muscles.hamstrings),
+            ('glute', muscles.glute),
+            ('shoulders_posterior', muscles.shouldersPosterior),
+            ('shoulders_lateral', muscles.shouldersLateral),
+            ('traps', muscles.traps),
+            ('lats', muscles.lats),
+            ('rhomboids', muscles.rhomboids),
+            ('lower_back', muscles.lowerBack),
+            ('calves', muscles.calvesBack),
           ]
         : <(String, MuscleProgressData?)>[
             ('chest', muscles.chest),
-            ('shoulders', muscles.shoulders),
-            ('arms', muscles.leftArm),
-            ('core', muscles.core),
-            ('glutes', muscles.hips),
-            ('legs', muscles.leftLeg),
-            ('calves', muscles.calves),
+            ('biceps', muscles.biceps),
+            ('quads', muscles.quads),
+            ('shoulders_anterior', muscles.shouldersAnterior),
+            ('shoulders_lateral', muscles.shouldersLateral),
+            ('abs', muscles.abs),
+            ('obliques', muscles.obliques),
+            (
+              'core',
+              muscles.core,
+            ), // <-- Thêm dòng này để nạp file front_core.png
+            ('calves', muscles.calvesFront),
           ];
 
     return entries
@@ -927,20 +1021,17 @@ Color _tierColor(MuscleProgressData item) {
 }
 
 Color _figureColor(MuscleProgressData? item) {
-  if (item == null || item.totalExp <= 0) {
-    return const Color(0xFFF3D9D4);
+  if (item == null) {
+    return const Color(0xFFCDD5D7);
   }
 
-  if (item.isLagging) {
-    return const Color(0xFFFF6F66);
+  // Nếu chưa tập luyện (0 XP) → màu xám mặc định
+  if (item.totalExp <= 0) {
+    return const Color(0xFF6B7280);
   }
 
-  final heat = item.progress.clamp(0.0, 1.0);
-  return Color.lerp(
-    const Color(0xFFFFB1A9),
-    const Color(0xFFFF4E45),
-    0.35 + heat * 0.65,
-  )!;
+  // Tô màu dựa trên tier
+  return _tierColor(item);
 }
 
 class MuscleProgressData {
