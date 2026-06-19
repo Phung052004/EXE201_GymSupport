@@ -122,6 +122,8 @@ builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanReposito
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IStorePurchaseService, StorePurchaseService>();
+builder.Services.AddScoped<PremiumOnlyFilter>();
 
 
 

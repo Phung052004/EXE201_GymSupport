@@ -1,12 +1,17 @@
 ﻿using GymSupport.Repository.Interfaces;
 using GymSupport.Repository.Models.DTOs.AIModel;
 using GymSupport.Service.Interfaces;
+using GymSupport.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace GymSupport.API.Controllers;
 
 [ApiController]
 [Route("api/ai")]
+[Authorize]
+[ServiceFilter(typeof(PremiumOnlyFilter))]
 public class AIController : ControllerBase
 {
     private readonly IAIService _aiService;
@@ -25,8 +30,11 @@ public class AIController : ControllerBase
     {
         try
         {
+            var userId = CurrentUserId();
+            if (userId == null) return Unauthorized();
+
             var result = await _aiService.ChatAsync(
-                dto.UserId,
+                userId,
                 dto.Message);
 
             return Ok(result);
@@ -43,6 +51,9 @@ public class AIController : ControllerBase
     [HttpPost("apply")]
     public async Task<IActionResult> ApplySuggestions([FromBody] ApplySuggestionsRequestDto dto)
     {
+        var userId = CurrentUserId();
+        if (userId == null) return Unauthorized();
+        dto.UserId = userId;
         await _aiService.ApplySuggestionsAsync(dto);
 
         return Ok(new
@@ -55,6 +66,11 @@ public class AIController : ControllerBase
     [HttpGet("history/{userId}")]
     public async Task<IActionResult> GetHistory(string userId)
     {
+        var currentUserId = CurrentUserId();
+        if (currentUserId == null) return Unauthorized();
+        if (!string.Equals(currentUserId, userId, StringComparison.Ordinal))
+            return Forbid();
+
         var messages = await _chatRepository.GetByUserIdAsync(userId);
 
         var result = messages.Select(x => new ChatHistoryDto
@@ -210,4 +226,8 @@ public class AIController : ControllerBase
     {
         public IFormFile? Video { get; set; }
     }
+
+    private string? CurrentUserId() =>
+        User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+        User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
 }

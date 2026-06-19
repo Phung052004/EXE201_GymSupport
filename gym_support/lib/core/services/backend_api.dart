@@ -1985,13 +1985,21 @@ class BackendApi {
     );
   }
 
-  static Future<Map<String, dynamic>> purchaseSubscription(
-    String planId,
-  ) async {
+  static Future<Map<String, dynamic>> verifyStorePurchase({
+    required String platform,
+    required String productId,
+    required String verificationData,
+    String? transactionId,
+  }) async {
     final decoded = await _post(
-      '/api/subscriptions/purchase',
+      '/api/store-purchases/verify',
       auth: true,
-      body: {'planId': planId},
+      body: {
+        'platform': platform,
+        'productId': productId,
+        'verificationData': verificationData,
+        'transactionId': transactionId,
+      },
     );
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }

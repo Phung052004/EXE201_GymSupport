@@ -16,16 +16,24 @@ public class Payment
     // Subscription, Other
 
     public string PlanName { get; set; } = string.Empty;
+    public string PlanId { get; set; } = string.Empty;
 
     public decimal Amount { get; set; }
 
     public string PaymentMethod { get; set; } = string.Empty;
-    // VNPAY, MOMO, PAYOS, Cash, etc.
+    // GOOGLE_PLAY, APP_STORE, Other
 
     public string Status { get; set; } = "Pending";
     // Pending, Paid, Failed, Cancelled, Refunded
 
-    public DateTime PaidAt { get; set; }
+    public string OrderId { get; set; } = string.Empty;
+    public string RequestId { get; set; } = string.Empty;
+    public string? TransactionId { get; set; }
+    public int? ProviderResultCode { get; set; }
+    public string? ProviderMessage { get; set; }
+
+    public DateTime? PaidAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
 }

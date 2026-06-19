@@ -148,34 +148,6 @@ public class SubscriptionsController : ControllerBase
     }
 
     /// <summary>
-    /// Purchase a subscription plan
-    /// Request: { "planId": "plan_id" }
-    /// </summary>
-    [HttpPost("purchase")]
-    [Authorize]
-    public async Task<IActionResult> PurchaseSubscription([FromBody] PurchaseSubscriptionDto dto)
-    {
-        try
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
-
-            if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized(new { message = "User ID not found in token" });
-
-            if (string.IsNullOrWhiteSpace(dto.PlanId))
-                return BadRequest(new { message = "Plan ID is required" });
-
-            var subscription = await _subscriptionService.PurchaseSubscriptionAsync(userId, dto.PlanId);
-            return Ok(subscription);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Error purchasing subscription", error = ex.Message });
-        }
-    }
-
-    /// <summary>
     /// Get current subscription of authenticated user
     /// Response: { "planName", "startDate", "endDate", "daysRemaining", "status" }
     /// </summary>

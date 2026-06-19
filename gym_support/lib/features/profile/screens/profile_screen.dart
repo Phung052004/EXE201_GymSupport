@@ -11,6 +11,7 @@ import '../widgets/logout_button.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_menu_item.dart';
 import '../widgets/profile_stat_card.dart';
+import 'subscription_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String name;
@@ -233,6 +234,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onTap: () {
                 showProfileInfoBottomSheet(context);
               },
+            ),
+            ProfileMenuItem(
+              icon: Icons.workspace_premium_outlined,
+              title: 'Premium',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+              ),
             ),
             ProfileMenuItem(
               icon: Icons.fitness_center,

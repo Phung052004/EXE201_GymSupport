@@ -45,38 +45,27 @@ public class SubscriptionService : ISubscriptionService
         return plans.Select(MapToPlanDto).ToList();
     }
 
-    public async Task<UserSubscriptionDto> PurchaseSubscriptionAsync(string userId, string planId)
+    public async Task<UserSubscriptionDto> ActivateVerifiedSubscriptionAsync(
+        string userId,
+        string planId,
+        DateTime expiresAt)
     {
-        // Find the subscription plan
-        var plan = await _planRepository.GetByIdAsync(planId);
-        if (plan == null)
-            throw new Exception("Gói đăng ký không tồn tại.");
-
+        var plan = await _planRepository.GetByIdAsync(planId)
+            ?? throw new InvalidOperationException("Gói đăng ký không tồn tại.");
         if (!plan.IsActive)
-            throw new Exception("Gói đăng ký này không còn hoạt động.");
+            throw new InvalidOperationException("Gói đăng ký hiện không hoạt động.");
 
-        // Simulate payment - in real app, call payment gateway (VNPAY, MOMO, etc)
-        // For now, assume payment is successful
-
-        // Create/Update UserSubscription
         var now = DateTime.UtcNow;
-        var endDate = now.AddMonths(plan.DurationMonths);
+        var normalizedExpiry = expiresAt.Kind == DateTimeKind.Utc
+            ? expiresAt
+            : expiresAt.ToUniversalTime();
+        if (normalizedExpiry <= now)
+            throw new InvalidOperationException("Giao dịch Store đã hết hạn.");
 
-        var existingSubscription = await _userSubscriptionRepository.GetByUserIdAsync(userId);
-        if (existingSubscription != null)
+        var subscription = await _userSubscriptionRepository.GetByUserIdAsync(userId);
+        if (subscription == null)
         {
-            existingSubscription.PlanId = plan.Id;
-            existingSubscription.PlanName = plan.Name;
-            existingSubscription.Price = plan.Price;
-            existingSubscription.Status = "Active";
-            existingSubscription.StartedAt = now;
-            existingSubscription.ExpiredAt = endDate;
-            
-            await _userSubscriptionRepository.UpdateAsync(existingSubscription);
-        }
-        else
-        {
-            var newSubscription = new UserSubscription
+            subscription = new UserSubscription
             {
                 UserId = userId,
                 PlanId = plan.Id,
@@ -84,20 +73,27 @@ public class SubscriptionService : ISubscriptionService
                 Price = plan.Price,
                 Status = "Active",
                 StartedAt = now,
-                ExpiredAt = endDate
+                ExpiredAt = normalizedExpiry
             };
-
-            await _userSubscriptionRepository.CreateAsync(newSubscription);
+            await _userSubscriptionRepository.CreateAsync(subscription);
+        }
+        else
+        {
+            subscription.PlanId = plan.Id;
+            subscription.PlanName = plan.Name;
+            subscription.Price = plan.Price;
+            subscription.Status = "Active";
+            subscription.StartedAt = now;
+            subscription.ExpiredAt = normalizedExpiry;
+            await _userSubscriptionRepository.UpdateAsync(subscription);
         }
 
-        // Return subscription info
-        var daysRemaining = (int)(endDate - now).TotalDays;
         return new UserSubscriptionDto
         {
-            PlanName = plan.Name,
-            StartDate = now,
-            EndDate = endDate,
-            DaysRemaining = daysRemaining,
+            PlanName = subscription.PlanName,
+            StartDate = subscription.StartedAt,
+            EndDate = normalizedExpiry,
+            DaysRemaining = Math.Max(0, (int)(normalizedExpiry - now).TotalDays),
             Status = "active"
         };
     }
@@ -114,6 +110,12 @@ public class SubscriptionService : ISubscriptionService
         if (subscription.ExpiredAt.HasValue)
         {
             daysRemaining = (int)(subscription.ExpiredAt.Value - now).TotalDays;
+            if (subscription.ExpiredAt.Value <= now &&
+                subscription.Status.Equals("Active", StringComparison.OrdinalIgnoreCase))
+            {
+                subscription.Status = "Expired";
+                await _userSubscriptionRepository.UpdateAsync(subscription);
+            }
         }
 
         return new UserSubscriptionDto

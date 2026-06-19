@@ -7,6 +7,7 @@ namespace GymSupport.Repository.Interfaces
     public interface IPaymentRepository
     {
         Task<Payment?> GetByIdAsync(string id);
+        Task<Payment?> GetByOrderIdAsync(string orderId);
         Task<IEnumerable<Payment>> GetByUserIdAsync(string userId);
         Task<IEnumerable<Payment>> GetByCustomerIdAsync(string customerId);
         Task<IEnumerable<Payment>> GetAllAsync();

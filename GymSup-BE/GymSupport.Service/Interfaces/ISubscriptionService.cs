@@ -12,7 +12,10 @@ namespace GymSupport.Service.Interfaces
         Task<IEnumerable<SubscriptionPlanDto>> GetAllSubscriptionPlansAsync();
         Task<IEnumerable<SubscriptionPlanDto>> GetActiveSubscriptionPlansAsync();
         
-        Task<UserSubscriptionDto> PurchaseSubscriptionAsync(string userId, string planId);
+        Task<UserSubscriptionDto> ActivateVerifiedSubscriptionAsync(
+            string userId,
+            string planId,
+            DateTime expiresAt);
         Task<UserSubscriptionDto?> GetUserCurrentSubscriptionAsync(string userId);
         Task CancelUserSubscriptionAsync(string userId);
         
@@ -45,11 +48,6 @@ namespace GymSupport.Service.Interfaces
         public int DurationMonths { get; set; }
         public decimal Price { get; set; }
         public bool IsActive { get; set; } = true;
-    }
-
-    public class PurchaseSubscriptionDto
-    {
-        public string PlanId { get; set; } = string.Empty;
     }
 
     public class UpdateSubscriptionPlanDto
