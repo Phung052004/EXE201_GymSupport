@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../screens/muscle_detail_screen.dart';
 
 class MuscleProgressGrid extends StatelessWidget {
   final List<MuscleProgressData> items;
@@ -176,6 +177,29 @@ class _MuscleBalanceMapState extends State<MuscleBalanceMap> {
               fontSize: 11,
               fontWeight: FontWeight.w700,
               height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MuscleDetailScreen(items: widget.items),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.arrow_forward_ios, size: 14),
+              label: const Text('Details'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textDark,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
           ),
         ],

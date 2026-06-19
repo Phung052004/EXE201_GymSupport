@@ -29,7 +29,7 @@ class AppBottomNavBar extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(12, 6, 12, 10),
         padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
-          color: AppColors.ink,
+          color: const Color.fromARGB(255, 45, 45, 45),
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
