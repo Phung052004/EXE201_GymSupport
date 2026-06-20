@@ -1,6 +1,7 @@
 ﻿using GymSupport.Repository.Interfaces;
 using GymSupport.Repository.Models.DTOs.Exercise;
 using GymSupport.Repository.Models.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GymSupport.API.Controllers;
@@ -67,6 +68,7 @@ public class ExercisesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(
         CreateExerciseDto dto)
     {
@@ -108,6 +110,7 @@ public class ExercisesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(
         string id,
         CreateExerciseDto dto)
@@ -152,6 +155,7 @@ public class ExercisesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(
         string id)
     {
