@@ -77,7 +77,7 @@ builder.Services.AddAuthentication(options =>
             ValidAudience = jwtAudience,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateLifetime = false,  // Tạm tắt để debug
+            ValidateLifetime = true,  
             ClockSkew = TimeSpan.Zero
         };
         options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
@@ -160,10 +160,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+//if (!app.Environment.IsDevelopment())
+//{
+//    app.UseHttpsRedirection();
+//}
 
 app.UseCors("AllowAll");
 app.UseAuthentication();

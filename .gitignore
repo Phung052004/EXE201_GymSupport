@@ -1,0 +1,15 @@
+.idea/
+**/.idea/
+
+*.jks
+*.keystore
+**/key.properties
+
+.env
+*.env
+google-play-service-account.json
+
+**/bin/
+**/obj/
+**/.dart_tool/
+**/build/
