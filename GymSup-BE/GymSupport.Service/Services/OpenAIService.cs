@@ -979,7 +979,7 @@ Trả về JSON đúng schema.
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = @"C:\Users\Acer Nitro 5\AppData\Local\Microsoft\WinGet\Links\ffmpeg.exe",
+                    FileName = "ffmpeg",
                     Arguments = args,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,

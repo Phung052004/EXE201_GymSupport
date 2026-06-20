@@ -16,14 +16,12 @@ class BackendApi {
   static const String _currentWorkoutIsQuickKey = 'current_workout_is_quick';
 
   static Uri get _baseUri {
-    const configuredHost = String.fromEnvironment('BACKEND_HOST');
-    final devHost = configuredHost.isNotEmpty
-        ? configuredHost
-        : defaultTargetPlatform == TargetPlatform.android
-        ? '10.0.2.2:5028'
-        : 'localhost:5028';
+    const backendUrl  = String.fromEnvironment(
+      'BACKEND_HOST',
+      defaultValue: 'https://api.gsfitness.xyz',
+    );
 
-    return Uri.parse('http://$devHost');
+    return Uri.parse(backendUrl);
   }
 
   static Future<Map<String, String>> _headers({bool auth = false}) async {
