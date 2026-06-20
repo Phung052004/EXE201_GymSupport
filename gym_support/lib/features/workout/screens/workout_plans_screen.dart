@@ -46,18 +46,18 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
     try {
       await BackendApi.activateWorkoutPlan(planId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã kích hoạt lịch tập!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Đã kích hoạt lịch tập!')));
       }
     } catch (e) {
       if (mounted) {
         String msg = e.toString();
         if (msg.contains('Exception: ')) msg = msg.split('Exception: ').last;
         debugPrint('Apply plan error: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi kích hoạt: $msg')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi kích hoạt: $msg')));
       }
     } finally {
       await Future.delayed(const Duration(milliseconds: 500));
@@ -72,7 +72,11 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
       appBar: AppBar(
         title: const Text(
           'Workout Plans',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w900, fontSize: 24),
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w900,
+            fontSize: 24,
+          ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -84,7 +88,12 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2));
+      return const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.primary,
+          strokeWidth: 2,
+        ),
+      );
     }
 
     if (_error != null) {
@@ -92,11 +101,17 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(_error!, style: const TextStyle(color: AppColors.textSecondary)),
+            Text(
+              _error!,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadPlans,
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textDark,
+              ),
               child: const Text('Thử lại'),
             ),
           ],
@@ -109,9 +124,16 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.fitness_center_rounded, size: 64, color: AppColors.textSecondary.withOpacity(0.2)),
+            Icon(
+              Icons.fitness_center_rounded,
+              size: 64,
+              color: AppColors.textSecondary.withOpacity(0.2),
+            ),
             const SizedBox(height: 16),
-            const Text('Bạn chưa có workout plan nào.', style: TextStyle(color: AppColors.textSecondary)),
+            const Text(
+              'Bạn chưa có workout plan nào.',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ],
         ),
       );
@@ -158,7 +180,7 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: plan.isActive 
+                  colors: plan.isActive
                       ? [AppColors.primary, AppColors.primary.withOpacity(0.6)]
                       : [AppColors.ink, const Color(0xFF303A42)],
                 ),
@@ -192,14 +214,22 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
                         if (plan.isActive)
                           Container(
                             margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.ink.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
                               'ACTIVE NOW',
-                              style: TextStyle(color: AppColors.ink, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
+                              style: TextStyle(
+                                color: AppColors.ink,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
+                              ),
                             ),
                           ),
                       ],
@@ -217,7 +247,10 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
                     children: [
                       _buildMiniInfo(Icons.flag_rounded, plan.goal),
                       _buildMiniInfo(Icons.bolt_rounded, plan.level),
-                      _buildMiniInfo(Icons.calendar_today_rounded, '${plan.daysPerWeek} Days'),
+                      _buildMiniInfo(
+                        Icons.calendar_today_rounded,
+                        '${plan.daysPerWeek} Days',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -228,29 +261,41 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => WorkoutPlanDetailScreen(planId: plan.id)),
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    WorkoutPlanDetailScreen(planId: plan.id),
+                              ),
                             );
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.textPrimary,
                             side: const BorderSide(color: AppColors.outline),
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
-                          child: const Text('View Detail', style: TextStyle(fontWeight: FontWeight.w700)),
+                          child: const Text(
+                            'View Detail',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: plan.isActive ? null : () => _applyPlan(plan.id),
+                          onPressed: plan.isActive
+                              ? null
+                              : () => _applyPlan(plan.id),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.ink,
+                            foregroundColor: AppColors.textDark,
                             disabledBackgroundColor: AppColors.surface2,
                             disabledForegroundColor: AppColors.textSecondary,
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                             elevation: 0,
                           ),
                           child: Text(
@@ -277,7 +322,11 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
         const SizedBox(width: 6),
         Text(
           text,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );

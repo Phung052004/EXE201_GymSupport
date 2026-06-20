@@ -7,8 +7,11 @@ import 'workout_session_screen.dart';
 
 const _figmaLime = Color(0xFFB7FF2A);
 const _figmaInk = Color(0xFF172027);
-const _figmaPaper = Color(0xFFF7F7F8);
-const _figmaMuted = Color(0xFF777C80);
+const _figmaPaper = AppColors.background;
+const _figmaMuted = AppColors.textSecondary;
+const _workoutText = AppColors.textPrimary;
+const _workoutCard = AppColors.surface;
+const _workoutPanel = AppColors.surface2;
 
 class TodayWorkoutScreen extends StatefulWidget {
   const TodayWorkoutScreen({super.key});
@@ -182,7 +185,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
           'Today Workout',
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
-        foregroundColor: _figmaInk,
+        foregroundColor: _workoutText,
         backgroundColor: _figmaPaper,
         elevation: 0,
         actions: [
@@ -360,7 +363,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
           const Text(
             'REMAINING EXERCISES',
             style: TextStyle(
-              color: _figmaInk,
+              color: _workoutText,
               fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
@@ -380,7 +383,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: _workoutCard,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.outline),
               ),
@@ -398,7 +401,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                     child: Text(
                       exercise.exerciseName,
                       style: const TextStyle(
-                        color: _figmaInk,
+                        color: _workoutText,
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
@@ -435,7 +438,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
             Text(
               value,
               style: const TextStyle(
-                color: _figmaInk,
+                color: _workoutText,
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
               ),
@@ -444,7 +447,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
             Text(
               label.toUpperCase(),
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.42),
+                color: AppColors.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
               ),
@@ -532,7 +535,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
               'Bạn chưa chọn lịch tập nào',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: _figmaInk,
+                color: _workoutText,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -585,7 +588,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                   const Text(
                     'Workout sessions',
                     style: TextStyle(
-                      color: _figmaInk,
+                      color: _workoutText,
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.7,
@@ -611,8 +614,8 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                 ).then((_) => _loadActivePlan());
               },
               style: IconButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: _figmaInk,
+                backgroundColor: _workoutCard,
+                foregroundColor: _workoutText,
               ),
               icon: const Icon(Icons.swap_horiz_rounded),
             ),
@@ -622,7 +625,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFFEEEFF2),
+            color: _workoutPanel,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: AppColors.outline),
           ),
@@ -648,7 +651,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                     ),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: _workoutCard,
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Row(
@@ -710,7 +713,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
-                                        color: _figmaInk,
+                                        color: _workoutText,
                                         fontSize: 17,
                                         fontWeight: FontWeight.w800,
                                       ),
@@ -837,7 +840,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
           const Text(
             'SELECT WORKOUT DAY',
             style: TextStyle(
-              color: _figmaInk,
+              color: _workoutText,
               fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
@@ -864,12 +867,10 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: selected ? _figmaLime : Colors.white,
+                      color: selected ? _figmaLime : AppColors.surface,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: selected
-                            ? _figmaLime
-                            : Colors.black.withValues(alpha: 0.10),
+                        color: selected ? _figmaLime : AppColors.outline,
                       ),
                     ),
                     alignment: Alignment.center,
@@ -879,14 +880,14 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                           Icon(
                             Icons.bolt_rounded,
                             size: 15,
-                            color: selected ? _figmaInk : _figmaInk,
+                            color: selected ? _figmaInk : AppColors.primary,
                           ),
                           const SizedBox(width: 5),
                         ],
                         Text(
                           day.dayName,
                           style: TextStyle(
-                            color: _figmaInk,
+                            color: selected ? _figmaInk : AppColors.textPrimary,
                             fontSize: 13,
                             fontWeight: FontWeight.w900,
                           ),
@@ -903,7 +904,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
           Text(
             _selectedDay?.dayName.toUpperCase() ?? 'EXERCISES',
             style: const TextStyle(
-              color: _figmaInk,
+              color: _workoutText,
               fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
@@ -918,10 +919,10 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: _workoutCard,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: Colors.black.withValues(alpha: 0.07),
+                    color: AppColors.outline,
                   ),
                 ),
                 child: Row(
@@ -946,7 +947,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                           Text(
                             ex.exerciseName,
                             style: const TextStyle(
-                              color: _figmaInk,
+                              color: _workoutText,
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),

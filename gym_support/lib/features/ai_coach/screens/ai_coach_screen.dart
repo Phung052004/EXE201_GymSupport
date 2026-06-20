@@ -167,18 +167,46 @@ class _AiCoachScreenState extends State<AiCoachScreen>
     final String? mode = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('AI ANALYSIS MODES', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+            const Text(
+              'AI ANALYSIS MODES',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+            ),
             const SizedBox(height: 20),
-            _buildModeItem(ctx, 'Equipment Scan', 'Identify gym gear & get guides', Icons.fitness_center_rounded, 'equipment_info'),
-            _buildModeItem(ctx, 'Form Check', 'Analyze your exercise posture', Icons.accessibility_new_rounded, 'form_check'),
-            _buildModeItem(ctx, 'Body Analysis', 'Check body shape & progress', Icons.person_search_rounded, 'body_check'),
+            _buildModeItem(
+              ctx,
+              'Equipment Scan',
+              'Identify gym gear & get guides',
+              Icons.fitness_center_rounded,
+              'equipment_info',
+            ),
+            _buildModeItem(
+              ctx,
+              'Form Check',
+              'Analyze your exercise posture',
+              Icons.accessibility_new_rounded,
+              'form_check',
+            ),
+            _buildModeItem(
+              ctx,
+              'Body Analysis',
+              'Check body shape & progress',
+              Icons.person_search_rounded,
+              'body_check',
+            ),
             const SizedBox(height: 10),
           ],
         ),
@@ -188,7 +216,9 @@ class _AiCoachScreenState extends State<AiCoachScreen>
     if (!mounted || mode == null) return;
 
     final result = await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ScanEquipmentScreen(email: email, initialMode: mode)),
+      MaterialPageRoute(
+        builder: (_) => ScanEquipmentScreen(email: email, initialMode: mode),
+      ),
     );
 
     if (!mounted || result == null) return;
@@ -208,7 +238,13 @@ class _AiCoachScreenState extends State<AiCoachScreen>
     }
   }
 
-  Widget _buildModeItem(BuildContext context, String title, String sub, IconData icon, String value) {
+  Widget _buildModeItem(
+    BuildContext context,
+    String title,
+    String sub,
+    IconData icon,
+    String value,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -225,7 +261,10 @@ class _AiCoachScreenState extends State<AiCoachScreen>
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Icon(icon, color: AppColors.primary, size: 22),
               ),
               const SizedBox(width: 16),
@@ -233,13 +272,30 @@ class _AiCoachScreenState extends State<AiCoachScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(sub, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                    Text(
+                      sub,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondary, size: 14),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppColors.textSecondary,
+                size: 14,
+              ),
             ],
           ),
         ),
@@ -637,7 +693,7 @@ class _ExerciseSuggestions extends StatelessWidget {
                         label: Text(
                           exercise.name,
                           style: const TextStyle(
-                            color: AppColors.ink,
+                            color: AppColors.textDark,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),

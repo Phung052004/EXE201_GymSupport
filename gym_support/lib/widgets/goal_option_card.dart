@@ -36,14 +36,12 @@ class GoalOptionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.surface2,
+                color: isSelected ? AppColors.primary : AppColors.surface2,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 goal.icon,
-                color: AppColors.ink,
+                color: isSelected ? AppColors.textDark : AppColors.ink,
                 size: 24,
               ),
             ),
@@ -73,7 +71,11 @@ class GoalOptionCard extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle, color: AppColors.ink, size: 24),
+              const Icon(
+                Icons.check_circle,
+                color: AppColors.primary,
+                size: 24,
+              ),
           ],
         ),
       ),

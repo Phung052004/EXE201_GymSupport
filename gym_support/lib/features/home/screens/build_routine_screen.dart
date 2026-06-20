@@ -298,15 +298,15 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
               width: 86,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: selected ? AppColors.ink : AppColors.surface,
+                color: selected ? AppColors.primary : AppColors.surface,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: selected ? AppColors.ink : AppColors.outline,
+                  color: selected ? AppColors.primary : AppColors.outline,
                 ),
                 boxShadow: selected
                     ? [
                         BoxShadow(
-                          color: AppColors.ink.withValues(alpha: .18),
+                          color: AppColors.primary.withValues(alpha: .22),
                           blurRadius: 14,
                           offset: const Offset(0, 6),
                         ),
@@ -320,7 +320,7 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
                     'DAY ${index + 1}',
                     style: TextStyle(
                       color: selected
-                          ? AppColors.primary
+                          ? AppColors.textDark
                           : AppColors.primaryDark,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -334,7 +334,7 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
                           day.weekday.substring(0, 3),
                           style: TextStyle(
                             color: selected
-                                ? Colors.white
+                                ? AppColors.textDark
                                 : AppColors.textPrimary,
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
@@ -346,7 +346,7 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
                           width: 7,
                           height: 7,
                           decoration: const BoxDecoration(
-                            color: AppColors.primary,
+                            color: AppColors.textDark,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -677,7 +677,7 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
             onPressed: _isSaving ? null : _saveRoutine,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.ink,
+              foregroundColor: AppColors.textDark,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -688,7 +688,7 @@ class _BuildRoutineScreenState extends State<BuildRoutineScreen> {
                     height: 24,
                     width: 24,
                     child: CircularProgressIndicator(
-                      color: AppColors.ink,
+                      color: AppColors.textDark,
                       strokeWidth: 2,
                     ),
                   )

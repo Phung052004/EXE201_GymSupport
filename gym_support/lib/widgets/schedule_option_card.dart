@@ -27,9 +27,7 @@ class ScheduleOptionCard extends StatelessWidget {
           color: isSelected ? AppColors.surfaceSelected : AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.outline,
+            color: isSelected ? AppColors.primary : AppColors.outline,
             width: 1.3,
           ),
           boxShadow: isSelected
@@ -62,8 +60,10 @@ class ScheduleOptionCard extends StatelessWidget {
                 children: [
                   Text(
                     schedule.title,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: isSelected
+                          ? AppColors.textDark
+                          : AppColors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
@@ -72,7 +72,7 @@ class ScheduleOptionCard extends StatelessWidget {
                   Text(
                     schedule.subtitle,
                     style: TextStyle(
-                      color: schedule.color,
+                      color: isSelected ? AppColors.textDark : schedule.color,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                     ),
@@ -81,7 +81,9 @@ class ScheduleOptionCard extends StatelessWidget {
                   Text(
                     schedule.description,
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: isSelected
+                          ? AppColors.textDark.withValues(alpha: 0.72)
+                          : AppColors.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -95,9 +97,7 @@ class ScheduleOptionCard extends StatelessWidget {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.surface2,
+                color: isSelected ? AppColors.primary : AppColors.surface2,
                 shape: BoxShape.circle,
               ),
               child: Icon(
