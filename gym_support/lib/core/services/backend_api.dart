@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,7 +15,7 @@ class BackendApi {
   static const String _currentWorkoutIsQuickKey = 'current_workout_is_quick';
 
   static Uri get _baseUri {
-    const backendUrl  = String.fromEnvironment(
+    const backendUrl = String.fromEnvironment(
       'BACKEND_HOST',
       defaultValue: 'https://api.gsfitness.xyz',
     );
@@ -1598,6 +1597,20 @@ class BackendApi {
     required String message,
     String? email,
   }) async {
+    final decoded = await sendAiCoachMessageDetailed(
+      message: message,
+      email: email,
+    );
+
+    return _value<String>(decoded, 'response') ??
+        _value<String>(decoded, 'reply') ??
+        'Mình có thể giúp gì thêm?';
+  }
+
+  static Future<Map<String, dynamic>> sendAiCoachMessageDetailed({
+    required String message,
+    String? email,
+  }) async {
     final userId = await currentUserId();
     if (userId == null || userId.isEmpty) {
       throw Exception('Vui lòng đăng nhập để sử dụng AI Coach');
@@ -1610,11 +1623,12 @@ class BackendApi {
     );
 
     if (decoded is Map<String, dynamic>) {
-      return _value<String>(decoded, 'response') ??
-          _value<String>(decoded, 'reply') ??
-          'Mình có thể giúp gì thêm?';
+      return decoded;
     }
-    return 'Mình có thể giúp gì thêm?';
+    return <String, dynamic>{
+      'response': 'Mình có thể giúp gì thêm?',
+      'suggestions': <dynamic>[],
+    };
   }
 
   static Future<List<Map<String, dynamic>>> getAiHistory() async {

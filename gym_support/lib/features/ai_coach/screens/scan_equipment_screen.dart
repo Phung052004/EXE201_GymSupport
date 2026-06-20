@@ -39,7 +39,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     'equipment_info': null,
   };
 
-  final Map<String, XFile?> _imagesByMode = {
+  final Map<String, XFile?> _mediaByMode = {
     'body_check': null,
     'form_check': null,
     'equipment_info': null,
@@ -51,60 +51,95 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     _currentMode = widget.initialMode;
   }
 
-  Future<void> _pickImage(ImageSource src) async {
+  Future<void> _pickMedia(ImageSource src) async {
     final picker = ImagePicker();
-    final file = await picker.pickImage(
-      source: src,
-      maxWidth: 1200,
-      maxHeight: 1200,
-      imageQuality: 80,
-    );
+    final selectedMode = _currentMode;
+    final isVideo = selectedMode == 'form_check';
+    final file = isVideo
+        ? await picker.pickVideo(
+            source: src,
+            maxDuration: const Duration(minutes: 1),
+          )
+        : await picker.pickImage(
+            source: src,
+            maxWidth: 1200,
+            maxHeight: 1200,
+            imageQuality: 80,
+          );
 
     if (file != null) {
+      if (isVideo) {
+        final lowerName = file.name.toLowerCase();
+        if (!lowerName.endsWith('.mp4') && !lowerName.endsWith('.mov')) {
+          if (!mounted) return;
+          setState(() {
+            _errorsByMode[selectedMode] = 'Chỉ hỗ trợ video MP4 hoặc MOV.';
+          });
+          return;
+        }
+
+        const maxVideoBytes = 25 * 1024 * 1024;
+        if (await file.length() > maxVideoBytes) {
+          if (!mounted) return;
+          setState(() {
+            _errorsByMode[selectedMode] = 'Video không được vượt quá 25 MB.';
+          });
+          return;
+        }
+      }
+
+      if (!mounted) return;
       setState(() {
-        _imagesByMode[_currentMode] = file;
-        _resultsByMode[_currentMode] =
-            null; // Clear previous result for this mode
-        _errorsByMode[_currentMode] = null;
+        _mediaByMode[selectedMode] = file;
+        _resultsByMode[selectedMode] = null;
+        _errorsByMode[selectedMode] = null;
       });
     }
   }
 
-  Future<void> _analyzeImage() async {
-    final image = _imagesByMode[_currentMode];
-    if (image == null) {
+  Future<void> _analyzeMedia() async {
+    final selectedMode = _currentMode;
+    final media = _mediaByMode[selectedMode];
+    final isVideo = selectedMode == 'form_check';
+    if (media == null) {
       setState(
-        () => _errorsByMode[_currentMode] =
-            'Vui lòng chọn ảnh trước khi phân tích.',
+        () => _errorsByMode[selectedMode] = isVideo
+            ? 'Vui lòng chọn video trước khi phân tích.'
+            : 'Vui lòng chọn ảnh trước khi phân tích.',
       );
       return;
     }
 
     setState(() {
-      _loadingByMode[_currentMode] = true;
-      _errorsByMode[_currentMode] = null;
+      _loadingByMode[selectedMode] = true;
+      _errorsByMode[selectedMode] = null;
     });
 
     try {
-      final bytes = await image.readAsBytes();
-      final res = await BackendApi.uploadScanImage(
-        bytes: bytes,
-        filename: image.name,
-        email: widget.email,
-        mode: _currentMode,
-      );
+      final bytes = await media.readAsBytes();
+      final res = isVideo
+          ? await BackendApi.uploadFormVideo(bytes: bytes, filename: media.name)
+          : await BackendApi.uploadScanImage(
+              bytes: bytes,
+              filename: media.name,
+              email: widget.email,
+              mode: selectedMode,
+            );
 
+      if (!mounted) return;
       setState(() {
-        _resultsByMode[_currentMode] = res;
+        _resultsByMode[selectedMode] = res;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
-        _errorsByMode[_currentMode] =
-            'Không thể phân tích ảnh. Vui lòng thử lại.';
+        _errorsByMode[selectedMode] = isVideo
+            ? 'Không thể phân tích video. Vui lòng thử lại.'
+            : 'Không thể phân tích ảnh. Vui lòng thử lại.';
       });
     } finally {
       if (mounted) {
-        setState(() => _loadingByMode[_currentMode] = false);
+        setState(() => _loadingByMode[selectedMode] = false);
       }
     }
   }
@@ -132,7 +167,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
                 children: [
                   _buildGuideText(),
                   const SizedBox(height: 20),
-                  _buildImagePreview(),
+                  _buildMediaPreview(),
                   const SizedBox(height: 20),
                   _buildActionButtons(),
                   const SizedBox(height: 24),
@@ -185,7 +220,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
         break;
       case 'form_check':
         guide =
-            'Chụp rõ toàn bộ động tác, tốt nhất từ bên hông hoặc góc 45 độ. Nếu đang đau, hãy dừng tập và hỏi chuyên gia.';
+            'Quay video toàn bộ động tác, tối đa 1 phút và 25 MB. Góc quay bên hông hoặc 45 độ thường cho kết quả rõ nhất.';
         break;
       case 'equipment_info':
         guide =
@@ -219,8 +254,9 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     );
   }
 
-  Widget _buildImagePreview() {
-    final image = _imagesByMode[_currentMode];
+  Widget _buildMediaPreview() {
+    final media = _mediaByMode[_currentMode];
+    final isVideo = _currentMode == 'form_check';
     return GestureDetector(
       onTap: () => _showPickOptions(),
       child: Container(
@@ -230,7 +266,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.outline),
           boxShadow: [
-            if (image != null)
+            if (media != null)
               BoxShadow(
                 color: Colors.black.withOpacity(0.3),
                 blurRadius: 10,
@@ -238,26 +274,58 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
               ),
           ],
         ),
-        child: image != null
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.file(
-                  File(image.path),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
-              )
+        child: media != null
+            ? isVideo
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.video_file_outlined,
+                          size: 64,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            media.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Video đã sẵn sàng để phân tích',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.file(
+                        File(media.path),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
+                    )
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.add_a_photo_outlined,
+                  Icon(
+                    isVideo
+                        ? Icons.video_camera_back_outlined
+                        : Icons.add_a_photo_outlined,
                     size: 48,
                     color: AppColors.primaryDark,
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Bấm để chọn ảnh',
+                    isVideo ? 'Bấm để chọn video' : 'Bấm để chọn ảnh',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.4),
                       fontSize: 14,
@@ -270,6 +338,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
   }
 
   void _showPickOptions() {
+    final isVideo = _currentMode == 'form_check';
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -281,25 +350,31 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: Colors.white),
-              title: const Text(
-                'Máy ảnh',
-                style: TextStyle(color: Colors.white),
+              leading: Icon(
+                isVideo ? Icons.videocam : Icons.camera_alt,
+                color: Colors.white,
+              ),
+              title: Text(
+                isVideo ? 'Quay video' : 'Máy ảnh',
+                style: const TextStyle(color: Colors.white),
               ),
               onTap: () {
                 Navigator.pop(ctx);
-                _pickImage(ImageSource.camera);
+                _pickMedia(ImageSource.camera);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: Colors.white),
-              title: const Text(
-                'Thư viện',
-                style: TextStyle(color: Colors.white),
+              leading: Icon(
+                isVideo ? Icons.video_library : Icons.photo_library,
+                color: Colors.white,
+              ),
+              title: Text(
+                isVideo ? 'Chọn video từ thư viện' : 'Thư viện ảnh',
+                style: const TextStyle(color: Colors.white),
               ),
               onTap: () {
                 Navigator.pop(ctx);
-                _pickImage(ImageSource.gallery);
+                _pickMedia(ImageSource.gallery);
               },
             ),
           ],
@@ -310,14 +385,14 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
 
   Widget _buildActionButtons() {
     final isLoading = _loadingByMode[_currentMode] ?? false;
-    final hasImage = _imagesByMode[_currentMode] != null;
+    final hasMedia = _mediaByMode[_currentMode] != null;
 
     return Row(
       children: [
-        if (hasImage)
+        if (hasMedia)
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: isLoading ? null : _analyzeImage,
+              onPressed: isLoading ? null : _analyzeMedia,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.textDark,
@@ -342,10 +417,10 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
               ),
             ),
           ),
-        if (hasImage && !isLoading) ...[
+        if (hasMedia && !isLoading) ...[
           const SizedBox(width: 12),
           IconButton(
-            onPressed: () => setState(() => _imagesByMode[_currentMode] = null),
+            onPressed: () => setState(() => _mediaByMode[_currentMode] = null),
             icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
             style: IconButton.styleFrom(
               backgroundColor: Colors.redAccent.withOpacity(0.1),
@@ -398,7 +473,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
         break;
       case 'form_check':
         msg =
-            'Bạn chưa kiểm tra form tập.\nHãy chọn ảnh tư thế tập luyện rồi bấm Analyze.';
+            'Bạn chưa kiểm tra form tập.\nHãy chọn video động tác rồi bấm Analyze.';
         break;
       case 'equipment_info':
         msg =
@@ -468,26 +543,54 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
       children: [
         _buildSummaryCard(data),
         _buildListSection(
-          'Vật thể phát hiện',
-          data['detectedItems'],
-          Icons.search,
+          'Bài tập phát hiện',
+          data['detectedExercise'],
+          Icons.fitness_center,
+          isPrimary: true,
         ),
         _buildListSection(
-          'Nhận xét tư thế',
-          data['bodyObservations'],
-          Icons.accessibility_new,
+          'Đánh giá tổng quan',
+          data['overallVerdict'],
+          Icons.fact_check_outlined,
         ),
         _buildListSection(
-          'Feedback về form',
-          data['formFeedback'],
+          'Tóm tắt chuyển động',
+          data['movementSummary'],
+          Icons.directions_run,
+        ),
+        _buildListSection(
+          'Lỗi nghiêm trọng',
+          data['majorIssues'],
+          Icons.error_outline,
+          color: Colors.redAccent,
+        ),
+        _buildListSection(
+          'Lỗi cần cải thiện',
+          data['minorIssues'],
+          Icons.info_outline,
+          color: Colors.orangeAccent,
+        ),
+        _buildListSection(
+          'Điểm thực hiện đúng',
+          data['correctPoints'],
           Icons.check_circle_outline,
           color: AppColors.primary,
         ),
+        _buildListSection(
+          'Quan sát theo khung hình',
+          data['frameObservations'],
+          Icons.slideshow,
+        ),
         _buildListSection('Cơ tham gia', data['muscles'], Icons.fitness_center),
         _buildListSection(
-          'Lời khuyên kỹ thuật',
-          data['trainingAdvice'],
+          'Cue sửa kỹ thuật',
+          data['correctiveCues'],
           Icons.build_circle_outlined,
+        ),
+        _buildListSection(
+          'Cách cải thiện',
+          data['suggestedFixes'],
+          Icons.tips_and_updates_outlined,
         ),
         _buildListSection(
           'Cảnh báo an toàn',
@@ -652,7 +755,9 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
         onPressed: () {
           Navigator.of(context).pop({
             'text': _buildChatSummaryMessage(data),
-            'imagePath': _imagesByMode[_currentMode]?.path,
+            'imagePath': _currentMode == 'form_check'
+                ? null
+                : _mediaByMode[_currentMode]?.path,
           });
         },
         style: OutlinedButton.styleFrom(
@@ -683,8 +788,10 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     buffer.writeln('Summary: ${data['summary'] ?? ''}');
 
     // Add a few highlights based on mode
-    if (_currentMode == 'form_check' && data['formFeedback'] != null) {
-      buffer.writeln('Feedback: ${data['formFeedback']}');
+    if (_currentMode == 'form_check') {
+      buffer.writeln('Exercise: ${data['detectedExercise'] ?? 'N/A'}');
+      buffer.writeln('Verdict: ${data['overallVerdict'] ?? ''}');
+      buffer.writeln('Risk: ${data['riskLevel'] ?? 'N/A'}');
     }
 
     return buffer.toString().trim();

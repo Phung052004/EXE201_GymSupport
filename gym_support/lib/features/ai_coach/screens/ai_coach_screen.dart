@@ -127,10 +127,29 @@ class _AiCoachScreenState extends State<AiCoachScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       final email = prefs.getString(SessionStore.emailKey);
-      final reply = await BackendApi.sendAiCoachMessage(
+      final result = await BackendApi.sendAiCoachMessageDetailed(
         message: text,
         email: email,
       );
+      var reply = result['response']?.toString() ?? 'Mình có thể giúp gì thêm?';
+      final rawSuggestions = result['suggestions'];
+      final suggestions = rawSuggestions is List
+          ? rawSuggestions
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
+          : <Map<String, dynamic>>[];
+
+      if (suggestions.isNotEmpty) {
+        try {
+          await BackendApi.applyAiSuggestions({'suggestions': suggestions});
+          reply = '💪 Đã lưu thay đổi vào lịch tập của bạn.\n\n$reply';
+        } catch (_) {
+          reply =
+              '$reply\n\n🔒 Bạn có thể nhận tư vấn và gợi ý miễn phí. '
+              'Để lưu hoặc áp dụng lịch tập trực tiếp, hãy nâng cấp Premium.';
+        }
+      }
       if (!mounted) return;
       setState(() {
         messages.add(AiChatMessage(text: reply, isUser: false));

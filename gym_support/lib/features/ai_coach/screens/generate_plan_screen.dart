@@ -67,17 +67,39 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
     });
 
     try {
-      final reply = await BackendApi.sendAiCoachMessage(
+      final result = await BackendApi.sendAiCoachMessageDetailed(
         message:
             'Đồng ý. Hãy tạo và lưu lịch tập vừa đề xuất vào hệ thống cho tôi.',
       );
+      final reply = result['response']?.toString() ?? 'Đã chuẩn bị lịch tập.';
+      final rawSuggestions = result['suggestions'];
+      final suggestions = rawSuggestions is List
+          ? rawSuggestions
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
+          : <Map<String, dynamic>>[];
+
+      if (suggestions.isEmpty) {
+        throw Exception(
+          'AI chưa tạo được dữ liệu để lưu. Hãy thử yêu cầu lại rõ hơn.',
+        );
+      }
+
+      await BackendApi.applyAiSuggestions({'suggestions': suggestions});
+      if (!mounted) return;
       setState(() {
-        _result = {'aiResponse': reply};
+        _result = {'aiResponse': '🎉 Đã lưu lịch tập.\n\n$reply'};
       });
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (!mounted) return;
+      setState(
+        () => _error =
+            'Bạn vẫn có thể xem gợi ý miễn phí. '
+            'Để lưu lịch trực tiếp, cần gói Premium.\n$e',
+      );
     } finally {
-      setState(() => _applying = false);
+      if (mounted) setState(() => _applying = false);
     }
   }
 
