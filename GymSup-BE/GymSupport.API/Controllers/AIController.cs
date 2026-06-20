@@ -11,7 +11,6 @@ namespace GymSupport.API.Controllers;
 [ApiController]
 [Route("api/ai")]
 [Authorize]
-[ServiceFilter(typeof(PremiumOnlyFilter))]
 public class AIController : ControllerBase
 {
     private readonly IAIService _aiService;
@@ -49,6 +48,7 @@ public class AIController : ControllerBase
     }
 
     [HttpPost("apply")]
+    [ServiceFilter(typeof(PremiumOnlyFilter))]
     public async Task<IActionResult> ApplySuggestions([FromBody] ApplySuggestionsRequestDto dto)
     {
         var userId = CurrentUserId();

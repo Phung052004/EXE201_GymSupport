@@ -13,46 +13,6 @@ namespace GymSupport.Service.Services;
 
 public class OpenAIService : IAIService
 {
-    private const string OutOfScopeResponse =
-        "Mình là GymSupport AI Coach nên chỉ có thể hỗ trợ các câu hỏi về gym, fitness, sức khỏe, dinh dưỡng và lịch tập. Bạn muốn mình giúp gì về tập luyện hôm nay?";
-
-    private static readonly string[] FitnessScopeTerms =
-    {
-        "gym", "fitness", "workout", "exercise", "training", "coach", "pt",
-        "tập", "tap", "tập luyện", "tap luyen", "bài tập", "bai tap", "lịch tập", "lich tap",
-        "sức khỏe", "suc khoe", "dinh dưỡng", "dinh duong", "nutrition", "diet", "meal",
-        "ăn", "an ", "calo", "calorie", "protein", "carb", "fat", "macro", "whey", "creatine",
-        "bmi", "cân nặng", "can nang", "chiều cao", "chieu cao", "giảm cân", "giam can",
-        "giảm mỡ", "giam mo", "tăng cơ", "tang co", "siết cơ", "siet co", "bulk", "cut",
-        "cardio", "hiit", "chạy bộ", "chay bo", "đi bộ", "di bo", "yoga", "stretch",
-        "khởi động", "khoi dong", "giãn cơ", "gian co", "phục hồi", "phuc hoi", "ngủ", "ngu",
-        "chấn thương", "chan thuong", "đau", "dau", "form", "tư thế", "tu the",
-        "cơ", "co ", "ngực", "nguc", "lưng", "lung", "vai", "tay", "chân", "chan",
-        "bụng", "bung", "mông", "mong", "đùi", "dui", "bench press", "squat", "deadlift",
-        "push up", "pull up", "plank", "reps", "sets", "hiệp", "hiep",
-        "thứ 2", "thu 2", "thứ 3", "thu 3", "thứ 4", "thu 4", "thứ 5", "thu 5",
-        "thứ 6", "thu 6", "thứ 7", "thu 7", "chủ nhật", "chu nhat",
-        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
-    };
-
-    private static readonly string[] HardOutOfScopeTerms =
-    {
-        "viết code", "viet code", "lập trình", "lap trinh", "python", "javascript",
-        "typescript", "java", "c#", "sql", "html", "css", "debug", "bug", "api",
-        "chứng khoán", "chung khoan", "crypto", "bitcoin", "xổ số", "xo so",
-        "chính trị", "chinh tri", "bầu cử", "bau cu", "tin tức", "tin tuc",
-        "làm văn", "lam van", "giải toán", "giai toan", "toán", "toan",
-        "vật lý", "vat ly", "hóa học", "hoa hoc", "tiếng anh", "tieng anh",
-        "dịch bài", "dich bai", "homework", "essay"
-    };
-
-    private static readonly string[] ConfirmationTerms =
-    {
-        "ok", "okay", "oke", "đồng ý", "dong y", "lưu đi", "luu di", "lưu lịch",
-        "luu lich", "tạo đi", "tao di", "tạo lịch", "tao lich", "áp dụng",
-        "ap dung", "chốt", "chot", "yes", "agree"
-    };
-
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly IChatRepository _chatRepository;
@@ -239,18 +199,6 @@ public class OpenAIService : IAIService
         var history = await _chatRepository.GetRecentMessagesAsync(userId, 20);
         history.Reverse();
 
-        if (!IsFitnessScopeMessage(message, history))
-        {
-            await _chatRepository.CreateAsync(new ChatMessage { UserId = userId, Role = "user", Content = message });
-            await _chatRepository.CreateAsync(new ChatMessage { UserId = userId, Role = "assistant", Content = OutOfScopeResponse });
-
-            return new ChatResponseDto
-            {
-                Response = OutOfScopeResponse,
-                Suggestions = new List<AISuggestionDto>()
-            };
-        }
-
         var apiKey = _configuration["OpenAI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
@@ -264,50 +212,25 @@ public class OpenAIService : IAIService
         var customer = await _customerRepository.GetByUserIdAsync(userId);
         var user = await _userRepository.GetByIdAsync(userId);
 
-        if (customer == null)
-        {
-            var responseText = "Bạn cần tạo hồ sơ cá nhân trước khi dùng AI Coach để mình có thể tư vấn chính xác theo thể trạng, mục tiêu và kinh nghiệm tập luyện của bạn.";
-
-            await _chatRepository.CreateAsync(new ChatMessage
-            {
-                UserId = userId,
-                Role = "user",
-                Content = message
-            });
-
-            await _chatRepository.CreateAsync(new ChatMessage
-            {
-                UserId = userId,
-                Role = "assistant",
-                Content = responseText
-            });
-
-            return new ChatResponseDto
-            {
-                Response = responseText,
-                Suggestions = new List<AISuggestionDto>()
-            };
-        }
-
-        var customerProfile = new
-        {
-            customer.Id,
-            customer.UserId,
-            FullName = user?.FullName ?? "",
-            Email = user?.Email ?? "",
-            customer.Gender,
-            customer.Age,
-            customer.Bmi,
-            customer.HeightCm,
-            customer.WeightKg,
-            customer.Goal,
-            customer.ExperienceLevel,
-            customer.InjuryNotes
-        };
-
-        var customerJson = JsonSerializer.Serialize(
-            customerProfile,
-            new JsonSerializerOptions { WriteIndented = true });
+        var customerJson = customer == null
+            ? "null (người dùng chưa tạo hồ sơ; vẫn trò chuyện bình thường và chỉ hỏi thêm thông tin khi thực sự cần cá nhân hóa)"
+            : JsonSerializer.Serialize(
+                new
+                {
+                    customer.Id,
+                    customer.UserId,
+                    FullName = user?.FullName ?? "",
+                    Email = user?.Email ?? "",
+                    customer.Gender,
+                    customer.Age,
+                    customer.Bmi,
+                    customer.HeightCm,
+                    customer.WeightKg,
+                    customer.Goal,
+                    customer.ExperienceLevel,
+                    customer.InjuryNotes
+                },
+                new JsonSerializerOptions { WriteIndented = true });
         // ==========================
         // Workout Plans
         // ==========================
@@ -334,14 +257,16 @@ public class OpenAIService : IAIService
             role = "system",
             content =
 $$"""
-Bạn là GymSupport AI Coach - Trợ lý huấn luyện viên thể hình chuyên nghiệp. Bạn có nhiệm vụ quản lý lịch tập (Workout Plan) cho người dùng giống như một Thời khóa biểu tuần.
+Bạn là GymSupport AI Coach: một người bạn đồng hành am hiểu fitness, ấm áp, vui vẻ và nói chuyện tự nhiên. Bạn vừa có thể tư vấn tập luyện, dinh dưỡng, phục hồi và quản lý lịch tập, vừa có thể chào hỏi, tán gẫu và trò chuyện đời thường với người dùng.
 
 =========================================
-GIỚI HẠN PHẠM VI TRẢ LỜI (BẮT BUỘC):
-- Bạn CHỈ được trả lời các câu hỏi liên quan đến gym, fitness, tập luyện, phục hồi, sức khỏe thể chất, vóc dáng, dinh dưỡng, thực phẩm bổ trợ hợp pháp, thói quen sinh hoạt hỗ trợ tập luyện, an toàn khi tập và quản lý workout plan trong GymSupport.
-- Nếu người dùng hỏi chủ đề ngoài phạm vi như lập trình, chính trị, tài chính, giải trí, bài tập ở trường, tin tức, thời tiết, chuyện cá nhân không liên quan sức khỏe/tập luyện... bạn KHÔNG được trả lời nội dung đó.
-- Với câu hỏi ngoài phạm vi, trả về `suggestions: []` và `response` ngắn gọn: "Mình là GymSupport AI Coach nên chỉ có thể hỗ trợ các câu hỏi về gym, fitness, sức khỏe, dinh dưỡng và lịch tập. Bạn muốn mình giúp gì về tập luyện hôm nay?"
-- Không được cố gắng trả lời một phần câu hỏi ngoài phạm vi rồi mới chuyển chủ đề.
+PHONG CÁCH TRÒ CHUYỆN:
+- Trả lời thân thiện, thoải mái, có cảm xúc và linh hoạt như một người bạn đồng hành đáng tin cậy; không nói như biểu mẫu hay tổng đài.
+- Có thể chào hỏi, pha chút hài hước phù hợp, động viên, hỏi thăm và tán gẫu tự nhiên. Hãy bắt nhịp cách xưng hô, độ dài và năng lượng của người dùng.
+- Không ép mọi cuộc trò chuyện quay về gym. Với câu hỏi đời thường, hãy trả lời hữu ích trong khả năng của mình; nếu không chắc, nói rõ thay vì bịa.
+- Khi người dùng chỉ trò chuyện, hỏi kiến thức hoặc xin gợi ý, luôn trả `suggestions: []`; tuyệt đối không tác động database.
+- Chỉ sinh `suggestions` khi người dùng xác nhận rõ ràng rằng họ muốn lưu/áp dụng thay đổi lịch tập vào hệ thống. Việc lưu sẽ được hệ thống kiểm tra quyền Premium riêng.
+- Không chẩn đoán bệnh hoặc thay thế bác sĩ. Khi có dấu hiệu nguy hiểm, đau nặng hay kéo dài, khuyên người dùng gặp chuyên gia y tế.
 
 =========================================
 KIẾN TRÚC DỮ LIỆU CỦA HỆ THỐNG:
@@ -427,6 +352,7 @@ DỮ LIỆU THỰC TẾ HIỆN TẠI TỪ DATABASE CẤP CHO BẠN:
 
 QUY TẮC CÁ NHÂN HÓA THEO CUSTOMER PROFILE:
 - Bạn phải đọc thông tin customer profile để cá nhân hóa câu trả lời.
+- Nếu customer profile là null, vẫn trò chuyện và đưa gợi ý chung bình thường; chỉ hỏi thêm tuổi, mục tiêu, kinh nghiệm hoặc chấn thương khi thông tin đó cần thiết cho một lời khuyên cụ thể.
 - Dựa vào gender, age, heightCm, weightKg, bmi, goal, experienceLevel, injuryNotes để tư vấn.
 - Nếu injuryNotes có dữ liệu, phải ưu tiên cảnh báo an toàn và tránh bài tập có thể làm nặng chấn thương.
 - Nếu goal là tăng cơ, ưu tiên lời khuyên về progressive overload, protein, phục hồi và lịch tập phù hợp.
@@ -478,7 +404,7 @@ QUY TẮC CẤU TRÚC JSON CHO TỪNG HÀNH ĐỘNG (BẮT BUỘC TUÂN THỦ):
         {
             model = "gpt-4o-mini",
             messages,
-            temperature = 0.2,
+            temperature = 0.7,
             response_format = new
             {
                 type = "json_schema",
@@ -571,37 +497,13 @@ QUY TẮC CẤU TRÚC JSON CHO TỪNG HÀNH ĐỘNG (BẮT BUỘC TUÂN THỦ):
             };
         }
 
-        // ====================================================================
-        // LUỒNG ĐỒNG BỘ: TỰ ĐỘNG BẮT SUGGESTIONS ĐỂ GHI DATABASE LẬP TỨC
-        // ====================================================================
-        if (aiResult?.Suggestions != null && aiResult.Suggestions.Any(x => !string.IsNullOrEmpty(x.Action)))
+        // Chat chỉ tư vấn và trả về suggestions. Việc ghi database được tách
+        // sang POST /api/ai/apply để endpoint đó kiểm tra quyền Premium.
+        if (aiResult?.Suggestions != null)
         {
-            // Loại bỏ các suggestion "rác" do thuộc tính strict điền mặc định (chỉ giữ lại những đối tượng có Action thực tế)
-            var validSuggestions = aiResult.Suggestions.Where(x => !string.IsNullOrEmpty(x.Action)).ToList();
-
-            if (validSuggestions.Any())
-            {
-                var applyDto = new ApplySuggestionsRequestDto
-                {
-                    UserId = userId,
-                    Suggestions = validSuggestions
-                };
-
-                // Gọi hàm lưu trực tiếp vào database ngay tại lượt chat này
-                await ApplySuggestionsAsync(applyDto);
-
-                if (validSuggestions.Any(x => x.Action?.ToLower().Trim() == "create_plan"))
-                {
-                    aiResult.Response = $"🎉 [Hệ thống: Đã khởi tạo lịch mới] - {aiResult.Response}";
-                }
-                else
-                {
-                    aiResult.Response = $"💪 [Hệ thống: Đã cập nhật lịch tập] - {aiResult.Response}";
-                }
-            }
-
-            // Xóa sạch mảng suggestions trước khi trả về client để tránh Frontend gọi đúp API lưu lần nữa
-            aiResult.Suggestions = new List<AISuggestionDto>();
+            aiResult.Suggestions = aiResult.Suggestions
+                .Where(x => !string.IsNullOrWhiteSpace(x.Action))
+                .ToList();
         }
 
         // ==========================
@@ -611,44 +513,6 @@ QUY TẮC CẤU TRÚC JSON CHO TỪNG HÀNH ĐỘNG (BẮT BUỘC TUÂN THỦ):
         await _chatRepository.CreateAsync(new ChatMessage { UserId = userId, Role = "assistant", Content = aiResult?.Response ?? "" });
 
         return aiResult ?? new ChatResponseDto { Response = "Không nhận được phản hồi." };
-    }
-
-    private static bool IsFitnessScopeMessage(
-        string message,
-        IEnumerable<ChatMessage> history)
-    {
-        if (string.IsNullOrWhiteSpace(message))
-        {
-            return false;
-        }
-
-        var normalized = message.Trim().ToLowerInvariant();
-
-        if (ContainsAny(normalized, HardOutOfScopeTerms))
-        {
-            return false;
-        }
-
-        if (ContainsAny(normalized, FitnessScopeTerms))
-        {
-            return true;
-        }
-
-        if (ContainsAny(normalized, ConfirmationTerms))
-        {
-            return history
-                .Where(x => string.Equals(x.Role, "assistant", StringComparison.OrdinalIgnoreCase))
-                .TakeLast(4)
-                .Any(x => ContainsAny(x.Content.ToLowerInvariant(), FitnessScopeTerms));
-        }
-
-        return false;
-    }
-
-    private static bool ContainsAny(string value, IEnumerable<string> terms)
-    {
-        return terms.Any(term =>
-            value.Contains(term, StringComparison.OrdinalIgnoreCase));
     }
 
     public async Task<ImageAnalyzeResponseDto> AnalyzeImageAsync(
