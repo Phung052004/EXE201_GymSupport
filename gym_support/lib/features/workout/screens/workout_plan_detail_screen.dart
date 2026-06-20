@@ -9,7 +9,8 @@ class WorkoutPlanDetailScreen extends StatefulWidget {
   const WorkoutPlanDetailScreen({super.key, required this.planId});
 
   @override
-  State<WorkoutPlanDetailScreen> createState() => _WorkoutPlanDetailScreenState();
+  State<WorkoutPlanDetailScreen> createState() =>
+      _WorkoutPlanDetailScreenState();
 }
 
 class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
@@ -47,18 +48,18 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
     try {
       await BackendApi.activateWorkoutPlan(_plan!.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã kích hoạt lịch tập!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Đã kích hoạt lịch tập!')));
         _loadPlan();
       }
     } catch (e) {
       if (mounted) {
         String msg = e.toString();
         if (msg.contains('Exception: ')) msg = msg.split('Exception: ').last;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $msg')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi: $msg')));
         _loadPlan();
       }
     }
@@ -73,14 +74,25 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
           icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Workout', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Workout',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.edit_outlined, color: AppColors.textPrimary, size: 20),
+            icon: const Icon(
+              Icons.edit_outlined,
+              color: AppColors.textPrimary,
+              size: 20,
+            ),
           ),
         ],
       ),
@@ -90,7 +102,12 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2));
+      return const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.primary,
+          strokeWidth: 2,
+        ),
+      );
     }
 
     if (_error != null || _plan == null) {
@@ -98,7 +115,10 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(_error ?? 'Lỗi không xác định', style: const TextStyle(color: AppColors.textSecondary)),
+            Text(
+              _error ?? 'Lỗi không xác định',
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: _loadPlan, child: const Text('Thử lại')),
           ],
@@ -135,14 +155,29 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
                 onPressed: _isLoading ? null : _applyPlan,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.ink,
+                  foregroundColor: AppColors.textDark,
                   padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
-                child: _isLoading 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('APPLY THIS PLAN', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: AppColors.textDark,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'APPLY THIS PLAN',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                        ),
+                      ),
               ),
             ),
           const SizedBox(height: 40),
@@ -180,27 +215,41 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.accent.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       plan.level.toUpperCase(),
-                      style: const TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   if (plan.isActive) ...[
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
                         'ACTIVE',
-                        style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ],
@@ -213,7 +262,10 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
             children: [
               _buildInfoBadge(Icons.calendar_today_rounded, '8 WEEKS'),
               const SizedBox(width: 12),
-              _buildInfoBadge(Icons.repeat_rounded, '${plan.daysPerWeek} DAYS/WK'),
+              _buildInfoBadge(
+                Icons.repeat_rounded,
+                '${plan.daysPerWeek} DAYS/WK',
+              ),
             ],
           ),
         ],
@@ -234,7 +286,11 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
           const SizedBox(width: 8),
           Text(
             text,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -254,11 +310,19 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.restaurant_rounded, size: 18, color: AppColors.accent),
+              const Icon(
+                Icons.restaurant_rounded,
+                size: 18,
+                color: AppColors.accent,
+              ),
               const SizedBox(width: 10),
               const Text(
                 'Nutrition Tips',
-                style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ],
           ),
@@ -277,11 +341,21 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('• ', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+          const Text(
+            '• ',
+            style: TextStyle(
+              color: AppColors.accent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4),
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -307,21 +381,35 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
               Expanded(
                 child: Text(
                   '${day.dayName}: ${day.focus}',
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.accent, size: 20),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.accent,
+                size: 20,
+              ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             day.targetMuscleGroups.join(', '),
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildSmallBadge(Icons.fitness_center_rounded, '${day.exercises.length} Exercises'),
+              _buildSmallBadge(
+                Icons.fitness_center_rounded,
+                '${day.exercises.length} Exercises',
+              ),
               const SizedBox(width: 12),
               _buildSmallBadge(Icons.timer_outlined, '65 min'),
             ],
@@ -340,7 +428,9 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
                     color: AppColors.surface2,
                     borderRadius: BorderRadius.circular(12),
                     image: const DecorationImage(
-                      image: NetworkImage('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&q=80'),
+                      image: NetworkImage(
+                        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&q=80',
+                      ),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -349,20 +439,28 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
             ),
           ),
           if (day.dayName.toLowerCase().contains('monday')) ...[
-             const SizedBox(height: 16),
-             const Divider(color: AppColors.outline),
-             const SizedBox(height: 8),
-             Row(
-               children: [
-                 const Icon(Icons.check_circle_rounded, color: AppColors.accent, size: 14),
-                 const SizedBox(width: 8),
-                 const Text(
-                   'Completed this week',
-                   style: TextStyle(color: AppColors.accent, fontSize: 11, fontWeight: FontWeight.bold),
-                 ),
-               ],
-             ),
-          ]
+            const SizedBox(height: 16),
+            const Divider(color: AppColors.outline),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.accent,
+                  size: 14,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Completed this week',
+                  style: TextStyle(
+                    color: AppColors.accent,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -381,7 +479,11 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
           const SizedBox(width: 6),
           Text(
             text,
-            style: const TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+              color: AppColors.accent,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),

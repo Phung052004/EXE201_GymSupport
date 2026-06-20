@@ -7,6 +7,19 @@ class HomeHeader extends StatelessWidget {
 
   const HomeHeader({super.key, required this.name, required this.goal});
 
+  String _greetingFor(DateTime now) {
+    if (now.hour >= 5 && now.hour < 12) {
+      return 'Good Morning,';
+    }
+    if (now.hour < 18) {
+      return 'Good Afternoon,';
+    }
+    if (now.hour < 22) {
+      return 'Good Evening,';
+    }
+    return 'Good Night,';
+  }
+
   @override
   Widget build(BuildContext context) {
     final goals = goal
@@ -22,7 +35,7 @@ class HomeHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Good Morning,',
+                _greetingFor(DateTime.now()),
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 14,
@@ -50,7 +63,7 @@ class HomeHeader extends StatelessWidget {
                   child: Text(
                     goals.first.toUpperCase(),
                     style: const TextStyle(
-                      color: AppColors.ink,
+                      color: AppColors.textDark,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,10 +16,12 @@ class BackendApi {
   static const String _currentWorkoutIsQuickKey = 'current_workout_is_quick';
 
   static Uri get _baseUri {
-    const devHost = String.fromEnvironment(
-      'BACKEND_HOST',
-      defaultValue: '10.0.2.2:5028',
-    );
+    const configuredHost = String.fromEnvironment('BACKEND_HOST');
+    final devHost = configuredHost.isNotEmpty
+        ? configuredHost
+        : defaultTargetPlatform == TargetPlatform.android
+        ? '10.0.2.2:5028'
+        : 'localhost:5028';
 
     return Uri.parse('http://$devHost');
   }

@@ -66,7 +66,7 @@ class AppBottomNavBar extends StatelessWidget {
                       children: [
                         Icon(
                           item.icon,
-                          color: selected ? AppColors.ink : Colors.white,
+                          color: selected ? AppColors.textDark : Colors.white,
                           size: 20,
                         ),
                         if (selected) ...[
@@ -77,7 +77,7 @@ class AppBottomNavBar extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.fade,
                               style: const TextStyle(
-                                color: AppColors.ink,
+                                color: AppColors.textDark,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
                               ),

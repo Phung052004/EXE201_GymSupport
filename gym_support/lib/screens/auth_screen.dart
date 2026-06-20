@@ -278,8 +278,10 @@ class _AuthScreenState extends State<AuthScreen> {
                   child: ElevatedButton(
                     onPressed: isLoading ? null : submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.ink,
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.background,
+                      disabledBackgroundColor: AppColors.outline,
+                      disabledForegroundColor: AppColors.textSecondary,
                     ),
                     child: Text(
                       isLoading

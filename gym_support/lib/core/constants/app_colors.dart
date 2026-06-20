@@ -13,12 +13,12 @@ class AppColors {
   static const Color surface = Color.fromARGB(255, 45, 45, 45);
   static const Color surface2 = Color(0xFF2D2D2D);
   static const Color textPrimary = Color(0xFFFAFAFA);
-  static const Color textSecondary = Color(0xFF616060);
+  static const Color textSecondary = Color(0xFFA8A8A8);
 
   // Legacy support or variations
   static const Color secondary = Color(0xFF71808D);
   static const Color surfaceSelected = Color(0xFFB7FF2A);
-  static const Color textDark = Color(0xFFFAFAFA);
+  static const Color textDark = Color(0xFF11160A);
   static const Color ink = Color(0xFFFAFAFA);
   static const Color outline = Color(0xFF404040);
   static const Color danger = Color(0xFFE95858);

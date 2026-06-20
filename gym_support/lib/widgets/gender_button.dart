@@ -31,7 +31,7 @@ class GenderButton extends StatelessWidget {
             child: Text(
               title,
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: isSelected ? AppColors.textDark : AppColors.textPrimary,
                 fontWeight: FontWeight.w800,
               ),
             ),
