@@ -57,6 +57,7 @@ public class HomeController : ControllerBase
         var nutrition = BuildNutrition(customer);
         var userMuscleProgress = await _muscleProgressRepository.GetByUserIdAsync(userId);
         var muscleProgress = BuildMuscleProgress(userMuscleProgress, muscles);
+        var popularExercises = BuildPopularExercises(history, exercises);
 
         return Ok(new
         {
@@ -65,9 +66,28 @@ public class HomeController : ControllerBase
             todayPlan,
             nutrition,
             muscleProgress,
+            popularExercises,
             streak = CalculateStreak(history),
             workoutCount = history.Count(x => x.Status == "COMPLETED")
         });
+    }
+
+    [HttpGet("{userId}/popular-exercises")]
+    public async Task<IActionResult> GetPopularExercises(string userId, [FromQuery] int limit = 5)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+
+        if (string.IsNullOrWhiteSpace(currentUserId))
+            return Unauthorized();
+
+        if (currentUserId != userId)
+            return Forbid();
+
+        var history = await _workoutSessionLogRepository.GetByUserIdAsync(userId);
+        var exercises = (await _exerciseRepository.GetAllAsync()).ToList();
+
+        return Ok(BuildPopularExercises(history, exercises, Math.Clamp(limit, 1, 20)));
     }
 
     private static object? BuildTodayPlan(
@@ -123,6 +143,7 @@ public class HomeController : ControllerBase
                     ? exercise?.Name ?? "Exercise"
                     : item.ExerciseName,
                 muscle = muscleName,
+                imageUrl = exercise?.ImageUrl ?? "",
                 sets = item.Sets,
                 reps = item.Reps,
                 notes = item.Notes
@@ -287,6 +308,57 @@ public class HomeController : ControllerBase
             >= 2 => "Bronze",
             _ => "Iron"
         };
+    }
+
+    private static List<object> BuildPopularExercises(
+        List<WorkoutSessionLog> history,
+        List<Exercise> exercises,
+        int limit = 5)
+    {
+        var fromUtc = DateTime.UtcNow.Date.AddDays(-6);
+        var exerciseMap = exercises.ToDictionary(x => x.Id, x => x);
+
+        return history
+            .Where(log =>
+                string.Equals(log.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase) &&
+                (log.EndTime ?? log.StartTime) >= fromUtc)
+            .SelectMany(log => log.Exercises
+                .Where(item =>
+                    string.Equals(item.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase) ||
+                    item.Sets.Any(set => string.Equals(
+                        set.Status,
+                        "COMPLETED",
+                        StringComparison.OrdinalIgnoreCase)))
+                .Select(item => new
+                {
+                    item.ExerciseId,
+                    item.ExerciseName,
+                    CompletedSets = item.Sets.Count(set => string.Equals(
+                        set.Status,
+                        "COMPLETED",
+                        StringComparison.OrdinalIgnoreCase)),
+                    PerformedAt = log.EndTime ?? log.StartTime
+                }))
+            .GroupBy(item => item.ExerciseId)
+            .Select(group =>
+            {
+                exerciseMap.TryGetValue(group.Key, out var exercise);
+                return new
+                {
+                    id = group.Key,
+                    name = exercise?.Name ?? group.First().ExerciseName ?? "Exercise",
+                    imageUrl = exercise?.ImageUrl ?? "",
+                    workoutCount = group.Count(),
+                    completedSets = group.Sum(item => item.CompletedSets),
+                    lastPerformedAt = group.Max(item => item.PerformedAt)
+                };
+            })
+            .OrderByDescending(item => item.workoutCount)
+            .ThenByDescending(item => item.completedSets)
+            .ThenByDescending(item => item.lastPerformedAt)
+            .Take(limit)
+            .Cast<object>()
+            .ToList();
     }
 
     private static int CalculateStreak(List<WorkoutSessionLog> history)
