@@ -65,6 +65,170 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
     }
   }
 
+  Future<void> _editPlan() async {
+    final plan = _plan;
+    if (plan == null || _isLoading) return;
+
+    final nameController = TextEditingController(text: plan.name);
+    final goalController = TextEditingController(text: plan.goal);
+    final descriptionController = TextEditingController(text: plan.description);
+    final daysController = TextEditingController(
+      text: plan.daysPerWeek.toString(),
+    );
+
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Chỉnh sửa lịch tập'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(labelText: 'Tên lịch tập'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: goalController,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(labelText: 'Mục tiêu'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: daysController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Số buổi mỗi tuần',
+                  helperText: 'Từ 1 đến 7 buổi',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descriptionController,
+                minLines: 3,
+                maxLines: 5,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(labelText: 'Mô tả'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final days = int.tryParse(daysController.text.trim());
+              if (nameController.text.trim().isEmpty ||
+                  goalController.text.trim().isEmpty ||
+                  days == null ||
+                  days < 1 ||
+                  days > 7) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('Kiểm tra lại tên, mục tiêu và số buổi.'),
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldSave != true || !mounted) {
+      nameController.dispose();
+      goalController.dispose();
+      descriptionController.dispose();
+      daysController.dispose();
+      return;
+    }
+
+    final days = int.parse(daysController.text.trim());
+    setState(() => _isLoading = true);
+    try {
+      await BackendApi.updateWorkoutPlan(
+        plan.id,
+        plan.toJson(
+          name: nameController.text.trim(),
+          goal: goalController.text.trim(),
+          description: descriptionController.text.trim(),
+          daysPerWeek: days,
+        ),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Đã cập nhật lịch tập.')));
+        await _loadPlan();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Không thể cập nhật: $error')));
+        setState(() => _isLoading = false);
+      }
+    } finally {
+      nameController.dispose();
+      goalController.dispose();
+      descriptionController.dispose();
+      daysController.dispose();
+    }
+  }
+
+  Future<void> _deletePlan() async {
+    final plan = _plan;
+    if (plan == null || _isLoading) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+        title: const Text('Xóa lịch tập?'),
+        content: Text(
+          'Lịch "${plan.name}" và tất cả buổi tập bên trong sẽ bị xóa. '
+          'Thao tác này không thể hoàn tác.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await BackendApi.deleteWorkoutPlan(plan.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã xóa lịch tập.')));
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Không thể xóa: $error')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,11 +251,21 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () {},
+            tooltip: 'Chỉnh sửa',
+            onPressed: _plan == null || _isLoading ? null : _editPlan,
             icon: const Icon(
               Icons.edit_outlined,
               color: AppColors.textPrimary,
               size: 20,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Xóa lịch tập',
+            onPressed: _plan == null || _isLoading ? null : _deletePlan,
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: Colors.red,
+              size: 21,
             ),
           ),
         ],

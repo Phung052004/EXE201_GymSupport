@@ -114,8 +114,12 @@ class ExercisePickerCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () =>
-                            showExerciseDetailSheet(context, exercise),
+                        onPressed: () => showExerciseDetailSheet(
+                          context,
+                          exercise,
+                          onAdd: onAction,
+                          actionLabel: actionLabel,
+                        ),
                         icon: const Icon(Icons.visibility_rounded, size: 18),
                         label: const Text('View Detail'),
                         style: OutlinedButton.styleFrom(
@@ -157,10 +161,18 @@ class ExercisePickerCard extends StatelessWidget {
 
 Future<void> showExerciseDetailSheet(
   BuildContext context,
-  Exercise exercise,
-) async {
+  Exercise exercise, {
+  VoidCallback? onAdd,
+  String actionLabel = 'Add',
+}) async {
   await Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => ExerciseDetailScreen(exercise: exercise)),
+    MaterialPageRoute(
+      builder: (_) => ExerciseDetailScreen(
+        exercise: exercise,
+        onAdd: onAdd,
+        addLabel: actionLabel,
+      ),
+    ),
   );
 }
 

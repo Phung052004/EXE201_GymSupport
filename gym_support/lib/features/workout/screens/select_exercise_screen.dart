@@ -3,6 +3,7 @@ import 'package:gym_support/core/constants/app_colors.dart';
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/models/exercise.dart';
 import 'package:gym_support/models/workout_models.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/exercise_picker_card.dart';
 
 class SelectExerciseScreen extends StatefulWidget {
@@ -13,7 +14,12 @@ class SelectExerciseScreen extends StatefulWidget {
 }
 
 class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
+  static const _categoryKey = 'select_exercise_category';
+  static const _muscleKey = 'select_exercise_muscle';
+  static const _searchKey = 'select_exercise_search';
+
   List<Exercise> _exercises = [];
+  final TextEditingController _searchController = TextEditingController();
   List<String> _categories = [];
   List<Map<String, dynamic>> _muscles = [];
 
@@ -28,13 +34,41 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     _loadInitialData();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadInitialData() async {
     setState(() => _isLoading = true);
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedCategory = prefs.getString(_categoryKey);
+      final savedMuscleId = prefs.getString(_muscleKey);
+      final savedSearch = prefs.getString(_searchKey) ?? '';
       final categories = await BackendApi.getMuscleCategories();
-      final exercises = await BackendApi.getExercises();
+      final validCategory = categories.contains(savedCategory)
+          ? savedCategory
+          : null;
+      final muscles = validCategory == null
+          ? <Map<String, dynamic>>[]
+          : await BackendApi.getMusclesByCategory(validCategory);
+      final validMuscle =
+          muscles.any((item) => item['id']?.toString() == savedMuscleId)
+          ? savedMuscleId
+          : null;
+      final exercises = await BackendApi.getExercises(
+        category: validCategory,
+        muscleId: validMuscle,
+      );
       setState(() {
         _categories = categories;
+        _muscles = muscles;
+        _selectedCategory = validCategory;
+        _selectedMuscleId = validMuscle;
+        _searchQuery = savedSearch;
+        _searchController.text = savedSearch;
         _exercises = exercises;
         _isLoading = false;
       });
@@ -55,6 +89,13 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
       _isLoading = true;
       _muscles = [];
     });
+    final prefs = await SharedPreferences.getInstance();
+    if (category == null) {
+      await prefs.remove(_categoryKey);
+    } else {
+      await prefs.setString(_categoryKey, category);
+    }
+    await prefs.remove(_muscleKey);
     try {
       if (category != null) {
         final muscles = await BackendApi.getMusclesByCategory(category);
@@ -78,6 +119,12 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
       _selectedMuscleId = muscleId;
       _isLoading = true;
     });
+    final prefs = await SharedPreferences.getInstance();
+    if (muscleId == null) {
+      await prefs.remove(_muscleKey);
+    } else {
+      await prefs.setString(_muscleKey, muscleId);
+    }
     try {
       final exercises = await BackendApi.getExercises(
         category: _selectedCategory,
@@ -312,7 +359,12 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
               border: Border.all(color: Colors.white.withOpacity(0.05)),
             ),
             child: TextField(
-              onChanged: (val) => setState(() => _searchQuery = val),
+              controller: _searchController,
+              onChanged: (val) async {
+                setState(() => _searchQuery = val);
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString(_searchKey, val);
+              },
               style: const TextStyle(color: AppColors.textPrimary),
               decoration: const InputDecoration(
                 hintText: 'Search exercise...',

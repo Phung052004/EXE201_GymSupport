@@ -1753,6 +1753,24 @@ class BackendApi {
     };
   }
 
+  static Future<List<Map<String, dynamic>>> getPopularExercisesThisWeek({
+    int limit = 5,
+  }) async {
+    final userId = await currentUserId();
+    if (userId == null || userId.isEmpty) return <Map<String, dynamic>>[];
+
+    final safeLimit = limit.clamp(1, 20);
+    final decoded = await _get(
+      '/api/home/${Uri.encodeComponent(userId)}/popular-exercises?limit=$safeLimit',
+      auth: true,
+    );
+    if (decoded is! List) return <Map<String, dynamic>>[];
+    return decoded
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
   static int _completedWorkoutCount(List<Map<String, dynamic>> history) {
     return history.where((item) {
       final status = (_value<String>(item, 'status') ?? '').toUpperCase();

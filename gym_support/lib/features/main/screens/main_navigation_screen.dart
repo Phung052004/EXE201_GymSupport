@@ -294,6 +294,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         bmi: _bmi,
         refreshSeed: _homeRefreshSeed,
         onBuildRoutine: _openBuildRoutine,
+        onOpenWorkout: () => setState(() => currentIndex = 2),
       ),
 
       AiCoachScreen(name: _name, goal: _goal, schedule: _schedule, bmi: _bmi),

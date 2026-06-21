@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:gym_support/core/services/backend_api.dart';
 import '../../../models/exercise.dart';
@@ -27,6 +28,9 @@ class ExercisesScreen extends StatefulWidget {
 }
 
 class _ExercisesScreenState extends State<ExercisesScreen> {
+  static const _filterKey = 'exercise_catalog_filter';
+  static const _searchKey = 'exercise_catalog_search';
+
   final TextEditingController searchController = TextEditingController();
 
   String searchText = '';
@@ -50,7 +54,29 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   @override
   void initState() {
     super.initState();
-    _loadExercises();
+    _restoreFiltersAndLoad();
+  }
+
+  Future<void> _restoreFiltersAndLoad() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedFilter = prefs.getString(_filterKey);
+    final savedSearch = prefs.getString(_searchKey);
+    if (mounted) {
+      setState(() {
+        selectedFilter = savedFilter?.trim().isNotEmpty == true
+            ? savedFilter!
+            : 'All';
+        searchText = savedSearch ?? '';
+        searchController.text = searchText;
+      });
+    }
+    await _loadExercises();
+  }
+
+  Future<void> _saveFilterState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_filterKey, selectedFilter);
+    await prefs.setString(_searchKey, searchText);
   }
 
   @override
@@ -73,6 +99,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
           exercises = catalog;
           if (!filters.contains(selectedFilter)) {
             selectedFilter = 'All';
+            _saveFilterState();
           }
         }
       });
@@ -125,6 +152,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                 setState(() {
                   searchText = value;
                 });
+                _saveFilterState();
               },
             ),
             const SizedBox(height: 14),
@@ -135,6 +163,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                 setState(() {
                   selectedFilter = filter;
                 });
+                _saveFilterState();
               },
             ),
             const SizedBox(height: 14),

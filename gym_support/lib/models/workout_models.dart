@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class WorkoutPlan {
   final String id;
   final String userId;
@@ -24,20 +22,49 @@ class WorkoutPlan {
   });
 
   factory WorkoutPlan.fromJson(Map<String, dynamic> json) {
-    var list = json['workoutDays'] as List? ?? json['sessions'] as List? ?? json['Sessions'] as List? ?? [];
+    var list =
+        json['workoutDays'] as List? ??
+        json['sessions'] as List? ??
+        json['Sessions'] as List? ??
+        [];
     return WorkoutPlan(
       id: (json['id'] ?? json['Id'])?.toString() ?? '',
       userId: (json['userId'] ?? json['UserId'])?.toString() ?? '',
       name: (json['name'] ?? json['Name'])?.toString() ?? '',
       goal: (json['goal'] ?? json['Goal'])?.toString() ?? '',
       level: (json['level'] ?? json['Level'])?.toString() ?? 'Beginner',
-      daysPerWeek: (json['daysPerWeek'] ?? json['DaysPerWeek']) is int 
-          ? (json['daysPerWeek'] ?? json['DaysPerWeek']) 
-          : int.tryParse((json['daysPerWeek'] ?? json['DaysPerWeek'])?.toString() ?? '0') ?? 0,
-      description: (json['description'] ?? json['Description'])?.toString() ?? '',
+      daysPerWeek: (json['daysPerWeek'] ?? json['DaysPerWeek']) is int
+          ? (json['daysPerWeek'] ?? json['DaysPerWeek'])
+          : int.tryParse(
+                  (json['daysPerWeek'] ?? json['DaysPerWeek'])?.toString() ??
+                      '0',
+                ) ??
+                0,
+      description:
+          (json['description'] ?? json['Description'])?.toString() ?? '',
       isActive: json['isActive'] ?? json['IsActive'] ?? false,
-      workoutDays: list.map((i) => WorkoutDay.fromJson(Map<String, dynamic>.from(i))).toList(),
+      workoutDays: list
+          .map((i) => WorkoutDay.fromJson(Map<String, dynamic>.from(i)))
+          .toList(),
     );
+  }
+
+  Map<String, dynamic> toJson({
+    String? name,
+    String? goal,
+    String? description,
+    int? daysPerWeek,
+  }) {
+    return {
+      'id': id,
+      'userId': userId,
+      'name': name ?? this.name,
+      'goal': goal ?? this.goal,
+      'description': description ?? this.description,
+      'daysPerWeek': daysPerWeek ?? this.daysPerWeek,
+      'isActive': isActive,
+      'sessions': workoutDays.map((day) => day.toJson()).toList(),
+    };
   }
 }
 
@@ -62,20 +89,40 @@ class WorkoutDay {
 
   factory WorkoutDay.fromJson(Map<String, dynamic> json) {
     var list = json['exercises'] as List? ?? json['Exercises'] as List? ?? [];
-    var muscles = json['targetMuscleGroups'] as List? ?? json['TargetMuscleGroups'] as List? ?? [];
+    var muscles =
+        json['targetMuscleGroups'] as List? ??
+        json['TargetMuscleGroups'] as List? ??
+        [];
     return WorkoutDay(
       id: (json['id'] ?? json['Id'])?.toString() ?? '',
-      dayNumber: (json['dayNumber'] ?? json['DayNumber']) is int ? (json['dayNumber'] ?? json['DayNumber']) : 0,
-      weekday: (json['dayOfWeek'] ?? json['DayOfWeek'] ?? json['weekday'] ?? json['Weekday'])?.toString() ?? '',
-      dayName: (json['dayName'] ?? json['DayName'] ?? json['dayOfWeek'] ?? json['DayOfWeek'])?.toString() ?? '',
+      dayNumber: (json['dayNumber'] ?? json['DayNumber']) is int
+          ? (json['dayNumber'] ?? json['DayNumber'])
+          : 0,
+      weekday:
+          (json['dayOfWeek'] ??
+                  json['DayOfWeek'] ??
+                  json['weekday'] ??
+                  json['Weekday'])
+              ?.toString() ??
+          '',
+      dayName:
+          (json['dayName'] ??
+                  json['DayName'] ??
+                  json['dayOfWeek'] ??
+                  json['DayOfWeek'])
+              ?.toString() ??
+          '',
       focus: (json['focus'] ?? json['Focus'])?.toString() ?? '',
       targetMuscleGroups: muscles.map((m) => m.toString()).toList(),
-      exercises: list.map((i) => WorkoutExercise.fromJson(Map<String, dynamic>.from(i))).toList(),
+      exercises: list
+          .map((i) => WorkoutExercise.fromJson(Map<String, dynamic>.from(i)))
+          .toList(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'dayOfWeek': weekday,
       'focus': focus.isEmpty ? dayName : focus,
       'exercises': exercises.map((e) => e.toJson()).toList(),
@@ -105,12 +152,21 @@ class WorkoutExercise {
   factory WorkoutExercise.fromJson(Map<String, dynamic> json) {
     return WorkoutExercise(
       exerciseId: (json['exerciseId'] ?? json['ExerciseId'])?.toString() ?? '',
-      exerciseName: (json['exerciseName'] ?? json['ExerciseName'])?.toString() ?? '',
-      sets: (json['sets'] ?? json['Sets']) is int ? (json['sets'] ?? json['Sets']) : 3,
+      exerciseName:
+          (json['exerciseName'] ?? json['ExerciseName'])?.toString() ?? '',
+      sets: (json['sets'] ?? json['Sets']) is int
+          ? (json['sets'] ?? json['Sets'])
+          : 3,
       reps: (json['reps'] ?? json['Reps'])?.toString() ?? '10',
-      restTime: (json['restTime'] ?? json['RestTime']) is int ? (json['restTime'] ?? json['RestTime']) : 60,
-      note: (json['notes'] ?? json['Notes'] ?? json['note'] ?? json['Note'])?.toString() ?? '',
-      muscleGroup: (json['muscleGroup'] ?? json['MuscleGroup'])?.toString() ?? 'Unknown',
+      restTime: (json['restTime'] ?? json['RestTime']) is int
+          ? (json['restTime'] ?? json['RestTime'])
+          : 60,
+      note:
+          (json['notes'] ?? json['Notes'] ?? json['note'] ?? json['Note'])
+              ?.toString() ??
+          '',
+      muscleGroup:
+          (json['muscleGroup'] ?? json['MuscleGroup'])?.toString() ?? 'Unknown',
     );
   }
 
@@ -130,11 +186,7 @@ class Muscle {
   final String name;
   final String category;
 
-  Muscle({
-    required this.id,
-    required this.name,
-    required this.category,
-  });
+  Muscle({required this.id, required this.name, required this.category});
 
   factory Muscle.fromJson(Map<String, dynamic> json) {
     return Muscle(

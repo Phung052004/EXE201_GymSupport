@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gym_support/core/constants/app_colors.dart';
 import 'package:gym_support/core/services/backend_api.dart';
@@ -27,12 +29,24 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
   bool _isLoading = true;
   String? _error;
   String _todayWeekday = '';
+  final Map<String, String> _exerciseImages = {};
+  Timer? _previewTimer;
+  int _previewTick = 0;
 
   @override
   void initState() {
     super.initState();
     _todayWeekday = _getWeekdayName(DateTime.now());
+    _previewTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) setState(() => _previewTick++);
+    });
     _loadActivePlan();
+  }
+
+  @override
+  void dispose() {
+    _previewTimer?.cancel();
+    super.dispose();
   }
 
   String _getWeekdayName(DateTime date) {
@@ -80,6 +94,13 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
 
       if (data != null) {
         final plan = WorkoutPlan.fromJson(data);
+        final catalog = await BackendApi.getExercises();
+        if (!mounted) return;
+        _exerciseImages
+          ..clear()
+          ..addEntries(
+            catalog.map((item) => MapEntry(item.id, item.imageUrl)),
+          );
         WorkoutDay? foundDay;
 
         final currentWeekday = _todayWeekday.trim().toLowerCase();
@@ -639,6 +660,12 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                   final isToday =
                       day.weekday.trim().toLowerCase() ==
                       _todayWeekday.trim().toLowerCase();
+                  final previewExercise = day.exercises.isEmpty
+                      ? null
+                      : day.exercises[_previewTick % day.exercises.length];
+                  final previewImage = previewExercise == null
+                      ? ''
+                      : (_exerciseImages[previewExercise.exerciseId] ?? '');
                   final subtitle = [
                     day.weekday,
                     '${day.exercises.length} exercises',
@@ -656,46 +683,31 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          width: 68,
-                          height: 68,
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 520),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          child: Container(
+                          key: ValueKey(previewExercise?.exerciseId ?? index),
+                          width: 82,
+                          height: 72,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                _figmaInk,
-                                index.isEven
-                                    ? const Color(0xFF3B464D)
-                                    : const Color(0xFF515A61),
-                              ],
-                            ),
+                            color: const Color(0xFF343B40),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Icon(
-                                index.isEven
-                                    ? Icons.fitness_center_rounded
-                                    : Icons.sports_gymnastics_rounded,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                              Positioned(
-                                top: 6,
-                                right: 7,
-                                child: Text(
-                                  '${index + 1}',
-                                  style: const TextStyle(
-                                    color: _figmaLime,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
+                          clipBehavior: Clip.antiAlias,
+                          child: previewImage.isNotEmpty
+                              ? Image.network(
+                                  previewImage,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => _previewFallback(
+                                    previewExercise?.exerciseName,
                                   ),
+                                )
+                              : _previewFallback(
+                                  previewExercise?.exerciseName,
                                 ),
-                              ),
-                            ],
-                          ),
+                        ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -743,6 +755,23 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
+                              if (previewExercise != null) ...[
+                                const SizedBox(height: 4),
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 420),
+                                  child: Text(
+                                    previewExercise.exerciseName,
+                                    key: ValueKey(previewExercise.exerciseId),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: _figmaLime,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -775,6 +804,25 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _previewFallback(String? name) {
+    return Container(
+      color: const Color(0xFF343B40),
+      padding: const EdgeInsets.all(8),
+      alignment: Alignment.center,
+      child: Text(
+        name ?? 'Workout',
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.white54,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 

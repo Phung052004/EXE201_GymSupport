@@ -258,14 +258,17 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.push(
+                          onPressed: () async {
+                            await Navigator.push<bool>(
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
                                     WorkoutPlanDetailScreen(planId: plan.id),
                               ),
                             );
+                            if (mounted) {
+                              await _loadPlans();
+                            }
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.textPrimary,

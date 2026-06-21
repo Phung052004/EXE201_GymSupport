@@ -8,7 +8,9 @@ import '../widgets/home_header.dart';
 import '../widgets/home_stat_card.dart';
 import '../widgets/muscle_progress_card.dart';
 import '../widgets/nutrition_plan_card.dart';
+import '../widgets/popular_exercises_section.dart';
 import '../widgets/today_plan_card.dart';
+import '../widgets/weekly_activity_card.dart';
 
 import 'package:gym_support/features/workout/screens/workout_history_screen.dart';
 
@@ -19,6 +21,7 @@ class HomeScreen extends StatefulWidget {
   final String bmi;
   final int refreshSeed;
   final VoidCallback onBuildRoutine;
+  final VoidCallback onOpenWorkout;
 
   const HomeScreen({
     super.key,
@@ -28,6 +31,7 @@ class HomeScreen extends StatefulWidget {
     required this.bmi,
     required this.refreshSeed,
     required this.onBuildRoutine,
+    required this.onOpenWorkout,
   });
 
   @override
@@ -38,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _workout;
   Map<String, dynamic>? _home;
   List<MuscleProgressData> _muscleProgress = const [];
+  List<Map<String, dynamic>> _popularExercises = const [];
   bool _loading = false;
 
   @override
@@ -64,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final todayPlan = home['todayPlan'] as Map<String, dynamic>?;
         final nutrition = home['nutrition'] as Map<String, dynamic>?;
         final progress = home['muscleProgress'];
+        final popular = home['popularExercises'];
         setState(() {
           _home = home;
           _workout = todayPlan == null
@@ -113,6 +119,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     isLagging: data['isLagging'] == true,
                   );
                 }).toList()
+              : const [];
+          _popularExercises = popular is List
+              ? popular
+                    .whereType<Map>()
+                    .map((item) => Map<String, dynamic>.from(item))
+                    .toList()
               : const [];
         });
       }
@@ -186,6 +198,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
 
+                const SizedBox(height: 24),
+
+                const WeeklyActivityCard(),
+
+                const SizedBox(height: 32),
+
+                const SectionTitle(
+                  icon: Icons.trending_up_rounded,
+                  title: 'Tập nhiều nhất tuần này',
+                ),
+
+                const SizedBox(height: 16),
+
+                PopularExercisesSection(
+                  items: _popularExercises,
+                  isLoading: _loading,
+                ),
+
                 const SizedBox(height: 32),
 
                 const SectionTitle(
@@ -198,6 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 TodayPlanCard(
                   isLoading: _loading,
                   onBuildRoutine: widget.onBuildRoutine,
+                  onOpenWorkout: widget.onOpenWorkout,
                   workout: _workout,
                 ),
 
