@@ -243,11 +243,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             ProfileMenuItem(
-              icon: Icons.fitness_center,
-              title: 'AI Workout Plan',
-              onTap: _openGeneratePlan,
-            ),
-            ProfileMenuItem(
               icon: Icons.local_fire_department_outlined,
               title: 'Goals & Targets',
               onTap: () {

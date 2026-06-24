@@ -7,6 +7,11 @@ public interface IAIService
     Task<ChatResponseDto> ChatAsync(
         string userId,
         string message);
+
+    Task<ChatResponseDto> GenerateWorkoutPlanAsync(
+        string userId,
+        GenerateWorkoutPlanRequestDto request);
+
     Task ApplySuggestionsAsync(ApplySuggestionsRequestDto dto);
 
     Task<ImageAnalyzeResponseDto> AnalyzeImageAsync(

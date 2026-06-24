@@ -47,6 +47,26 @@ public class AIController : ControllerBase
         }
     }
 
+    [HttpPost("workout-plan")]
+    public async Task<IActionResult> GenerateWorkoutPlan([FromBody] GenerateWorkoutPlanRequestDto dto)
+    {
+        try
+        {
+            var userId = CurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var result = await _aiService.GenerateWorkoutPlanAsync(userId, dto);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
     [HttpPost("apply")]
     [ServiceFilter(typeof(PremiumOnlyFilter))]
     public async Task<IActionResult> ApplySuggestions([FromBody] ApplySuggestionsRequestDto dto)

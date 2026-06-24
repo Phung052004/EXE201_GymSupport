@@ -15,6 +15,7 @@ class AppBottomNavBar extends StatelessWidget {
   static const items = [
     BottomNavItemData(icon: Icons.home_rounded, label: 'Home'),
     BottomNavItemData(icon: Icons.auto_awesome_rounded, label: 'AI Coach'),
+    BottomNavItemData(icon: Icons.event_note_rounded, label: 'AI Plan'),
     BottomNavItemData(icon: Icons.fitness_center_rounded, label: 'Workout'),
     BottomNavItemData(icon: Icons.rocket_launch_rounded, label: 'Routine'),
     BottomNavItemData(icon: Icons.person_outline_rounded, label: 'Profile'),

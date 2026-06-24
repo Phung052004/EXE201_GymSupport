@@ -1035,30 +1035,29 @@ class BackendApi {
   }
 
   static Future<Map<String, dynamic>> generatePlan({
-    required String name,
-    required String gender,
-    required String age,
-    required String weight,
-    required String height,
     required String goal,
-    required int daysPerWeek,
-    String? email,
+    required String experienceLevel,
+    required int? daysPerWeek,
+    required List<String> trainingDays,
+    required String intensity,
+    required String trainingCondition,
+    required String healthIssues,
   }) async {
-    final prompt = [
-      'Hay tao de xuat lich tap $daysPerWeek ngay/tuan cho $name.',
-      'Thong tin: gioi tinh $gender, tuoi $age, can nang ${weight}kg, chieu cao ${height}cm, muc tieu $goal.',
-      'Bat buoc dat mot ten lich cu the, khong dung ten chung chung.',
-      'Viet mo ta ngan cho lich va ghi ro gia dinh neu thieu thong tin.',
-      'Moi ngay phai co ten buoi/focus, warm-up, bai tap chinh, sets, reps, rest, ghi chu ky thuat ngan cho tung bai va cooldown/phuc hoi.',
-      'Uu tien Upper/Lower split neu phu hop.',
-      'Cuoi phan hoi hay hoi toi xac nhan truoc khi luu lich vao he thong.',
-    ].join(' ');
+    final decoded = await _post(
+      '/api/ai/workout-plan',
+      auth: true,
+      body: {
+        'goal': goal,
+        'experienceLevel': experienceLevel,
+        'daysPerWeek': daysPerWeek,
+        'trainingDays': trainingDays,
+        'intensity': intensity,
+        'trainingCondition': trainingCondition,
+        'healthIssues': healthIssues,
+      },
+    );
 
-    final reply = await sendAiCoachMessage(message: prompt);
-
-    return {
-      'data': {'aiResponse': reply},
-    };
+    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
 
   static Future<Map<String, dynamic>?> getWorkoutPlanByEmail(

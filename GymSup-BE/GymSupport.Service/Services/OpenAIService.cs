@@ -191,6 +191,208 @@ public class OpenAIService : IAIService
         }
     }
 
+    public async Task<ChatResponseDto> GenerateWorkoutPlanAsync(
+        string userId,
+        GenerateWorkoutPlanRequestDto request)
+    {
+        var apiKey = _configuration["OpenAI:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new Exception("OpenAI API key is missing.");
+        }
+
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", apiKey);
+
+        var customer = await _customerRepository.GetByUserIdAsync(userId);
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (customer == null)
+        {
+            throw new Exception("Không tìm thấy hồ sơ người dùng để tạo lịch tập.");
+        }
+
+        var customerJson = JsonSerializer.Serialize(
+            new
+            {
+                customer.Id,
+                customer.UserId,
+                FullName = user?.FullName ?? "",
+                Email = user?.Email ?? "",
+                customer.Gender,
+                customer.Age,
+                customer.Bmi,
+                customer.HeightCm,
+                customer.WeightKg,
+                customer.Goal,
+                customer.ExperienceLevel,
+                customer.InjuryNotes
+            },
+            new JsonSerializerOptions { WriteIndented = true });
+
+        var builderInputJson = JsonSerializer.Serialize(
+            new
+            {
+                Goal = string.IsNullOrWhiteSpace(request.Goal) ? "AI Decide" : request.Goal,
+                ExperienceLevel = string.IsNullOrWhiteSpace(request.ExperienceLevel) ? "AI Decide" : request.ExperienceLevel,
+                DaysPerWeek = request.DaysPerWeek?.ToString() ?? "AI Decide",
+                TrainingDays = request.TrainingDays.Count == 0
+                    ? new[] { "AI Decide" }
+                    : request.TrainingDays.ToArray(),
+                Intensity = string.IsNullOrWhiteSpace(request.Intensity) ? "AI Decide" : request.Intensity,
+                TrainingCondition = string.IsNullOrWhiteSpace(request.TrainingCondition) ? "AI Decide" : request.TrainingCondition,
+                HealthIssues = string.IsNullOrWhiteSpace(request.HealthIssues) ? "Không khai báo" : request.HealthIssues
+            },
+            new JsonSerializerOptions { WriteIndented = true });
+
+        var exercises = (await _exerciseRepository.GetAllAsync()).ToList();
+        var exerciseJson = JsonSerializer.Serialize(
+            exercises,
+            new JsonSerializerOptions { WriteIndented = true });
+
+        var messages = new List<object>
+        {
+            new
+            {
+                role = "system",
+                content =
+"""
+Bạn là GymSupport AI Plan Builder. Nhiệm vụ duy nhất của bạn là tạo một lịch tập mới từ form chọn mục của người dùng, không trò chuyện vòng vo và không yêu cầu xác nhận thêm.
+
+Quy tắc bắt buộc:
+- Luôn tạo lịch tập mới, không chỉnh sửa lịch cũ.
+- Response phải mở đầu bằng tên lịch, mô tả ngắn, các giả định AI đã tự quyết nếu form có "AI Decide", sau đó liệt kê từng buổi tập rõ ràng.
+- Mảng suggestions phải chứa đủ hành động để lưu lịch trực tiếp: create_plan trước, tiếp theo create_session cho từng ngày, sau đó add_exercise cho từng bài.
+- Dùng PlanId "{planId}" cho mọi action sau create_plan.
+- Dùng SessionId dạng "{sessionId_Monday}", "{sessionId_Tuesday}",... và map đúng với dayOfWeek.
+- dayOfWeek phải là tiếng Anh: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday.
+- Chỉ chọn exerciseId có thật trong danh sách bài tập hệ thống.
+- Không chẩn đoán y tế. Nếu có vấn đề sức khỏe, chọn bài an toàn hơn, giảm volume/intensity và ghi chú nên hỏi chuyên gia y tế khi đau nặng hoặc kéo dài.
+- Ưu tiên Upper/Lower cho 4 buổi, Full Body hoặc Upper/Lower biến thể cho 3 buổi, Upper/Lower/Push/Pull/Legs hoặc PPL cho 5 buổi.
+- Mỗi buổi nên có 4-7 bài. Mỗi bài phải có sets, reps và notes hữu ích.
+- planName phải cụ thể, không dùng tên chung chung như "Workout Plan", "AI Workout Plan", "Lịch tập".
+"""
+            },
+            new
+            {
+                role = "user",
+                content =
+$"""
+Tạo lịch tập mới theo dữ liệu sau.
+
+CUSTOMER_PROFILE:
+{customerJson}
+
+FORM_SELECTIONS:
+{builderInputJson}
+
+VALID_EXERCISES:
+{exerciseJson}
+"""
+            }
+        };
+
+        var requestBody = new
+        {
+            model = "gpt-4o-mini",
+            messages,
+            temperature = 0.55,
+            response_format = new
+            {
+                type = "json_schema",
+                json_schema = new
+                {
+                    name = "workout_plan_builder_response",
+                    strict = true,
+                    schema = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            response = new { type = "string", description = "Nội dung lịch tập hiển thị cho user." },
+                            suggestions = new
+                            {
+                                type = "array",
+                                items = new
+                                {
+                                    type = "object",
+                                    properties = new
+                                    {
+                                        action = new { type = "string", description = "create_plan, create_session hoặc add_exercise." },
+                                        planId = new { type = "string", description = "Luôn dùng {planId} khi tạo lịch mới." },
+                                        sessionId = new { type = "string", description = "Placeholder {sessionId_Day} hoặc rỗng cho create_plan." },
+                                        exerciseId = new { type = "string", description = "Mã ID thật của bài tập trong hệ thống." },
+                                        planName = new { type = "string", description = "Tên lịch tập." },
+                                        goal = new { type = "string", description = "Mục tiêu tập." },
+                                        planDescription = new { type = "string", description = "Mô tả lịch tập." },
+                                        daysPerWeek = new { type = "integer", description = "Số ngày tập mỗi tuần." },
+                                        dayOfWeek = new { type = "string", description = "Thứ trong tuần bằng tiếng Anh." },
+                                        focus = new { type = "string", description = "Trọng tâm buổi tập." },
+                                        sets = new { type = "integer", description = "Số sets." },
+                                        reps = new { type = "string", description = "Số reps." },
+                                        notes = new { type = "string", description = "Ghi chú kỹ thuật/an toàn." }
+                                    },
+                                    required = new[] { "action", "planId", "sessionId", "exerciseId", "planName", "goal", "planDescription", "daysPerWeek", "dayOfWeek", "focus", "sets", "reps", "notes" },
+                                    additionalProperties = false
+                                }
+                            }
+                        },
+                        required = new[] { "response", "suggestions" },
+                        additionalProperties = false
+                    }
+                }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(requestBody);
+        var response = await _httpClient.PostAsync(
+            "https://api.openai.com/v1/chat/completions",
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"OpenAI Error: {error}");
+        }
+
+        var result = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(result);
+        var aiContent = document.RootElement
+            .GetProperty("choices")[0]
+            .GetProperty("message")
+            .GetProperty("content")
+            .GetString();
+
+        if (string.IsNullOrWhiteSpace(aiContent))
+        {
+            return new ChatResponseDto
+            {
+                Response = "AI không trả về dữ liệu.",
+                Suggestions = new List<AISuggestionDto>()
+            };
+        }
+
+        var aiResult = JsonSerializer.Deserialize<ChatResponseDto>(
+            aiContent,
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true
+            });
+
+        if (aiResult?.Suggestions != null)
+        {
+            aiResult.Suggestions = aiResult.Suggestions
+                .Where(x => !string.IsNullOrWhiteSpace(x.Action))
+                .ToList();
+        }
+
+        return aiResult ?? new ChatResponseDto
+        {
+            Response = "Không nhận được phản hồi.",
+            Suggestions = new List<AISuggestionDto>()
+        };
+    }
+
     public async Task<ChatResponseDto> ChatAsync(string userId, string message)
     {
         // ==========================

@@ -124,6 +124,23 @@ class _AiCoachScreenState extends State<AiCoachScreen>
     _scrollToBottom();
 
     messageController.clear();
+    if (_looksLikePlanGenerationRequest(text)) {
+      if (!mounted) return;
+      setState(() {
+        messages.add(
+          const AiChatMessage(
+            text:
+                'Mình đã tách tạo lịch tập sang tab AI Plan. Bạn mở tab đó để chọn mục tiêu, kinh nghiệm, số buổi, thứ tập, mức độ, điều kiện tập và vấn đề sức khỏe; AI sẽ tạo lịch từ form thay vì qua chat.',
+            isUser: false,
+          ),
+        );
+        _sending = false;
+      });
+      _scrollToBottom();
+      FocusScope.of(context).unfocus();
+      return;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final email = prefs.getString(SessionStore.emailKey);
@@ -176,6 +193,23 @@ class _AiCoachScreenState extends State<AiCoachScreen>
         FocusScope.of(context).unfocus();
       }
     }
+  }
+
+  bool _looksLikePlanGenerationRequest(String text) {
+    final value = text.toLowerCase();
+    final asksForPlan =
+        value.contains('lịch tập') ||
+        value.contains('workout plan') ||
+        value.contains('tạo lịch') ||
+        value.contains('lên lịch') ||
+        value.contains('generate plan');
+    final createIntent =
+        value.contains('tạo') ||
+        value.contains('lên') ||
+        value.contains('generate') ||
+        value.contains('build') ||
+        value.contains('lưu');
+    return asksForPlan && createIntent;
   }
 
   Future<void> _openScanEquipment() async {
