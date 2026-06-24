@@ -246,8 +246,14 @@ public class OpenAIService : IAIService
 
         var exercises = (await _exerciseRepository.GetAllAsync()).ToList();
         var exerciseJson = JsonSerializer.Serialize(
-            exercises,
-            new JsonSerializerOptions { WriteIndented = true });
+            exercises.Select(e => new
+            {
+                id = e.Id,
+                name = e.Name,
+                equipment = e.Equipment,
+                difficulty = e.Difficulty
+            }),
+            new JsonSerializerOptions { WriteIndented = false });
 
         var messages = new List<object>
         {
@@ -434,20 +440,47 @@ VALID_EXERCISES:
                 },
                 new JsonSerializerOptions { WriteIndented = true });
         // ==========================
-        // Workout Plans
+        // Workout Plans (trimmed to reduce token usage)
         // ==========================
         var plans = await _workoutRepository.GetByUserIdAsync(userId);
         var activePlan = plans.FirstOrDefault(p => p.IsActive);
 
-        var workoutJson = JsonSerializer.Serialize(
-            activePlan,
-            new JsonSerializerOptions { WriteIndented = true });
+        var workoutJson = activePlan == null ? "null" : JsonSerializer.Serialize(
+            new
+            {
+                id = activePlan.Id,
+                name = activePlan.Name,
+                goal = activePlan.Goal,
+                daysPerWeek = activePlan.DaysPerWeek,
+                sessions = activePlan.Sessions.Select(s => new
+                {
+                    id = s.Id,
+                    dayOfWeek = s.DayOfWeek,
+                    focus = s.Focus,
+                    exercises = s.Exercises.Select(ex => new
+                    {
+                        exerciseId = ex.ExerciseId,
+                        exerciseName = ex.ExerciseName,
+                        sets = ex.Sets,
+                        reps = ex.Reps
+                    })
+                })
+            },
+            new JsonSerializerOptions { WriteIndented = false });
 
         // ==========================
-        // Exercises
+        // Exercises (trimmed to reduce token usage)
         // ==========================
         var exercises = (await _exerciseRepository.GetAllAsync()).ToList();
-        var exerciseJson = JsonSerializer.Serialize(exercises, new JsonSerializerOptions { WriteIndented = true });
+        var exerciseJson = JsonSerializer.Serialize(
+            exercises.Select(e => new
+            {
+                id = e.Id,
+                name = e.Name,
+                equipment = e.Equipment,
+                difficulty = e.Difficulty
+            }),
+            new JsonSerializerOptions { WriteIndented = false });
 
         // ==========================
         // Build Messages với SYSTEM PROMPT LUẬT THÉP

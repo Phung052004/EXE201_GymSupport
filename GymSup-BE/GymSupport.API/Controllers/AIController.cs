@@ -103,6 +103,16 @@ public class AIController : ControllerBase
         return Ok(result);
     }
 
+    [HttpDelete("history")]
+    public async Task<IActionResult> ClearHistory()
+    {
+        var userId = CurrentUserId();
+        if (userId == null) return Unauthorized();
+
+        await _chatRepository.DeleteByUserIdAsync(userId);
+        return Ok(new { success = true, message = "Lịch sử chat đã được xóa." });
+    }
+
     [HttpPost("analyze-image")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> AnalyzeImage([FromForm] AnalyzeImageRequest request)

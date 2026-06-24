@@ -39,4 +39,9 @@ public class ChatRepository : IChatRepository
             .Limit(count)
             .ToListAsync();
     }
+
+    public async Task DeleteByUserIdAsync(string userId)
+    {
+        await _collection.DeleteManyAsync(x => x.UserId == userId);
+    }
 }

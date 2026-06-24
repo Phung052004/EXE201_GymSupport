@@ -12,4 +12,6 @@ public interface IChatRepository
 
     Task<List<ChatMessage>> GetByUserIdAsync(
     string userId);
+
+    Task DeleteByUserIdAsync(string userId);
 }
