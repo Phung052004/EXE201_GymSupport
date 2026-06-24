@@ -20,6 +20,10 @@ namespace GymSupport.Repository.Models.Entities
 
         public string Status { get; set; } = "PENDING";
 
+        public int PlannedSets { get; set; }
+
+        public string PlannedReps { get; set; } = "";
+
         public List<WorkoutSetLog> Sets { get; set; } = new();
     }
 }

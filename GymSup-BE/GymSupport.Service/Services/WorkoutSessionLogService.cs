@@ -75,6 +75,8 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
                         .ToList() ?? new List<string>(),
                     OrderIndex = index + 1,
                     Status = "PENDING",
+                    PlannedSets = exercise.Sets,
+                    PlannedReps = exercise.Reps ?? "",
                     Sets = new List<WorkoutSetLog>()
                 };
             })
