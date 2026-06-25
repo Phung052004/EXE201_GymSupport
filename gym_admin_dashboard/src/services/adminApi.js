@@ -351,6 +351,8 @@ export const adminApi = {
       : request('/subscriptions/plans', { method: 'POST', body: payload }),
   updateSubscriptionPlanStatus: (id, isActive) =>
     request(`/subscriptions/plans/${id}/status`, { method: 'PATCH', body: { isActive } }),
+  deleteSubscriptionPlan: (id) => request(`/subscriptions/plans/${id}`, { method: 'DELETE' }),
+  getUserSubscriptions: () => request('/subscriptions/admin/all', { emptyValue: [] }),
 
   getAIRecommendations: () => Promise.resolve([]),
   reviewAIRecommendation: (id, status) => Promise.resolve({ id, status }),
@@ -363,4 +365,16 @@ export const adminApi = {
   getFeedbacks: () => Promise.resolve([]),
   updateFeedbackStatus: (id, status) => Promise.resolve({ id, status }),
   deleteFeedback: (id) => Promise.resolve({ id }),
+
+  // ── Analytics APIs ─────────────────────────────────────────────────────────
+  getActiveUsers: (from, to) =>
+    request(`/admin/analytics/active-users?from=${from}&to=${to}`, { emptyValue: null }),
+  getRetention: (from, to) =>
+    request(`/admin/analytics/retention?from=${from}&to=${to}`, { emptyValue: null }),
+  getFunnel: (name = 'onboarding_to_workout') =>
+    request(`/admin/analytics/funnel?name=${encodeURIComponent(name)}`, { emptyValue: null }),
+  getFeatureUsage: (from, to) =>
+    request(`/admin/analytics/feature-usage?from=${from}&to=${to}`, { emptyValue: null }),
+  getWorkoutAnalytics: (from, to) =>
+    request(`/admin/analytics/workouts?from=${from}&to=${to}`, { emptyValue: null }),
 }
