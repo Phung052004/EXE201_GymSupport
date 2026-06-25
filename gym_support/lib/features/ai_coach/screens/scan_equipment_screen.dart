@@ -4,6 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gym_support/core/constants/app_colors.dart';
 import 'package:gym_support/core/services/backend_api.dart';
+import 'package:gym_support/core/widgets/premium_gate.dart';
 
 class ScanEquipmentScreen extends StatefulWidget {
   final String? email;
@@ -99,6 +100,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
   }
 
   Future<void> _analyzeMedia() async {
+    if (!await PremiumGate.check(context)) return;
     final selectedMode = _currentMode;
     final media = _mediaByMode[selectedMode];
     final isVideo = selectedMode == 'form_check';

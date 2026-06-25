@@ -8,6 +8,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_theme.dart';
 import '../../../core/services/backend_api.dart';
+import '../../../core/services/session_store.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -69,6 +70,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     try {
       final subscription = await BackendApi.getSubscription();
       if (!_isMobileStore) {
+        final isPremiumNow = (subscription['planName'] ?? subscription['PlanName'])
+                ?.toString()
+                .toLowerCase()
+                .contains('premium') ??
+            false;
+        await SessionStore.savePremiumStatus(isPremiumNow);
         if (!mounted) return;
         setState(() {
           _subscription = subscription;
@@ -88,6 +95,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         );
       }
 
+      if (!mounted) return;
+      final isPremiumNow = (subscription['planName'] ?? subscription['PlanName'])
+              ?.toString()
+              .toLowerCase()
+              .contains('premium') ??
+          false;
+      await SessionStore.savePremiumStatus(isPremiumNow);
       if (!mounted) return;
       setState(() {
         _subscription = subscription;

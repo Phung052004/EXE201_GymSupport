@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/backend_api.dart';
 import '../../../core/services/session_store.dart';
+import '../../../core/widgets/premium_gate.dart';
 
 class GeneratePlanScreen extends StatefulWidget {
   final String email;
@@ -137,6 +138,8 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
   }
 
   Future<void> _generate() async {
+    if (!await PremiumGate.check(context)) return;
+
     setState(() {
       _loading = true;
       _error = null;

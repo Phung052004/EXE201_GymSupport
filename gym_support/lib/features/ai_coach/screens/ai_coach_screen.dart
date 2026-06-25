@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/core/services/session_store.dart';
+import 'package:gym_support/core/widgets/premium_gate.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_theme.dart';
 import '../../../models/exercise.dart';
@@ -141,6 +142,7 @@ class _AiCoachScreenState extends State<AiCoachScreen>
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty || _sending) return;
+    if (!await PremiumGate.check(context)) return;
 
     setState(() {
       _messages.add(AiChatMessage(text: text, isUser: true));

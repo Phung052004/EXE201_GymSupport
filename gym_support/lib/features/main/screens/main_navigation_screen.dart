@@ -34,6 +34,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int currentIndex = 0;
   int _homeRefreshSeed = 0;
 
+  // Lazy tab cache — each tab widget is built ONCE on first visit.
+  // Prevents N concurrent API calls at startup and preserves tab state on switch.
+  final Map<int, Widget> _tabCache = {};
+  final Set<int> _visitedTabs = {0}; // Tab 0 always loaded first
+
   final Map<String, Exercise> _selectedExercises = {};
 
   late String _name;
@@ -284,69 +289,88 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
   }
 
+  // Build a tab widget — called at most once per tab index.
+  Widget _buildTab(int index) {
+    switch (index) {
+      case 0:
+        // Home rebuilds every time to pick up refreshSeed / goal changes.
+        return HomeScreen(
+          name: _name,
+          goal: _goal,
+          schedule: _schedule,
+          bmi: _bmi,
+          refreshSeed: _homeRefreshSeed,
+          onBuildRoutine: _openBuildRoutine,
+          onOpenWorkout: () => setState(() => currentIndex = 2),
+        );
+      case 1:
+        return AiCoachScreen(
+            name: _name, goal: _goal, schedule: _schedule, bmi: _bmi);
+      case 2:
+        return const TodayWorkoutScreen();
+      case 3:
+        return BuildRoutineScreen(
+          goal: _goal,
+          schedule: _schedule,
+          embedded: true,
+          onRoutineSaved: _onRoutineSaved,
+        );
+      case 4:
+        return ProfileScreen(
+          name: _name,
+          goal: _goal,
+          schedule: _schedule,
+          bmi: _bmi,
+          onGoalsUpdated: _updateGoals,
+          onBmiUpdated: _updateBmi,
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Future<void> _onRoutineSaved() async {
+    await _loadWorkoutSession();
+    if (!mounted) return;
+    setState(() {
+      currentIndex = 2;
+      _homeRefreshSeed++;
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Routine đã được chuyển sang Workout')),
+    );
+  }
+
+  // Return cached widget for a tab; build it on first access.
+  Widget _getTab(int index) {
+    // Home tab always refreshed (uses refreshSeed + goal).
+    if (index == 0) return _buildTab(0);
+    return _tabCache.putIfAbsent(index, () => _buildTab(index));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      HomeScreen(
-        name: _name,
-        goal: _goal,
-        schedule: _schedule,
-        bmi: _bmi,
-        refreshSeed: _homeRefreshSeed,
-        onBuildRoutine: _openBuildRoutine,
-        onOpenWorkout: () => setState(() => currentIndex = 2),
-      ),
-
-      AiCoachScreen(name: _name, goal: _goal, schedule: _schedule, bmi: _bmi),
-
-      const TodayWorkoutScreen(),
-
-      BuildRoutineScreen(
-        goal: _goal,
-        schedule: _schedule,
-        embedded: true,
-        onRoutineSaved: () async {
-          await _loadWorkoutSession();
-          if (!context.mounted) return;
-          setState(() {
-            currentIndex = 2;
-            _homeRefreshSeed++;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Routine đã được chuyển sang Workout'),
-            ),
-          );
-        },
-      ),
-
-      ProfileScreen(
-        name: _name,
-        goal: _goal,
-        schedule: _schedule,
-        bmi: _bmi,
-        onGoalsUpdated: _updateGoals,
-        onBmiUpdated: _updateBmi,
-      ),
-    ];
+    // Build IndexedStack children: visited tabs get real widget, others get
+    // a lightweight placeholder to avoid N concurrent API calls at startup.
+    final children = List<Widget>.generate(5, (i) {
+      if (_visitedTabs.contains(i)) return _getTab(i);
+      return const SizedBox.shrink();
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
-      body: pages[currentIndex],
+      body: IndexedStack(index: currentIndex, children: children),
       bottomNavigationBar: AppBottomNavBar(
         currentIndex: currentIndex,
         onTap: (index) {
+          if (index == currentIndex) return;
           setState(() {
+            _visitedTabs.add(index); // mark visited → real widget built
             currentIndex = index;
           });
-          if (index == 2) {
-            _loadWorkoutSession();
-          } else if (index == 0) {
-            setState(() {
-              _homeRefreshSeed++;
-            });
-          }
+          if (index == 2) _loadWorkoutSession();
         },
       ),
     );

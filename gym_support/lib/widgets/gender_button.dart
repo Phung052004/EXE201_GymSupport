@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gym_support/core/constants/app_colors.dart';
+import 'package:gym_support/core/constants/app_theme.dart';
 
 class GenderButton extends StatelessWidget {
   final String title;
@@ -15,25 +16,33 @@ class GenderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          height: 52,
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 50,
+        decoration: BoxDecoration(
+          gradient: isSelected ? AppTheme.cyanGradient : null,
+          color: isSelected ? null : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.5)
+                : AppColors.outlineStrong,
           ),
-          child: Center(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: isSelected ? AppColors.textDark : AppColors.textPrimary,
-                fontWeight: FontWeight.w800,
-              ),
+          boxShadow: isSelected
+              ? [BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  blurRadius: 10, offset: const Offset(0, 3))]
+              : null,
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: isSelected ? AppColors.textDark : AppColors.textSecondary,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
             ),
           ),
         ),

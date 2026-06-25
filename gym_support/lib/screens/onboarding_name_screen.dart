@@ -1,5 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:gym_support/core/constants/app_colors.dart';
+import 'package:gym_support/core/constants/app_images.dart';
+import 'package:gym_support/core/constants/app_theme.dart';
 import '../widgets/widgets.dart';
 import 'onboarding_metrics_screen.dart';
 
@@ -51,14 +55,10 @@ class _OnboardingNameScreenState extends State<OnboardingNameScreen> {
     }
 
     setState(() => _isNavigating = true);
-
-    // Dismiss keyboard safely
     FocusManager.instance.primaryFocus?.unfocus();
 
-    // Small delay to let the keyboard hide and layout stabilize
     Future.delayed(const Duration(milliseconds: 150), () {
       if (!mounted) return;
-
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -80,135 +80,184 @@ class _OnboardingNameScreenState extends State<OnboardingNameScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 36),
-                    const AppLogo(),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Welcome to GymSupport',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Let's personalize your fitness journey",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                    ),
-                    const SizedBox(height: 28),
-                    const StepIndicator(currentStep: 1, totalSteps: 3),
-                    const SizedBox(height: 32),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Tell us about yourself',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    if (!_hasRegisteredName) ...[
-                      const InputLabel(text: 'YOUR NAME'),
-                      const SizedBox(height: 8),
-                      AppTextField(
-                        controller: nameController,
-                        hintText: 'Alex',
-                      ),
-                      const SizedBox(height: 18),
-                    ] else ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.person_outline,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                nameController.text,
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                    ],
-                    const InputLabel(text: 'GENDER'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GenderButton(
-                            title: 'Nam',
-                            isSelected: selectedGender == 'Nam',
-                            onTap: () => setState(() => selectedGender = 'Nam'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: GenderButton(
-                            title: 'Nữ',
-                            isSelected: selectedGender == 'Nữ',
-                            onTap: () => setState(() => selectedGender = 'Nữ'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: GenderButton(
-                            title: 'Khác',
-                            isSelected: selectedGender == 'Khác',
-                            onTap: () =>
-                                setState(() => selectedGender = 'Khác'),
-                          ),
-                        ),
+      body: Column(
+        children: [
+          // Hero header with network image
+          SizedBox(
+            height: 220,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CachedNetworkImage(
+                  imageUrl: AppImages.gymHero,
+                  fit: BoxFit.cover,
+                  placeholder: (ctx, url) => Container(color: AppColors.surface),
+                  errorWidget: (ctx, url, err) => Container(
+                    decoration: const BoxDecoration(gradient: AppTheme.heroGradient),
+                  ),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.25),
+                        AppColors.background,
                       ],
                     ),
-                    const SizedBox(height: 18),
-                    const InputLabel(text: 'AGE (OPTIONAL)'),
+                  ),
+                ),
+                Positioned(
+                  bottom: 20, left: 24, right: 24,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.cyanGradient,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(PhosphorIconsBold.barbell,
+                                color: AppColors.textDark, size: 16),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('GymSupport',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                              )),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Chào mừng bạn!',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Hãy cá nhân hóa hành trình thể thao của bạn',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+                  StepIndicator(currentStep: 1, totalSteps: 3),
+                  const SizedBox(height: 24),
+
+                  if (!_hasRegisteredName) ...[
+                    _Label('TÊN CỦA BẠN'),
                     const SizedBox(height: 8),
                     AppTextField(
-                      controller: ageController,
-                      hintText: '18',
-                      keyboardType: TextInputType.number,
+                      controller: nameController,
+                      hintText: 'Alex',
+                      prefixIcon: PhosphorIconsRegular.user,
                     ),
-                    const SizedBox(height: 24),
+                  ] else ...[
+                    _Label('TÊN CỦA BẠN'),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(PhosphorIconsBold.user,
+                              color: AppColors.primary, size: 18),
+                          const SizedBox(width: 10),
+                          Text(nameController.text,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 15, fontWeight: FontWeight.w800)),
+                        ],
+                      ),
+                    ),
                   ],
-                ),
+
+                  const SizedBox(height: 18),
+                  _Label('GIỚI TÍNH'),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(child: GenderButton(
+                        title: 'Nam', isSelected: selectedGender == 'Nam',
+                        onTap: () => setState(() => selectedGender = 'Nam'))),
+                      const SizedBox(width: 8),
+                      Expanded(child: GenderButton(
+                        title: 'Nữ', isSelected: selectedGender == 'Nữ',
+                        onTap: () => setState(() => selectedGender = 'Nữ'))),
+                      const SizedBox(width: 8),
+                      Expanded(child: GenderButton(
+                        title: 'Khác', isSelected: selectedGender == 'Khác',
+                        onTap: () => setState(() => selectedGender = 'Khác'))),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+                  _Label('TUỔI (TÙY CHỌN)'),
+                  const SizedBox(height: 8),
+                  AppTextField(
+                    controller: ageController,
+                    hintText: '18',
+                    keyboardType: TextInputType.number,
+                    prefixIcon: PhosphorIconsRegular.calendar,
+                  ),
+                  const SizedBox(height: 28),
+                ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: PrimaryButton(text: 'Continue', onTap: goNext),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+            child: PrimaryButton(
+              text: 'Tiếp tục',
+              onTap: goNext,
+              loading: _isNavigating,
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Label extends StatelessWidget {
+  final String text;
+  const _Label(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.textTertiary,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.2,
       ),
     );
   }
