@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:gym_support/core/constants/app_colors.dart';
+import 'package:gym_support/core/constants/app_theme.dart';
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/models/exercise.dart';
 import 'package:gym_support/models/workout_models.dart';
@@ -47,21 +49,16 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
       final savedCategory = prefs.getString(_categoryKey);
       final savedMuscleId = prefs.getString(_muscleKey);
       final savedSearch = prefs.getString(_searchKey) ?? '';
+
       final categories = await BackendApi.getMuscleCategories();
-      final validCategory = categories.contains(savedCategory)
-          ? savedCategory
-          : null;
+      final validCategory = categories.contains(savedCategory) ? savedCategory : null;
       final muscles = validCategory == null
           ? <Map<String, dynamic>>[]
           : await BackendApi.getMusclesByCategory(validCategory);
       final validMuscle =
-          muscles.any((item) => item['id']?.toString() == savedMuscleId)
-          ? savedMuscleId
-          : null;
-      final exercises = await BackendApi.getExercises(
-        category: validCategory,
-        muscleId: validMuscle,
-      );
+          muscles.any((item) => item['id']?.toString() == savedMuscleId) ? savedMuscleId : null;
+      final exercises = await BackendApi.getExercises(category: validCategory, muscleId: validMuscle);
+
       setState(() {
         _categories = categories;
         _muscles = muscles;
@@ -74,15 +71,14 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
     }
   }
 
   Future<void> _onCategoryChanged(String? category) async {
+    if (_selectedCategory == category) {
+      category = null;
+    }
     setState(() {
       _selectedCategory = category;
       _selectedMuscleId = null;
@@ -100,25 +96,18 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
       if (category != null) {
         final muscles = await BackendApi.getMusclesByCategory(category);
         final exercises = await BackendApi.getExercises(category: category);
-        setState(() {
-          _muscles = muscles;
-          _exercises = exercises;
-        });
+        setState(() { _muscles = muscles; _exercises = exercises; });
       } else {
         final exercises = await BackendApi.getExercises();
-        setState(() {
-          _exercises = exercises;
-        });
+        setState(() => _exercises = exercises);
       }
     } catch (_) {}
     setState(() => _isLoading = false);
   }
 
   Future<void> _onMuscleChanged(String? muscleId) async {
-    setState(() {
-      _selectedMuscleId = muscleId;
-      _isLoading = true;
-    });
+    if (_selectedMuscleId == muscleId) muscleId = null;
+    setState(() { _selectedMuscleId = muscleId; _isLoading = true; });
     final prefs = await SharedPreferences.getInstance();
     if (muscleId == null) {
       await prefs.remove(_muscleKey);
@@ -130,9 +119,7 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
         category: _selectedCategory,
         muscleId: muscleId,
       );
-      setState(() {
-        _exercises = exercises;
-      });
+      setState(() => _exercises = exercises);
     } catch (_) {}
     setState(() => _isLoading = false);
   }
@@ -148,84 +135,78 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          24,
-          24,
-          MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
+        padding: EdgeInsets.fromLTRB(24, 8, 24, MediaQuery.of(ctx).viewInsets.bottom + 28),
         decoration: const BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20, top: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.outlineStrong,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // Exercise name + muscle group
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(PhosphorIconsBold.barbell, color: AppColors.primary, size: 22),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'Add ${ex.name}',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(ex.name, style: AppTheme.titleLarge),
+                      if (ex.muscleGroup.isNotEmpty)
+                        Text(ex.muscleGroup, style: AppTheme.caption),
+                    ],
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(ctx),
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                  icon: const Icon(PhosphorIconsBold.x, color: AppColors.textSecondary, size: 20),
                 ),
               ],
             ),
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(
-                  child: _buildInputModern(
-                    'SETS',
-                    setsController,
-                    TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildInputModern(
-                    'REPS',
-                    repsController,
-                    TextInputType.text,
-                  ),
-                ),
+                Expanded(child: _buildInputField('SETS', setsController, TextInputType.number)),
+                const SizedBox(width: 12),
+                Expanded(child: _buildInputField('REPS', repsController, TextInputType.text)),
+                const SizedBox(width: 12),
+                Expanded(child: _buildInputField('NGHỈ (s)', restController, TextInputType.number)),
               ],
             ),
-            const SizedBox(height: 16),
-            _buildInputModern(
-              'REST TIME (SEC)',
-              restController,
-              TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            _buildInputModern(
-              'NOTE (OPTIONAL)',
-              noteController,
-              TextInputType.text,
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 12),
+            _buildInputField('GHI CHÚ (tuỳ chọn)', noteController, TextInputType.text),
+            const SizedBox(height: 28),
             SizedBox(
               width: double.infinity,
-              height: 56,
+              height: 54,
               child: ElevatedButton(
                 onPressed: () {
                   final sets = int.tryParse(setsController.text) ?? 0;
                   final reps = repsController.text.trim();
                   if (sets <= 0 || reps.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter valid sets and reps'),
-                      ),
+                      const SnackBar(content: Text('Vui lòng nhập sets và reps hợp lệ')),
                     );
                     return;
                   }
@@ -241,21 +222,8 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
                   Navigator.pop(ctx);
                   Navigator.pop(context, workoutEx);
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textDark,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'ADD TO DAY',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
-                  ),
-                ),
+                style: AppTheme.primaryButtonStyle(),
+                child: const Text('Thêm vào lịch tập', style: TextStyle(fontWeight: FontWeight.w800)),
               ),
             ),
           ],
@@ -264,11 +232,7 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
     );
   }
 
-  Widget _buildInputModern(
-    String label,
-    TextEditingController controller,
-    TextInputType type,
-  ) {
+  Widget _buildInputField(String label, TextEditingController ctrl, TextInputType type) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -278,24 +242,24 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
             color: AppColors.textSecondary,
             fontSize: 10,
             fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
+            letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: AppColors.surface2,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.outline),
           ),
           child: TextField(
-            controller: controller,
+            controller: ctrl,
             keyboardType: type,
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
             decoration: const InputDecoration(
               border: InputBorder.none,
@@ -314,187 +278,203 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
+          icon: const Icon(PhosphorIconsBold.caretLeft, color: AppColors.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Select Exercise',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
+        title: const Text('Chọn bài tập', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 17)),
+        backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
+        actions: [
+          if (_selectedCategory != null || _selectedMuscleId != null || _searchQuery.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                _searchController.clear();
+                setState(() { _searchQuery = ''; });
+                _onCategoryChanged(null);
+              },
+              child: const Text('Reset', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+            ),
+        ],
       ),
       body: Column(
         children: [
-          _buildFiltersModern(),
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primary,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : _buildExerciseListModern(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFiltersModern() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
-            ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) async {
-                setState(() => _searchQuery = val);
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString(_searchKey, val);
-              },
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                hintText: 'Search exercise...',
-                hintStyle: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.outline),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (val) async {
+                  setState(() => _searchQuery = val);
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString(_searchKey, val);
+                },
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                decoration: const InputDecoration(
+                  hintText: 'Tìm bài tập...',
+                  hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  prefixIcon: Icon(PhosphorIconsBold.magnifyingGlass, color: AppColors.textSecondary, size: 20),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 14),
                 ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: AppColors.textSecondary,
-                  size: 20,
-                ),
-                border: InputBorder.none,
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildDropdownModern(
-                  value: _selectedCategory,
-                  items: [
-                    const DropdownMenuItem(
-                      value: null,
-                      child: Text('Categories', style: TextStyle(fontSize: 13)),
-                    ),
-                    ..._categories.map(
-                      (c) => DropdownMenuItem(
-                        value: c,
-                        child: Text(
-                          c,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13),
+          // Category chips
+          if (_categories.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 36,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _categories.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final cat = _categories[i];
+                  final selected = _selectedCategory == cat;
+                  return GestureDetector(
+                    onTap: () => _onCategoryChanged(cat),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: selected ? AppColors.primary : AppColors.surface,
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(
+                          color: selected ? AppColors.primary : AppColors.outline,
+                        ),
+                      ),
+                      child: Text(
+                        cat,
+                        style: TextStyle(
+                          color: selected ? AppColors.textDark : AppColors.textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                  ],
-                  onChanged: (v) => _onCategoryChanged(v),
-                ),
+                  );
+                },
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildDropdownModern(
-                  value: _selectedMuscleId,
-                  items: [
-                    const DropdownMenuItem(
-                      value: null,
-                      child: Text('Muscles', style: TextStyle(fontSize: 13)),
-                    ),
-                    ..._muscles.map(
-                      (m) => DropdownMenuItem(
-                        value: m['id'].toString(),
-                        child: Text(
-                          m['name'],
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    ),
-                  ],
-                  onChanged: (v) => _onMuscleChanged(v),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdownModern({
-    required dynamic value,
-    required List<DropdownMenuItem<dynamic>> items,
-    required void Function(dynamic) onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<dynamic>(
-          value: value,
-          dropdownColor: AppColors.surface,
-          isExpanded: true,
-          items: items,
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExerciseListModern() {
-    final filtered = _exercises
-        .where((e) => e.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-    if (filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off_rounded,
-              size: 48,
-              color: AppColors.textSecondary.withOpacity(0.2),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No exercises found',
-              style: TextStyle(color: AppColors.textSecondary),
             ),
           ],
-        ),
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        final exercise = filtered[index];
-        return ExercisePickerCard(
-          exercise: exercise,
-          actionLabel: 'Add',
-          actionIcon: Icons.add_rounded,
-          onAction: () => _showAddDialog(exercise),
-        );
-      },
+          // Muscle chips (show when category selected)
+          if (_muscles.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _muscles.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (_, i) {
+                  final muscle = _muscles[i];
+                  final muscleId = muscle['id']?.toString();
+                  final selected = _selectedMuscleId == muscleId;
+                  return GestureDetector(
+                    onTap: () => _onMuscleChanged(muscleId),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 140),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? AppColors.primary.withValues(alpha: 0.2)
+                            : AppColors.surface2,
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(
+                          color: selected ? AppColors.primary : AppColors.outlineStrong,
+                        ),
+                      ),
+                      child: Text(
+                        muscle['name']?.toString() ?? '',
+                        style: TextStyle(
+                          color: selected ? AppColors.primary : AppColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          // Count
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              children: [
+                Text(
+                  _isLoading ? 'Đang tải...' : '${_filteredExercises.length} bài tập',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Exercise list
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
+                : _filteredExercises.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                        itemCount: _filteredExercises.length,
+                        itemBuilder: (_, i) => ExercisePickerCard(
+                          exercise: _filteredExercises[i],
+                          actionLabel: 'Thêm',
+                          actionIcon: PhosphorIconsBold.plus,
+                          onAction: () => _showAddDialog(_filteredExercises[i]),
+                        ),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Exercise> get _filteredExercises => _exercises
+      .where((e) => e.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+      .toList();
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(color: AppColors.surface2, shape: BoxShape.circle),
+            child: const Icon(PhosphorIconsBold.magnifyingGlass, color: AppColors.textTertiary, size: 32),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Không tìm thấy bài tập',
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Thử tìm kiếm từ khác hoặc chọn nhóm cơ khác',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }

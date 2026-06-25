@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:gym_support/core/constants/app_colors.dart';
+import 'package:gym_support/core/constants/app_theme.dart';
 import '../../../models/exercise.dart';
-
-const _coral = Color(0xFFF26B7A);
-const _ink = Color(0xFF29272D);
-const _muted = Color(0xFF8C8991);
-const _page = Color(0xFFF1F2F5);
 
 class ExerciseDetailScreen extends StatefulWidget {
   final Exercise exercise;
@@ -25,17 +22,17 @@ class ExerciseDetailScreen extends StatefulWidget {
 
 class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _pulseController;
+  late final AnimationController _pulseCtrl;
 
   Exercise get exercise => widget.exercise;
 
-  bool get _showBenchPressOverlay =>
+  bool get _showBenchOverlay =>
       exercise.name.trim().toLowerCase() == 'barbell bench press';
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
+    _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
@@ -43,42 +40,51 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
 
   @override
   void dispose() {
-    _pulseController.dispose();
+    _pulseCtrl.dispose();
     super.dispose();
+  }
+
+  void _handleAdd() {
+    final cb = widget.onAdd;
+    if (cb == null) return;
+    Navigator.pop(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) => cb());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _page,
-      bottomNavigationBar: widget.onAdd == null
-          ? null
-          : _AddBar(label: widget.addLabel, onPressed: _handleAdd),
+      backgroundColor: AppColors.background,
+      bottomNavigationBar: widget.onAdd == null ? null : _AddBar(
+        label: widget.addLabel,
+        onPressed: _handleAdd,
+      ),
       body: Stack(
         children: [
           CustomScrollView(
-            physics: const BouncingScrollPhysics(),
             slivers: [
+              // ── Hero ──────────────────────────────────────────────────────
               SliverToBoxAdapter(child: _buildHero()),
+              // ── Content ───────────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: Transform.translate(
-                  offset: const Offset(0, -22),
-                  child: _buildContentSheet(),
+                  offset: const Offset(0, -28),
+                  child: _buildContent(),
                 ),
               ),
             ],
           ),
+          // ── Back Button ───────────────────────────────────────────────────
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Material(
-                color: Colors.white.withValues(alpha: .88),
+                color: AppColors.surface.withValues(alpha: 0.85),
                 shape: const CircleBorder(),
-                elevation: 2,
                 child: IconButton(
-                  tooltip: 'Quay lại',
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back_rounded, color: _ink),
+                  icon: const Icon(PhosphorIconsBold.arrowLeft,
+                      color: AppColors.textPrimary),
                 ),
               ),
             ),
@@ -88,51 +94,50 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
     );
   }
 
-  void _handleAdd() {
-    final callback = widget.onAdd;
-    if (callback == null) return;
-    Navigator.pop(context);
-    WidgetsBinding.instance.addPostFrameCallback((_) => callback());
-  }
-
   Widget _buildHero() {
     return SizedBox(
       height: 300,
       child: AnimatedBuilder(
-        animation: _pulseController,
-        builder: (context, _) => Stack(
+        animation: _pulseCtrl,
+        builder: (_, __) => Stack(
           fit: StackFit.expand,
           children: [
+            // Image
             Transform.scale(
-              scale: _showBenchPressOverlay
-                  ? 1 + (_pulseController.value * .015)
-                  : 1,
+              scale: _showBenchOverlay ? 1 + (_pulseCtrl.value * 0.015) : 1,
               child: exercise.imageUrl.trim().isEmpty
                   ? _imageFallback()
                   : Image.network(
                       exercise.imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _imageFallback(),
+                      errorBuilder: (_, __, ___) => _imageFallback(),
                     ),
             ),
-            if (_showBenchPressOverlay)
+            // Muscle overlay (bench press only)
+            if (_showBenchOverlay)
               IgnorePointer(
                 child: CustomPaint(
-                  painter: _BenchPressMusclePainter(_pulseController.value),
+                  painter: _BenchPressMusclePainter(_pulseCtrl.value),
                 ),
               ),
+            // Gradient scrim
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.black12, Colors.transparent, Colors.black26],
-                  stops: [0, .55, 1],
+                  colors: [
+                    Color(0x66000000),
+                    Colors.transparent,
+                    Color(0xCC000000),
+                  ],
+                  stops: [0, 0.4, 1],
                 ),
               ),
             ),
-            if (_showBenchPressOverlay)
-              const Positioned(right: 14, bottom: 34, child: _MuscleLegend()),
+            // Muscle legend (bench press only)
+            if (_showBenchOverlay)
+              const Positioned(right: 16, bottom: 48, child: _MuscleLegend()),
           ],
         ),
       ),
@@ -141,186 +146,199 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
 
   Widget _imageFallback() {
     return Container(
-      color: const Color(0xFFE8E9EC),
+      color: AppColors.surface2,
       alignment: Alignment.center,
-      child: Icon(exercise.icon, size: 82, color: _coral),
+      child: Icon(exercise.icon, size: 80, color: AppColors.primary),
     );
   }
 
-  Widget _buildContentSheet() {
+  Widget _buildContent() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 18, 14, 34),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            exercise.name,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 24,
-              height: 1.15,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -.5,
+          // Handle indicator
+          Center(
+            child: Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.outlineStrong,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-          const SizedBox(height: 7),
-          Text(
-            exercise.muscleGroup,
-            style: const TextStyle(
-              color: _muted,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
+
+          // Name + muscle
+          Text(exercise.name, style: AppTheme.displaySmall),
+          const SizedBox(height: 6),
+          Text(exercise.muscleGroup, style: AppTheme.bodyMedium),
+          const SizedBox(height: 14),
+
+          // Tags
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 8, runSpacing: 8,
             children: [
               if (exercise.equipment.trim().isNotEmpty)
-                _Pill(Icons.fitness_center_rounded, exercise.equipment),
+                _Tag(PhosphorIconsBold.barbell, exercise.equipment,
+                    AppColors.orange),
               if (exercise.difficulty.trim().isNotEmpty)
-                _Pill(Icons.speed_rounded, exercise.difficulty),
+                _Tag(PhosphorIconsBold.gauge, exercise.difficulty,
+                    AppColors.violet),
             ],
           ),
+
           const SizedBox(height: 20),
+
+          // Metrics
           Row(
             children: [
-              Expanded(
-                child: _Metric(
-                  icon: Icons.layers_rounded,
-                  color: _coral,
-                  label: 'Sets',
-                  value: '${exercise.defaultSets}',
-                ),
+              _Metric(
+                icon: PhosphorIconsBold.stack,
+                color: AppColors.accent,
+                label: 'Sets',
+                value: '${exercise.defaultSets}',
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Metric(
-                  icon: Icons.repeat_rounded,
-                  color: Color(0xFF7764E8),
-                  label: 'Reps',
-                  value: exercise.defaultReps,
-                ),
+              const SizedBox(width: 10),
+              _Metric(
+                icon: PhosphorIconsBold.repeat,
+                color: AppColors.violet,
+                label: 'Reps',
+                value: exercise.defaultReps,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Metric(
-                  icon: Icons.timer_outlined,
-                  color: Color(0xFFF2BC00),
-                  label: 'Rest',
-                  value: '${exercise.restTimeSeconds}s',
-                ),
+              const SizedBox(width: 10),
+              _Metric(
+                icon: PhosphorIconsRegular.timer,
+                color: AppColors.gold,
+                label: 'Nghỉ',
+                value: '${exercise.restTimeSeconds}s',
               ),
             ],
           ),
-          const SizedBox(height: 22),
-          const Divider(height: 1, color: Color(0xFFE9E8EC)),
-          const SizedBox(height: 20),
-          Text(
-            _valueOrFallback(
-              exercise.description,
-              'Chưa có mô tả cho bài tập này.',
+
+          // Description
+          if (exercise.description.trim().isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              ),
+              child: Text(
+                exercise.description,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                  height: 1.6,
+                ),
+              ),
             ),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF77737C),
-              fontSize: 13,
-              height: 1.55,
-              fontWeight: FontWeight.w500,
-            ),
+          ],
+
+          const SizedBox(height: 28),
+
+          // Guide section header
+          Row(
+            children: [
+              Container(
+                width: 4, height: 20,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text('Hướng dẫn thực hiện', style: AppTheme.headlineSmall),
+            ],
           ),
-          const SizedBox(height: 24),
-          const _SectionTitle('Hướng dẫn'),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
+
           _GuideCard(
-            index: '01',
+            step: '01',
             title: 'Cách thực hiện',
-            text: _valueOrFallback(
-              exercise.instruction,
-              'Chưa có hướng dẫn thực hiện.',
-            ),
-            icon: Icons.format_list_numbered_rounded,
+            icon: PhosphorIconsBold.listNumbers,
+            iconColor: AppColors.primary,
+            text: exercise.instruction.trim().isEmpty
+                ? 'Chưa có hướng dẫn thực hiện.'
+                : exercise.instruction,
           ),
           _GuideCard(
-            index: '02',
+            step: '02',
             title: 'Lưu ý an toàn',
-            text: _valueOrFallback(
-              exercise.safetyNotes,
-              'Không có lưu ý an toàn đặc biệt.',
-            ),
-            icon: Icons.health_and_safety_outlined,
+            icon: PhosphorIconsRegular.shieldCheck,
+            iconColor: AppColors.success,
+            text: exercise.safetyNotes.trim().isEmpty
+                ? 'Không có lưu ý an toàn đặc biệt.'
+                : exercise.safetyNotes,
           ),
           _GuideCard(
-            index: '03',
+            step: '03',
             title: 'Lỗi thường gặp',
-            text: _valueOrFallback(
-              exercise.commonMistakes,
-              'Chưa có lỗi thường gặp.',
-            ),
-            icon: Icons.warning_amber_rounded,
+            icon: PhosphorIconsBold.warning,
+            iconColor: AppColors.warning,
+            text: exercise.commonMistakes.trim().isEmpty
+                ? 'Chưa có thông tin lỗi thường gặp.'
+                : exercise.commonMistakes,
           ),
           _GuideCard(
-            index: '04',
+            step: '04',
             title: 'Mẹo từ huấn luyện viên',
-            text: _valueOrFallback(exercise.tips, 'Chưa có mẹo tập luyện.'),
-            icon: Icons.lightbulb_outline_rounded,
+            icon: PhosphorIconsRegular.lightbulb,
+            iconColor: AppColors.blue,
+            text: exercise.tips.trim().isEmpty
+                ? 'Chưa có mẹo tập luyện.'
+                : exercise.tips,
           ),
-          const SizedBox(height: 6),
+
+          const SizedBox(height: 8),
+
+          // Video
           _VideoCard(url: exercise.videoUrl),
         ],
       ),
     );
   }
-
-  String _valueOrFallback(String value, String fallback) {
-    return value.trim().isEmpty ? fallback : value.trim();
-  }
 }
+
+// ── Add Bar ───────────────────────────────────────────────────────────────────
 
 class _AddBar extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
-
   const _AddBar({required this.label, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(28, 10, 28, 12),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE9E8EC))),
-        ),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.outline)),
+      ),
+      child: SafeArea(
+        top: false,
         child: SizedBox(
           height: 52,
-          child: FilledButton.icon(
+          child: ElevatedButton.icon(
             onPressed: onPressed,
-            style: FilledButton.styleFrom(
-              backgroundColor: _coral,
-              foregroundColor: Colors.white,
-              elevation: 5,
-              shadowColor: _coral,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textDark,
+              elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
+                  borderRadius: BorderRadius.circular(50)),
+              textStyle: const TextStyle(
+                fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
             ),
-            icon: const Icon(Icons.add_rounded, size: 21),
-            label: Text(
-              label.toUpperCase(),
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                letterSpacing: .25,
-              ),
-            ),
+            icon: const Icon(PhosphorIconsBold.plus, size: 20),
+            label: Text(label.toUpperCase()),
           ),
         ),
       ),
@@ -328,45 +346,43 @@ class _AddBar extends StatelessWidget {
   }
 }
 
-class _Pill extends StatelessWidget {
+// ── Tag Pill ──────────────────────────────────────────────────────────────────
+
+class _Tag extends StatelessWidget {
   final IconData icon;
   final String label;
-
-  const _Pill(this.icon, this.label);
+  final Color color;
+  const _Tag(this.icon, this.label, this.color);
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F4F7),
-        borderRadius: BorderRadius.circular(99),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(50),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: _coral),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(label,
+              style: TextStyle(
+                  color: color, fontSize: 11, fontWeight: FontWeight.w700)),
         ],
       ),
     );
   }
 }
 
+// ── Metric tile ───────────────────────────────────────────────────────────────
+
 class _Metric extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String label;
   final String value;
-
   const _Metric({
     required this.icon,
     required this.color,
@@ -376,191 +392,166 @@ class _Metric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(5),
-          ),
-          child: Icon(icon, color: Colors.white, size: 17),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  color: _muted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                ),
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: AppTheme.cardDecoration(color: AppColors.surface2),
+        child: Column(
+          children: [
+            Container(
+              width: 34, height: 34,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(9),
               ),
-              Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(height: 8),
+            Text(value,
                 style: const TextStyle(
-                  color: _ink,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
+                  color: AppColors.textPrimary,
+                  fontSize: 15, fontWeight: FontWeight.w900),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            Text(label, style: AppTheme.caption),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  final String text;
+// ── Guide Card ────────────────────────────────────────────────────────────────
 
-  const _SectionTitle(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          text,
-          style: const TextStyle(
-            color: _coral,
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Container(width: 72, height: 2, color: _coral),
-      ],
-    );
-  }
-}
-
-class _GuideCard extends StatelessWidget {
-  final String index;
+class _GuideCard extends StatefulWidget {
+  final String step;
   final String title;
-  final String text;
   final IconData icon;
-
+  final Color iconColor;
+  final String text;
   const _GuideCard({
-    required this.index,
+    required this.step,
     required this.title,
-    required this.text,
     required this.icon,
+    required this.iconColor,
+    required this.text,
   });
 
   @override
+  State<_GuideCard> createState() => _GuideCardState();
+}
+
+class _GuideCardState extends State<_GuideCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE9E8EC)),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF0F2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: _coral, size: 25),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: () => setState(() => _expanded = !_expanded),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: AppTheme.cardDecoration(color: AppColors.surface2),
+        child: Column(
+          children: [
+            Row(
               children: [
-                Text(
-                  'BƯỚC $index',
-                  style: const TextStyle(
-                    color: _coral,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
+                Container(
+                  width: 42, height: 42,
+                  decoration: BoxDecoration(
+                    color: widget.iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(widget.icon, color: widget.iconColor, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'BƯỚC ${widget.step}',
+                        style: TextStyle(
+                          color: widget.iconColor, fontSize: 9,
+                          fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(widget.title, style: AppTheme.titleMedium),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  text,
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 11,
-                    height: 1.4,
-                  ),
+                AnimatedRotation(
+                  turns: _expanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(PhosphorIconsBold.caretDown,
+                      color: AppColors.textSecondary, size: 22),
                 ),
               ],
             ),
-          ),
-        ],
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              child: _expanded
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        widget.text,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13, height: 1.55),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+// ── Video Card ────────────────────────────────────────────────────────────────
+
 class _VideoCard extends StatelessWidget {
   final String url;
-
   const _VideoCard({required this.url});
 
   @override
   Widget build(BuildContext context) {
     final enabled = url.trim().isNotEmpty;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: enabled ? _coral : const Color(0xFFE3E2E6),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            enabled ? Icons.play_circle_fill_rounded : Icons.videocam_off,
-            color: enabled ? Colors.white : _muted,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            enabled ? 'XEM VIDEO HƯỚNG DẪN' : 'CHƯA CÓ VIDEO HƯỚNG DẪN',
-            style: TextStyle(
-              color: enabled ? Colors.white : _muted,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
+    return GestureDetector(
+      onTap: enabled ? () {} : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: enabled ? AppTheme.accentGradient : null,
+          color: enabled ? null : AppColors.surface2,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              enabled ? PhosphorIconsBold.playCircle : PhosphorIconsBold.videoCameraSlash,
+              color: enabled ? Colors.white : AppColors.textTertiary,
+              size: 22,
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Text(
+              enabled ? 'XEM VIDEO HƯỚNG DẪN' : 'CHƯA CÓ VIDEO',
+              style: TextStyle(
+                color: enabled ? Colors.white : AppColors.textTertiary,
+                fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
+// ── Muscle Legend ─────────────────────────────────────────────────────────────
 
 class _MuscleLegend extends StatelessWidget {
   const _MuscleLegend();
@@ -568,28 +559,27 @@ class _MuscleLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .58),
+        color: Colors.black.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _LegendLine(Color(0xFFF51B2B), 'Cơ chính'),
+          _LegendDot(Color(0xFFF51B2B), 'Cơ chính'),
           SizedBox(height: 4),
-          _LegendLine(Color(0xFFFF7A18), 'Cơ phụ'),
+          _LegendDot(Color(0xFFFF7A18), 'Cơ phụ'),
         ],
       ),
     );
   }
 }
 
-class _LegendLine extends StatelessWidget {
+class _LegendDot extends StatelessWidget {
   final Color color;
   final String label;
-
-  const _LegendLine(this.color, this.label);
+  const _LegendDot(this.color, this.label);
 
   @override
   Widget build(BuildContext context) {
@@ -597,64 +587,56 @@ class _LegendLine extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 7,
-          height: 7,
+          width: 7, height: 7,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 9,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
+        const SizedBox(width: 6),
+        Text(label,
+            style: const TextStyle(
+                color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
       ],
     );
   }
 }
 
+// ── BenchPress Muscle Painter (kept identical) ────────────────────────────────
+
 class _BenchPressMusclePainter extends CustomPainter {
   final double progress;
-
   const _BenchPressMusclePainter(this.progress);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final pulse = .48 + (progress * .34);
+    final pulse = 0.48 + (progress * 0.34);
     _glowOval(
       canvas,
       Rect.fromCenter(
-        center: Offset(size.width * .495, size.height * .455),
-        width: size.width * .25,
-        height: size.height * .145,
+        center: Offset(size.width * 0.495, size.height * 0.455),
+        width: size.width * 0.25,
+        height: size.height * 0.145,
       ),
       const Color(0xFFF51B2B),
       pulse,
     );
-    _rotatedGlow(
-      canvas,
-      center: Offset(size.width * .345, size.height * .43),
-      width: size.width * .105,
-      height: size.height * .19,
-      angle: -.22,
+    _rotatedGlow(canvas,
+      center: Offset(size.width * 0.345, size.height * 0.43),
+      width: size.width * 0.105,
+      height: size.height * 0.19,
+      angle: -0.22,
       color: const Color(0xFFFF7A18),
-      opacity: pulse * .78,
+      opacity: pulse * 0.78,
     );
-    _rotatedGlow(
-      canvas,
-      center: Offset(size.width * .625, size.height * .465),
-      width: size.width * .105,
-      height: size.height * .19,
-      angle: .28,
+    _rotatedGlow(canvas,
+      center: Offset(size.width * 0.625, size.height * 0.465),
+      width: size.width * 0.105,
+      height: size.height * 0.19,
+      angle: 0.28,
       color: const Color(0xFFFF7A18),
-      opacity: pulse * .78,
+      opacity: pulse * 0.78,
     );
   }
 
-  void _rotatedGlow(
-    Canvas canvas, {
+  void _rotatedGlow(Canvas canvas, {
     required Offset center,
     required double width,
     required double height,
@@ -665,38 +647,27 @@ class _BenchPressMusclePainter extends CustomPainter {
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.rotate(angle);
-    _glowOval(
-      canvas,
+    _glowOval(canvas,
       Rect.fromCenter(center: Offset.zero, width: width, height: height),
-      color,
-      opacity,
-    );
+      color, opacity);
     canvas.restore();
   }
 
   void _glowOval(Canvas canvas, Rect rect, Color color, double opacity) {
-    canvas.drawOval(
-      rect.inflate(5),
+    canvas.drawOval(rect.inflate(5),
       Paint()
-        ..color = color.withValues(alpha: opacity * .4)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16),
-    );
-    canvas.drawOval(
-      rect,
+        ..color = color.withValues(alpha: opacity * 0.4)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16));
+    canvas.drawOval(rect,
       Paint()
-        ..shader = RadialGradient(
-          colors: [
-            color.withValues(alpha: opacity),
-            color.withValues(alpha: opacity * .5),
-            color.withValues(alpha: 0),
-          ],
-          stops: const [0, .58, 1],
-        ).createShader(rect),
-    );
+        ..shader = RadialGradient(colors: [
+          color.withValues(alpha: opacity),
+          color.withValues(alpha: opacity * 0.5),
+          color.withValues(alpha: 0),
+        ], stops: const [0, 0.58, 1]).createShader(rect));
   }
 
   @override
-  bool shouldRepaint(covariant _BenchPressMusclePainter oldDelegate) {
-    return oldDelegate.progress != progress;
-  }
+  bool shouldRepaint(covariant _BenchPressMusclePainter old) =>
+      old.progress != progress;
 }

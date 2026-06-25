@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gym_support/core/constants/app_colors.dart';
 import 'package:gym_support/core/services/backend_api.dart';
@@ -236,7 +237,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: Colors.blueAccent, size: 20),
+          const Icon(PhosphorIconsRegular.info, color: Colors.blueAccent, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -280,7 +281,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(
-                          Icons.video_file_outlined,
+                          PhosphorIconsBold.videoCamera,
                           size: 64,
                           color: AppColors.primary,
                         ),
@@ -318,10 +319,10 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
                 children: [
                   Icon(
                     isVideo
-                        ? Icons.video_camera_back_outlined
-                        : Icons.add_a_photo_outlined,
+                        ? PhosphorIconsBold.videoCamera
+                        : PhosphorIconsBold.image,
                     size: 48,
-                    color: AppColors.primaryDark,
+                    color: AppColors.primaryDim,
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -351,7 +352,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
           children: [
             ListTile(
               leading: Icon(
-                isVideo ? Icons.videocam : Icons.camera_alt,
+                isVideo ? PhosphorIconsBold.videoCamera : PhosphorIconsBold.camera,
                 color: Colors.white,
               ),
               title: Text(
@@ -365,7 +366,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
             ),
             ListTile(
               leading: Icon(
-                isVideo ? Icons.video_library : Icons.photo_library,
+                isVideo ? PhosphorIconsBold.filmStrip : PhosphorIconsBold.images,
                 color: Colors.white,
               ),
               title: Text(
@@ -410,7 +411,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
                         color: AppColors.textDark,
                       ),
                     )
-                  : const Icon(Icons.auto_awesome, size: 20),
+                  : const Icon(PhosphorIconsBold.sparkle, size: 20),
               label: Text(
                 isLoading ? 'Đang phân tích...' : 'Bắt đầu Analyze',
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -421,7 +422,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
           const SizedBox(width: 12),
           IconButton(
             onPressed: () => setState(() => _mediaByMode[_currentMode] = null),
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            icon: const Icon(PhosphorIconsBold.trash, color: Colors.redAccent),
             style: IconButton.styleFrom(
               backgroundColor: Colors.redAccent.withOpacity(0.1),
               padding: const EdgeInsets.all(12),
@@ -503,33 +504,33 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
         _buildListSection(
           'Nhận xét vóc dáng',
           data['bodyObservations'],
-          Icons.visibility_outlined,
+          PhosphorIconsRegular.eye,
         ),
         _buildListSection(
           'Nhóm cơ nên ưu tiên',
           data['priorityMuscles'],
-          Icons.star_outline,
+          PhosphorIconsRegular.star,
           isPrimary: true,
         ),
         _buildListSection(
           'Nhóm cơ liên quan',
           data['muscles'],
-          Icons.fitness_center,
+          PhosphorIconsBold.barbell,
         ),
         _buildListSection(
           'Bài tập gợi ý',
           data['suggestedExercises'],
-          Icons.directions_run,
+          PhosphorIconsBold.personSimpleRun,
         ),
         _buildListSection(
           'Lời khuyên tập luyện',
           data['trainingAdvice'],
-          Icons.lightbulb_outline,
+          PhosphorIconsRegular.lightbulb,
         ),
         _buildListSection(
           'Cảnh báo',
           data['warnings'],
-          Icons.warning_amber_rounded,
+          PhosphorIconsBold.warning,
           color: Colors.orangeAccent,
         ),
         const SizedBox(height: 20),
@@ -545,57 +546,57 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
         _buildListSection(
           'Bài tập phát hiện',
           data['detectedExercise'],
-          Icons.fitness_center,
+          PhosphorIconsBold.barbell,
           isPrimary: true,
         ),
         _buildListSection(
           'Đánh giá tổng quan',
           data['overallVerdict'],
-          Icons.fact_check_outlined,
+          PhosphorIconsRegular.clipboardText,
         ),
         _buildListSection(
           'Tóm tắt chuyển động',
           data['movementSummary'],
-          Icons.directions_run,
+          PhosphorIconsBold.personSimpleRun,
         ),
         _buildListSection(
           'Lỗi nghiêm trọng',
           data['majorIssues'],
-          Icons.error_outline,
+          PhosphorIconsRegular.warning,
           color: Colors.redAccent,
         ),
         _buildListSection(
           'Lỗi cần cải thiện',
           data['minorIssues'],
-          Icons.info_outline,
+          PhosphorIconsRegular.info,
           color: Colors.orangeAccent,
         ),
         _buildListSection(
           'Điểm thực hiện đúng',
           data['correctPoints'],
-          Icons.check_circle_outline,
+          PhosphorIconsRegular.checkCircle,
           color: AppColors.primary,
         ),
         _buildListSection(
           'Quan sát theo khung hình',
           data['frameObservations'],
-          Icons.slideshow,
+          PhosphorIconsBold.presentation,
         ),
-        _buildListSection('Cơ tham gia', data['muscles'], Icons.fitness_center),
+        _buildListSection('Cơ tham gia', data['muscles'], PhosphorIconsBold.barbell),
         _buildListSection(
           'Cue sửa kỹ thuật',
           data['correctiveCues'],
-          Icons.build_circle_outlined,
+          PhosphorIconsRegular.wrench,
         ),
         _buildListSection(
           'Cách cải thiện',
           data['suggestedFixes'],
-          Icons.tips_and_updates_outlined,
+          PhosphorIconsRegular.lightbulb,
         ),
         _buildListSection(
           'Cảnh báo an toàn',
           data['warnings'],
-          Icons.security,
+          PhosphorIconsBold.shieldCheck,
           color: Colors.redAccent,
         ),
         const SizedBox(height: 20),
@@ -611,28 +612,28 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
         _buildListSection(
           'Vật thể phát hiện',
           data['detectedItems'],
-          Icons.category_outlined,
+          PhosphorIconsRegular.squaresFour,
         ),
         _buildListSection(
           'Nhóm cơ tác động',
           data['muscles'],
-          Icons.bolt,
+          PhosphorIconsBold.lightning,
           isPrimary: true,
         ),
         _buildListSection(
           'Bài tập thực hiện',
           data['suggestedExercises'],
-          Icons.play_circle_outline,
+          PhosphorIconsRegular.playCircle,
         ),
         _buildListSection(
           'Cách dùng / Lời khuyên',
           data['trainingAdvice'],
-          Icons.help_outline,
+          PhosphorIconsRegular.question,
         ),
         _buildListSection(
           'Cảnh báo an toàn',
           data['warnings'],
-          Icons.warning_amber_rounded,
+          PhosphorIconsBold.warning,
           color: Colors.orangeAccent,
         ),
         const SizedBox(height: 20),
@@ -691,7 +692,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
 
     final items = list is List ? list : [list];
     final themeColor =
-        color ?? (isPrimary ? AppColors.primaryDark : AppColors.textPrimary);
+        color ?? (isPrimary ? AppColors.primaryDim : AppColors.textPrimary);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -767,7 +768,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        icon: const Icon(Icons.chat_bubble_outline, size: 18),
+        icon: const Icon(PhosphorIconsRegular.chatCircle, size: 18),
         label: const Text(
           'Gửi vào Chat AI',
           style: TextStyle(fontWeight: FontWeight.bold),

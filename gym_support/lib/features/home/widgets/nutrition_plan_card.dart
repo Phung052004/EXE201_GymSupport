@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_theme.dart';
 
 class NutritionPlanCard extends StatelessWidget {
   final String calories;
@@ -18,53 +20,37 @@ class NutritionPlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.outline),
-      ),
+      decoration: AppTheme.cardDecoration(),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: NutritionItem(
-                  icon: Icons.local_fire_department_rounded,
-                  label: 'Calories',
-                  value: calories,
-                  iconColor: const Color(0xFFFF7A30),
-                ),
+              _NutritionItem(
+                icon: PhosphorIconsBold.fire,
+                iconColor: const Color(0xFFFF6B35),
+                label: 'Calories',
+                value: calories,
               ),
-              Expanded(
-                child: NutritionItem(
-                  icon: Icons.egg_alt_rounded,
-                  label: 'Protein',
-                  value: protein,
-                  iconColor: AppColors.primary,
-                ),
+              _NutritionItem(
+                icon: PhosphorIconsBold.egg,
+                iconColor: AppColors.violet,
+                label: 'Protein',
+                value: protein,
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: NutritionItem(
-                  icon: Icons.water_drop_rounded,
-                  label: 'Water',
-                  value: water,
-                  iconColor: const Color(0xFF248DFF),
-                ),
+              _NutritionItem(
+                icon: PhosphorIconsBold.drop,
+                iconColor: AppColors.blue,
+                label: 'Nước',
+                value: water,
               ),
-              Expanded(
-                child: NutritionItem(
-                  icon: Icons.monitor_weight_rounded,
-                  label: 'BMI',
-                  value: bmi.isEmpty ? '--' : bmi,
-                  iconColor: const Color(0xFFC44DFF),
-                ),
+              _NutritionItem(
+                icon: PhosphorIconsBold.scales,
+                iconColor: AppColors.primary,
+                label: 'BMI',
+                value: bmi.isEmpty ? '—' : double.tryParse(bmi)?.toStringAsFixed(1) ?? bmi,
               ),
             ],
           ),
@@ -74,54 +60,43 @@ class NutritionPlanCard extends StatelessWidget {
   }
 }
 
-class NutritionItem extends StatelessWidget {
+class _NutritionItem extends StatelessWidget {
   final IconData icon;
+  final Color iconColor;
   final String label;
   final String value;
-  final Color iconColor;
 
-  const NutritionItem({
-    super.key,
+  const _NutritionItem({
     required this.icon,
+    required this.iconColor,
     required this.label,
     required this.value,
-    required this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: iconColor, size: 18),
+          child: Icon(icon, color: iconColor, size: 22),
         ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
         ),
+        const SizedBox(height: 2),
+        Text(label, style: AppTheme.caption),
       ],
     );
   }

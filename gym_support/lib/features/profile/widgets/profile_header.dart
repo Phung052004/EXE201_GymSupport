@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 
@@ -33,7 +34,7 @@ class ProfileHeader extends StatelessWidget {
                 child: Container(
                   color: AppColors.surface,
                   child: const Icon(
-                    Icons.person,
+                    PhosphorIconsBold.user,
                     color: AppColors.primary,
                     size: 48,
                   ),
@@ -52,7 +53,7 @@ class ProfileHeader extends StatelessWidget {
                   border: Border.all(color: AppColors.background, width: 3),
                 ),
                 child: const Icon(
-                  Icons.edit,
+                  PhosphorIconsBold.pencilSimple,
                   color: AppColors.textDark,
                   size: 15,
                 ),

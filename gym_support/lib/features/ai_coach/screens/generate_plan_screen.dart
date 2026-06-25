@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -13,6 +14,7 @@ class GeneratePlanScreen extends StatefulWidget {
   final String weight;
   final String height;
   final String goal;
+  final bool embedded;
 
   const GeneratePlanScreen({
     super.key,
@@ -23,6 +25,7 @@ class GeneratePlanScreen extends StatefulWidget {
     this.weight = '',
     this.height = '',
     this.goal = '',
+    this.embedded = false,
   });
 
   @override
@@ -199,12 +202,18 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(22, 20, 22, 26),
+    final content = ListView(
+        padding: EdgeInsets.fromLTRB(
+          22,
+          widget.embedded ? 10 : 20,
+          22,
+          26,
+        ),
         children: [
-          _header(),
-          const SizedBox(height: 18),
+          if (!widget.embedded) ...[
+            _header(),
+            const SizedBox(height: 18),
+          ],
           FutureBuilder<Map<String, dynamic>?>(
             future: _profileFuture,
             builder: (context, snapshot) {
@@ -247,7 +256,7 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.auto_awesome_rounded),
+                : const Icon(PhosphorIconsBold.sparkle),
             label: Text(_loading ? 'Đang tạo lịch...' : 'Tạo lịch tập'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -266,7 +275,7 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: _suggestions.isEmpty || _applying ? null : _applyPlan,
-              icon: const Icon(Icons.save_rounded),
+              icon: const Icon(PhosphorIconsBold.floppyDisk),
               label: Text(_applying ? 'Đang lưu...' : 'Lưu lịch này'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.surfaceSelected,
@@ -277,8 +286,8 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
             ),
           ],
         ],
-      ),
     );
+    return widget.embedded ? content : SafeArea(child: content);
   }
 
   Widget _header() {
@@ -292,7 +301,7 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
             shape: BoxShape.circle,
           ),
           child: const Icon(
-            Icons.event_note_rounded,
+            PhosphorIconsBold.notepad,
             color: AppColors.primary,
           ),
         ),
@@ -347,7 +356,7 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.person_search_rounded, color: AppColors.primary),
+              const Icon(PhosphorIconsBold.magnifyingGlass, color: AppColors.primary),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

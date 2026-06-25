@@ -1,12 +1,15 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/core/services/session_store.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_theme.dart';
 import '../../../models/exercise.dart';
+import 'generate_plan_screen.dart';
 import 'scan_equipment_screen.dart';
 
 class AiCoachScreen extends StatefulWidget {
@@ -28,25 +31,33 @@ class AiCoachScreen extends StatefulWidget {
 }
 
 class _AiCoachScreenState extends State<AiCoachScreen>
-    with TickerProviderStateMixin {
-  final TextEditingController messageController = TextEditingController();
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
-  final List<AiChatMessage> messages = [];
+  final List<AiChatMessage> _messages = [];
   bool _sending = false;
   List<Exercise> _suggestions = const [];
+
+  static const _quickPrompts = [
+    'Gợi ý bài tập hôm nay',
+    'Cách tăng cơ hiệu quả',
+    'Bài tập giảm mỡ bụng',
+    'Lịch tập 3 buổi/tuần',
+  ];
 
   @override
   void initState() {
     super.initState();
-
+    _tabController = TabController(length: 2, vsync: this);
     _loadHistory();
     _loadSuggestions();
   }
 
   @override
   void dispose() {
-    messageController.dispose();
+    _tabController.dispose();
+    _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -55,13 +66,11 @@ class _AiCoachScreenState extends State<AiCoachScreen>
     try {
       final list = await BackendApi.getExercises();
       if (!mounted) return;
-      setState(() {
-        _suggestions = list.take(6).toList();
-      });
-    } catch (_) {
-      // Keep suggestions empty when backend is unavailable.
-    }
+      setState(() => _suggestions = list.take(6).toList());
+    } catch (_) {}
   }
+
+  static const _maxHistoryMessages = 20;
 
   Future<void> _loadHistory() async {
     try {
@@ -69,75 +78,93 @@ class _AiCoachScreenState extends State<AiCoachScreen>
       if (!mounted) return;
       if (history.isEmpty) {
         setState(() {
-          messages.add(
-            AiChatMessage(
-              text:
-                  'Hi ${widget.name}! I am your GymSupport AI. Want me to generate a workout plan for you today?',
-              isUser: false,
-            ),
-          );
+          _messages.add(AiChatMessage(
+            text:
+                'Xin chào ${widget.name}! 👋\n\nMình là AI Coach của GymSupport. Hãy hỏi mình bất cứ điều gì về luyện tập nhé!',
+            isUser: false,
+          ));
         });
         return;
       }
-
+      // Only load last N messages to avoid context overflow on AI
+      final recent = history.length > _maxHistoryMessages
+          ? history.sublist(history.length - _maxHistoryMessages)
+          : history;
       setState(() {
-        messages.addAll(
-          history.map((item) {
-            final role =
-                item['role']?.toString().toLowerCase() ??
-                item['Role']?.toString().toLowerCase() ??
-                '';
-            return AiChatMessage(
-              text:
-                  item['content']?.toString() ??
-                  item['Content']?.toString() ??
-                  '',
-              isUser: role == 'user',
-            );
-          }),
-        );
+        if (history.length > _maxHistoryMessages) {
+          _messages.add(const AiChatMessage(
+            text: '— Chỉ hiển thị 20 tin nhắn gần nhất —',
+            isUser: false,
+            isSystemNote: true,
+          ));
+        }
+        _messages.addAll(recent.map((item) {
+          final role = item['role']?.toString().toLowerCase() ??
+              item['Role']?.toString().toLowerCase() ??
+              '';
+          return AiChatMessage(
+            text: item['content']?.toString() ??
+                item['Content']?.toString() ??
+                '',
+            isUser: role == 'user',
+          );
+        }));
       });
       _scrollToBottom();
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        messages.add(
-          AiChatMessage(
-            text:
-                'Hi ${widget.name}! I am your GymSupport AI. Want me to generate a workout plan for you today?',
-            isUser: false,
-          ),
-        );
+        _messages.add(AiChatMessage(
+          text:
+              'Xin chào ${widget.name}! 👋\n\nMình là AI Coach của GymSupport. Hãy hỏi mình bất cứ điều gì về luyện tập nhé!',
+          isUser: false,
+        ));
       });
     }
   }
 
-  Future<void> sendMessage() async {
-    final text = messageController.text.trim();
+  Future<void> _clearChat() async {
+    try {
+      await BackendApi.clearAiHistory();
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _messages.clear();
+      _messages.add(AiChatMessage(
+        text:
+            'Xin chào ${widget.name}! 👋\n\nMình là AI Coach của GymSupport. Hãy hỏi mình bất cứ điều gì về luyện tập nhé!',
+        isUser: false,
+      ));
+    });
+  }
 
+  Future<void> _sendMessage() async {
+    final text = _messageController.text.trim();
     if (text.isEmpty || _sending) return;
 
     setState(() {
-      messages.add(AiChatMessage(text: text, isUser: true));
+      _messages.add(AiChatMessage(text: text, isUser: true));
       _sending = true;
     });
     _scrollToBottom();
+    _messageController.clear();
 
-    messageController.clear();
+    // If user asks to generate a plan — switch to Generate tab
     if (_looksLikePlanGenerationRequest(text)) {
       if (!mounted) return;
       setState(() {
-        messages.add(
-          const AiChatMessage(
-            text:
-                'Mình đã tách tạo lịch tập sang tab AI Plan. Bạn mở tab đó để chọn mục tiêu, kinh nghiệm, số buổi, thứ tập, mức độ, điều kiện tập và vấn đề sức khỏe; AI sẽ tạo lịch từ form thay vì qua chat.',
-            isUser: false,
-          ),
-        );
+        _messages.add(const AiChatMessage(
+          text: 'Mình đã chuyển bạn sang tab "Tạo lịch AI". Hãy chọn các tuỳ chọn và bấm Tạo lịch tập nhé! 🏋️',
+          isUser: false,
+        ));
         _sending = false;
       });
       _scrollToBottom();
       FocusScope.of(context).unfocus();
+      // Switch to Generate tab
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (mounted) _tabController.animateTo(1);
+      });
       return;
     }
 
@@ -145,70 +172,64 @@ class _AiCoachScreenState extends State<AiCoachScreen>
       final prefs = await SharedPreferences.getInstance();
       final email = prefs.getString(SessionStore.emailKey);
       final result = await BackendApi.sendAiCoachMessageDetailed(
-        message: text,
-        email: email,
-      );
-      var reply = result['response']?.toString() ?? 'Mình có thể giúp gì thêm?';
+          message: text, email: email);
+      var reply =
+          result['response']?.toString() ?? 'Mình có thể giúp gì thêm?';
       final rawSuggestions = result['suggestions'];
       final suggestions = rawSuggestions is List
           ? rawSuggestions
-                .whereType<Map>()
-                .map((item) => Map<String, dynamic>.from(item))
-                .toList()
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
           : <Map<String, dynamic>>[];
 
       if (suggestions.isNotEmpty) {
         try {
           await BackendApi.applyAiSuggestions({'suggestions': suggestions});
-          reply = '💪 Đã lưu thay đổi vào lịch tập của bạn.\n\n$reply';
+          reply = '✅ Đã lưu thay đổi vào lịch tập của bạn.\n\n$reply';
         } catch (_) {
           reply =
-              '$reply\n\n🔒 Bạn có thể nhận tư vấn và gợi ý miễn phí. '
-              'Để lưu hoặc áp dụng lịch tập trực tiếp, hãy nâng cấp Premium.';
+              '$reply\n\n🔒 Nâng cấp Premium để lưu và áp dụng lịch tập trực tiếp.';
         }
       }
       if (!mounted) return;
-      setState(() {
-        messages.add(AiChatMessage(text: reply, isUser: false));
-      });
+      setState(() => _messages.add(AiChatMessage(text: reply, isUser: false)));
       _scrollToBottom();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('AI vừa gửi tin nhắn mới')));
     } catch (error) {
       if (!mounted) return;
+      final errStr = error.toString().toLowerCase();
+      final isContextOverflow = errStr.contains('context') ||
+          errStr.contains('token') ||
+          errStr.contains('limit') ||
+          errStr.contains('too long') ||
+          errStr.contains('413') ||
+          errStr.contains('400');
       setState(() {
-        messages.add(
-          AiChatMessage(
-            text: 'Không thể kết nối AI coach: $error',
-            isUser: false,
-          ),
-        );
+        _messages.add(AiChatMessage(
+          text: isContextOverflow
+              ? 'Cuộc trò chuyện quá dài. Nhấn nút xóa lịch sử (🗑) để bắt đầu hội thoại mới.'
+              : 'Không thể kết nối. Vui lòng thử lại sau.',
+          isUser: false,
+        ));
       });
     } finally {
       if (mounted) {
-        setState(() {
-          _sending = false;
-        });
+        setState(() => _sending = false);
         FocusScope.of(context).unfocus();
       }
     }
   }
 
   bool _looksLikePlanGenerationRequest(String text) {
-    final value = text.toLowerCase();
-    final asksForPlan =
-        value.contains('lịch tập') ||
-        value.contains('workout plan') ||
-        value.contains('tạo lịch') ||
-        value.contains('lên lịch') ||
-        value.contains('generate plan');
-    final createIntent =
-        value.contains('tạo') ||
-        value.contains('lên') ||
-        value.contains('generate') ||
-        value.contains('build') ||
-        value.contains('lưu');
+    final v = text.toLowerCase();
+    final asksForPlan = v.contains('lịch tập') ||
+        v.contains('workout plan') ||
+        v.contains('tạo lịch') ||
+        v.contains('generate plan');
+    final createIntent = v.contains('tạo') ||
+        v.contains('lên') ||
+        v.contains('generate') ||
+        v.contains('build');
     return asksForPlan && createIntent;
   }
 
@@ -221,57 +242,47 @@ class _AiCoachScreenState extends State<AiCoachScreen>
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'AI ANALYSIS MODES',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1,
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.outlineStrong,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             const SizedBox(height: 20),
-            _buildModeItem(
-              ctx,
-              'Equipment Scan',
-              'Identify gym gear & get guides',
-              Icons.fitness_center_rounded,
-              'equipment_info',
-            ),
-            _buildModeItem(
-              ctx,
-              'Form Check',
-              'Analyze your exercise posture',
-              Icons.accessibility_new_rounded,
-              'form_check',
-            ),
-            _buildModeItem(
-              ctx,
-              'Body Analysis',
-              'Check body shape & progress',
-              Icons.person_search_rounded,
-              'body_check',
-            ),
+            const Text('Chế độ phân tích AI', style: AppTheme.headlineSmall),
+            const SizedBox(height: 16),
+            _buildModeItem(ctx, 'Quét thiết bị',
+                'Nhận diện dụng cụ gym',
+                PhosphorIconsBold.barbell, 'equipment_info'),
             const SizedBox(height: 10),
+            _buildModeItem(ctx, 'Kiểm tra tư thế',
+                'Phân tích kỹ thuật tập',
+                PhosphorIconsBold.person, 'form_check'),
+            const SizedBox(height: 10),
+            _buildModeItem(ctx, 'Phân tích cơ thể',
+                'Đánh giá vóc dáng',
+                PhosphorIconsBold.magnifyingGlass, 'body_check'),
           ],
         ),
       ),
     );
 
     if (!mounted || mode == null) return;
-
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ScanEquipmentScreen(email: email, initialMode: mode),
-      ),
+          builder: (_) =>
+              ScanEquipmentScreen(email: email, initialMode: mode)),
     );
 
     if (!mounted || result == null) return;
@@ -279,76 +290,45 @@ class _AiCoachScreenState extends State<AiCoachScreen>
       final text = result['text']?.toString() ?? '';
       final imagePath = result['imagePath']?.toString();
       if (text.trim().isEmpty) return;
-      setState(() {
-        messages.add(
-          AiChatMessage(text: text, isUser: false, imagePath: imagePath),
-        );
-      });
+      setState(() => _messages
+          .add(AiChatMessage(text: text, isUser: false, imagePath: imagePath)));
       _scrollToBottom();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã thêm kết quả phân tích vào chat')),
-      );
     }
   }
 
-  Widget _buildModeItem(
-    BuildContext context,
-    String title,
-    String sub,
-    IconData icon,
-    String value,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+  Widget _buildModeItem(BuildContext ctx, String title, String sub,
+      IconData icon, String value) {
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
-        onTap: () => Navigator.pop(context, value),
-        borderRadius: BorderRadius.circular(16),
+        onTap: () => Navigator.pop(ctx, value),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         child: Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface2,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.outline),
-          ),
+          decoration: AppTheme.cardDecoration(color: AppColors.surface2),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                width: 42, height: 42,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: AppColors.primary, size: 22),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
+                    Text(title, style: AppTheme.titleMedium),
                     const SizedBox(height: 2),
-                    Text(
-                      sub,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 11,
-                      ),
-                    ),
+                    Text(sub, style: AppTheme.caption),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: AppColors.textSecondary,
-                size: 14,
-              ),
+              const Icon(PhosphorIconsBold.caretRight,
+                  color: AppColors.textSecondary, size: 14),
             ],
           ),
         ),
@@ -369,257 +349,277 @@ class _AiCoachScreenState extends State<AiCoachScreen>
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          const SizedBox(height: 18),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.13),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.smart_toy_rounded,
-                    color: AppColors.primary,
-                    size: 22,
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Text(
-                            'AI Coach',
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 21,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          SizedBox(width: 6),
-                          Icon(
-                            Icons.auto_awesome,
-                            color: AppColors.primary,
-                            size: 17,
-                          ),
-                        ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Header ────────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primary, AppColors.violet],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Powered by GymSupport AI',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(PhosphorIconsBold.robot,
+                        color: AppColors.textDark, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('AI Coach', style: AppTheme.headlineMedium),
+                        Text(
+                          'Powered by GymSupport AI',
+                          style: TextStyle(
+                            color: AppColors.primary, fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: AppColors.surface,
+                          title: const Text('Xóa lịch sử chat',
+                              style: TextStyle(color: AppColors.textPrimary)),
+                          content: const Text(
+                            'Xóa toàn bộ tin nhắn trong phiên này để tránh lỗi vượt giới hạn AI?',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Huỷ',
+                                  style: TextStyle(color: AppColors.textSecondary)),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _clearChat();
+                              },
+                              child: const Text('Xóa',
+                                  style: TextStyle(color: AppColors.danger)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: const Icon(PhosphorIconsBold.trash,
+                        color: AppColors.textSecondary, size: 20),
+                    tooltip: 'Xóa lịch sử chat',
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Tab Bar ───────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: Container(
+                height: 42,
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(50),
+                  border: Border.all(color: AppColors.outline),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  padding: EdgeInsets.zero,
+                  labelPadding: EdgeInsets.zero,
+                  dividerColor: Colors.transparent,
+                  indicator: BoxDecoration(
+                    gradient: AppTheme.cyanGradient,
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 13),
+                  labelColor: AppColors.textDark,
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 13),
+                  unselectedLabelColor: AppColors.textSecondary,
+                  tabs: const [
+                    Tab(text: 'Chat'),
+                    Tab(text: 'Tạo lịch AI'),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Tab Body ─────────────────────────────────────────────────────
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // ── Chat Tab ────────────────────────────────────────────────
+                  Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          itemCount: _messages.length + (_sending ? 1 : 0),
+                          itemBuilder: (_, index) {
+                            if (_sending && index == _messages.length) {
+                              return const _TypingIndicator();
+                            }
+                            return _AiMessageBubble(
+                                message: _messages[index]);
+                          },
                         ),
                       ),
+                      if (_messages.length <= 1) _buildQuickPrompts(),
+                      _buildInputBar(),
                     ],
                   ),
-                ),
-              ],
+
+                  // ── Generate Tab ────────────────────────────────────────────
+                  GeneratePlanScreen(
+                    goal: widget.goal,
+                    embedded: true,
+                  ),
+                ],
+              ),
             ),
-          ),
-
-          const SizedBox(height: 18),
-
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              itemCount: messages.length + (_sending ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (_sending && index == messages.length) {
-                  return const _TypingIndicator();
-                }
-                final message = messages[index];
-
-                return AiMessageBubble(message: message);
-              },
-            ),
-          ),
-
-          _ExerciseSuggestions(
-            suggestions: _suggestions,
-            onTapSuggestion: (exerciseName) {
-              if (_sending) return;
-              messageController.text = 'Thêm $exerciseName vào workout của tôi';
-              FocusScope.of(context).requestFocus(FocusNode());
-            },
-          ),
-
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              22,
-              10,
-              22,
-              MediaQuery.of(context).viewInsets.bottom > 0 ? 14 : 18,
-            ),
-            child: AiInputBar(
-              controller: messageController,
-              onSend: sendMessage,
-              onCameraTap: _openScanEquipment,
-              isSending: _sending,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-}
 
-class AiInputBar extends StatelessWidget {
-  final TextEditingController controller;
-  final VoidCallback onSend;
-  final VoidCallback onCameraTap;
-  final bool isSending;
-
-  const AiInputBar({
-    super.key,
-    required this.controller,
-    required this.onSend,
-    required this.onCameraTap,
-    required this.isSending,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.only(left: 16, right: 6),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.outline),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: onCameraTap,
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppColors.surface2,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.camera_alt_rounded,
-                color: AppColors.ink,
-                size: 19,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              minLines: 1,
-              maxLines: 4,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: InputDecoration(
-                hintText: isSending
-                    ? 'AI is typing...'
-                    : 'E.g. Give me a chest workout...',
-                hintStyle: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                ),
-                border: InputBorder.none,
-              ),
-              onSubmitted: (_) => onSend(),
-            ),
-          ),
-
-          GestureDetector(
-            onTap: isSending ? null : onSend,
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.send_rounded,
-                color: AppColors.textDark,
-                size: 19,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class AiMessageBubble extends StatelessWidget {
-  final AiChatMessage message;
-
-  const AiMessageBubble({super.key, required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    final isUser = message.isUser;
-
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.76,
-        ),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: isUser ? Colors.white : AppColors.surface2,
-          border: Border.all(
-            color: isUser ? AppColors.ink : Colors.transparent,
-            width: isUser ? 1 : 0,
-          ),
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isUser ? 16 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 16),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (message.imagePath != null && message.imagePath!.isNotEmpty) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  File(message.imagePath!),
-                  width: double.infinity,
-                  height: 180,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-            Text(
-              message.text,
+  Widget _buildQuickPrompts() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text('Gợi ý nhanh',
               style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 13,
-                height: 1.45,
-                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+                fontSize: 12, fontWeight: FontWeight.w700,
+              )),
+        ),
+        SizedBox(
+          height: 38,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _quickPrompts.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) => GestureDetector(
+              onTap: () {
+                _messageController.text = _quickPrompts[i];
+                _sendMessage();
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(50),
+                  border: Border.all(color: AppColors.outlineStrong),
+                ),
+                child: Text(
+                  _quickPrompts[i],
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 12, fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildInputBar() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        16, 8, 16,
+        MediaQuery.of(context).viewInsets.bottom > 0 ? 12 : 16,
+      ),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 52),
+        padding: const EdgeInsets.only(left: 16, right: 6, top: 4, bottom: 4),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AppColors.outlineStrong),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: _openScanEquipment,
+              child: Container(
+                width: 38, height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(PhosphorIconsBold.camera,
+                    color: AppColors.textSecondary, size: 18),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: _messageController,
+                minLines: 1, maxLines: 4,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14, fontWeight: FontWeight.w500,
+                ),
+                decoration: InputDecoration(
+                  hintText:
+                      _sending ? 'AI đang soạn...' : 'Hỏi AI Coach của bạn...',
+                  hintStyle: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 14),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onSubmitted: (_) => _sendMessage(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _sending ? null : _sendMessage,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: _sending
+                      ? AppColors.primary.withValues(alpha: 0.4)
+                      : AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: _sending
+                    ? const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.textDark),
+                      )
+                    : const Icon(PhosphorIconsBold.paperPlaneTilt,
+                        color: AppColors.textDark, size: 18),
               ),
             ),
           ],
@@ -629,21 +629,119 @@ class AiMessageBubble extends StatelessWidget {
   }
 }
 
+// ── Message Bubble ────────────────────────────────────────────────────────────
+
+class _AiMessageBubble extends StatelessWidget {
+  final AiChatMessage message;
+  const _AiMessageBubble({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    if (message.isSystemNote) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Center(
+          child: Text(
+            message.text,
+            style: const TextStyle(
+              color: AppColors.textTertiary,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+    final isUser = message.isUser;
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+        margin: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (!isUser)
+              Container(
+                width: 28, height: 28,
+                margin: const EdgeInsets.only(right: 8, bottom: 2),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                      colors: [AppColors.primary, AppColors.violet]),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(PhosphorIconsBold.robot,
+                    color: AppColors.textDark, size: 16),
+              ),
+            Flexible(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isUser ? AppColors.primary : AppColors.surface,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(18),
+                    topRight: const Radius.circular(18),
+                    bottomLeft: Radius.circular(isUser ? 18 : 4),
+                    bottomRight: Radius.circular(isUser ? 4 : 18),
+                  ),
+                  border: isUser
+                      ? null
+                      : Border.all(color: AppColors.outline),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (message.imagePath?.isNotEmpty == true) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(
+                          File(message.imagePath!),
+                          width: double.infinity, height: 160,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    Text(
+                      message.text,
+                      style: TextStyle(
+                        color: isUser
+                            ? AppColors.textDark
+                            : AppColors.textPrimary,
+                        fontSize: 14, height: 1.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Typing Indicator ──────────────────────────────────────────────────────────
+
 class _TypingIndicator extends StatefulWidget {
   const _TypingIndicator();
-
   @override
   State<_TypingIndicator> createState() => _TypingIndicatorState();
 }
 
 class _TypingIndicatorState extends State<_TypingIndicator>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+  late AnimationController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat();
@@ -651,7 +749,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
@@ -660,27 +758,53 @@ class _TypingIndicatorState extends State<_TypingIndicator>
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            final t = _controller.value;
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _Dot(active: t < 0.33),
-                const SizedBox(width: 6),
-                _Dot(active: t >= 0.33 && t < 0.66),
-                const SizedBox(width: 6),
-                _Dot(active: t >= 0.66),
-              ],
-            );
-          },
+        margin: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Container(
+              width: 28, height: 28,
+              margin: const EdgeInsets.only(right: 8, bottom: 2),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.violet]),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(PhosphorIconsBold.robot,
+                  color: AppColors.textDark, size: 16),
+            ),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(4),
+                  bottomRight: Radius.circular(18),
+                ),
+                border: Border.all(color: AppColors.outline),
+              ),
+              child: AnimatedBuilder(
+                animation: _ctrl,
+                builder: (_, __) {
+                  final t = _ctrl.value;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _Dot(active: t < 0.33),
+                      const SizedBox(width: 5),
+                      _Dot(active: t >= 0.33 && t < 0.66),
+                      const SizedBox(width: 5),
+                      _Dot(active: t >= 0.66),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -689,7 +813,6 @@ class _TypingIndicatorState extends State<_TypingIndicator>
 
 class _Dot extends StatelessWidget {
   final bool active;
-
   const _Dot({required this.active});
 
   @override
@@ -699,80 +822,25 @@ class _Dot extends StatelessWidget {
       width: active ? 8 : 6,
       height: active ? 8 : 6,
       decoration: BoxDecoration(
-        color: AppColors.ink.withValues(alpha: active ? 0.9 : 0.35),
+        color: AppColors.primary.withValues(alpha: active ? 1.0 : 0.35),
         shape: BoxShape.circle,
       ),
     );
   }
 }
 
-class _ExerciseSuggestions extends StatelessWidget {
-  final List<Exercise> suggestions;
-  final ValueChanged<String> onTapSuggestion;
-
-  const _ExerciseSuggestions({
-    required this.suggestions,
-    required this.onTapSuggestion,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (suggestions.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 6, 22, 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Gợi ý bài tập',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-            ),
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: suggestions
-                  .map(
-                    (exercise) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ActionChip(
-                        label: Text(
-                          exercise.name,
-                          style: const TextStyle(
-                            color: AppColors.textDark,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        backgroundColor: AppColors.surfaceSelected,
-                        onPressed: () => onTapSuggestion(exercise.name),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// ── Data Model ────────────────────────────────────────────────────────────────
 
 class AiChatMessage {
   final String text;
   final bool isUser;
   final String? imagePath;
+  final bool isSystemNote;
 
   const AiChatMessage({
     required this.text,
     required this.isUser,
     this.imagePath,
+    this.isSystemNote = false,
   });
 }

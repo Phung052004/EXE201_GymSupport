@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../models/exercise.dart';
@@ -78,8 +79,8 @@ class ExercisePickerCard extends StatelessWidget {
                     ),
                     Icon(
                       exercise.videoUrl.isEmpty
-                          ? Icons.image_rounded
-                          : Icons.play_circle_fill_rounded,
+                          ? PhosphorIconsBold.image
+                          : PhosphorIconsBold.playCircle,
                       color: AppColors.accent,
                       size: 28,
                     ),
@@ -91,19 +92,19 @@ class ExercisePickerCard extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     _InfoChip(
-                      icon: Icons.fitness_center_rounded,
+                      icon: PhosphorIconsBold.barbell,
                       label: exercise.equipment.isEmpty
                           ? 'Equipment N/A'
                           : exercise.equipment,
                     ),
                     _InfoChip(
-                      icon: Icons.speed_rounded,
+                      icon: PhosphorIconsBold.gauge,
                       label: exercise.difficulty.isEmpty
                           ? 'Level N/A'
                           : exercise.difficulty,
                     ),
                     _InfoChip(
-                      icon: Icons.timer_rounded,
+                      icon: PhosphorIconsBold.timer,
                       label:
                           '${exercise.defaultSets} x ${exercise.defaultReps}',
                     ),
@@ -508,7 +509,7 @@ class _VideoGuide extends StatelessWidget {
         children: [
           Icon(
             hasVideo
-                ? Icons.play_circle_fill_rounded
+                ? PhosphorIconsBold.playCircle
                 : Icons.videocam_off_rounded,
             color: hasVideo ? AppColors.accent : AppColors.textSecondary,
             size: 30,

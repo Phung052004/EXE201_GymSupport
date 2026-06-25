@@ -3,23 +3,44 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const Color primary = Color(0xFFB7FF2A);
-  static const Color accent = Color(0xFF8DDC18);
-  static const Color primaryDark = Color(0xFF5F9F00);
-  static const Color violet = Color(0xFF7657FF);
-  static const Color blue = Color(0xFF3B82F6);
-  static const Color orange = Color(0xFFFF7A30);
-  static const Color background = Color(0xFF1A1A1A);
-  static const Color surface = Color.fromARGB(255, 45, 45, 45);
-  static const Color surface2 = Color(0xFF2D2D2D);
-  static const Color textPrimary = Color(0xFFFAFAFA);
-  static const Color textSecondary = Color(0xFFA8A8A8);
+  // ── Brand ──────────────────────────────────────────────────────────────────
+  static const Color primary    = Color(0xFF0AB8CF);   // Soft teal-cyan
+  static const Color primaryDim = Color(0xFF0892A4);   // Pressed / subdued
 
-  // Legacy support or variations
-  static const Color secondary = Color(0xFF71808D);
-  static const Color surfaceSelected = Color(0xFFB7FF2A);
-  static const Color textDark = Color(0xFF11160A);
-  static const Color ink = Color(0xFFFAFAFA);
-  static const Color outline = Color(0xFF404040);
-  static const Color danger = Color(0xFFE95858);
+  static const Color accent     = Color(0xFFFF6B4A);   // Coral-orange
+
+  // ── Semantic ────────────────────────────────────────────────────────────────
+  static const Color success = Color(0xFF22C55E);
+  static const Color danger  = Color(0xFFFF4C4C);
+  static const Color warning = Color(0xFFFFAA00);
+  static const Color gold    = Color(0xFFFFD700);
+
+  // ── Backgrounds — deep dark teal (not pure black) ───────────────────────────
+  static const Color background  = Color(0xFF060E10);
+  static const Color surface     = Color(0xFF0D1A1E);
+  static const Color surface2    = Color(0xFF142028);
+  static const Color surface3    = Color(0xFF1E2E38);
+  static const Color surfaceHigh = Color(0xFF2A3E48);
+
+  // ── Borders ─────────────────────────────────────────────────────────────────
+  static const Color outline       = Color(0xFF152228);
+  static const Color outlineStrong = Color(0xFF1E3040);
+
+  // ── Text ────────────────────────────────────────────────────────────────────
+  static const Color textPrimary   = Color(0xFFF0F4F8);
+  static const Color textSecondary = Color(0xFF7A9AAA);
+  static const Color textTertiary  = Color(0xFF4A6878);
+  static const Color textDark      = Color(0xFF060E10);
+
+  // ── Accents ─────────────────────────────────────────────────────────────────
+  static const Color violet = Color(0xFF9B7BFF);
+  static const Color blue   = Color(0xFF4C9EFF);
+  static const Color orange = Color(0xFFFF9F0A);
+  static const Color teal   = Color(0xFF2ED9C3);
+
+  // ── Aliases ──────────────────────────────────────────────────────────────────
+  static const Color ink             = textPrimary;
+  static const Color surfaceSelected = primary;
+  static const Color secondaryGreen  = primaryDim;
+  static const Color secondary       = violet;
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 
@@ -30,7 +31,7 @@ class EmptyWorkoutView extends StatelessWidget {
                 ],
               ),
               child: Icon(
-                Icons.fitness_center_rounded,
+                PhosphorIconsBold.barbell,
                 color: Colors.white.withValues(alpha: 0.16),
                 size: 36,
               ),

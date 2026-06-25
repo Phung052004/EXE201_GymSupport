@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:gym_support/core/constants/app_colors.dart';
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/core/services/session_store.dart';
@@ -129,11 +130,11 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              _buildSmallInfo(Icons.calendar_today, dateDisplay),
+              _buildSmallInfo(PhosphorIconsBold.calendarCheck, dateDisplay),
               const SizedBox(width: 16),
-              _buildSmallInfo(Icons.timer, '$minutes mins'),
+              _buildSmallInfo(PhosphorIconsBold.timer, '$minutes mins'),
               const SizedBox(width: 16),
-              _buildSmallInfo(Icons.fitness_center, '$exercises exercises'),
+              _buildSmallInfo(PhosphorIconsBold.barbell, '$exercises exercises'),
             ],
           ),
           const SizedBox(height: 16),

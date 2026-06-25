@@ -1643,6 +1643,10 @@ class BackendApi {
     return <Map<String, dynamic>>[];
   }
 
+  static Future<void> clearAiHistory() async {
+    await _delete('/api/ai/history', auth: true);
+  }
+
   static Future<Map<String, dynamic>> applyAiSuggestions(
     Map<String, dynamic> payload,
   ) async {

@@ -6,7 +6,6 @@ import '../../../core/services/backend_api.dart';
 import '../../../core/services/session_store.dart';
 import '../../../models/exercise.dart';
 import '../../ai_coach/screens/ai_coach_screen.dart';
-import '../../ai_coach/screens/generate_plan_screen.dart';
 import '../../home/screens/build_routine_screen.dart';
 import '../../home/screens/home_screen.dart';
 import '../../home/widgets/app_bottom_nav_bar.dart';
@@ -135,7 +134,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     await _loadWorkoutSession();
     if (!mounted) return;
     setState(() {
-      currentIndex = 3;
+      currentIndex = 2;
       _homeRefreshSeed++;
     });
     ScaffoldMessenger.of(context).showSnackBar(
@@ -295,23 +294,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         bmi: _bmi,
         refreshSeed: _homeRefreshSeed,
         onBuildRoutine: _openBuildRoutine,
-        onOpenWorkout: () => setState(() => currentIndex = 3),
+        onOpenWorkout: () => setState(() => currentIndex = 2),
       ),
 
       AiCoachScreen(name: _name, goal: _goal, schedule: _schedule, bmi: _bmi),
-
-      const GeneratePlanScreen(),
 
       const TodayWorkoutScreen(),
 
       BuildRoutineScreen(
         goal: _goal,
         schedule: _schedule,
+        embedded: true,
         onRoutineSaved: () async {
           await _loadWorkoutSession();
           if (!context.mounted) return;
           setState(() {
-            currentIndex = 3;
+            currentIndex = 2;
             _homeRefreshSeed++;
           });
           ScaffoldMessenger.of(context).showSnackBar(
@@ -335,14 +333,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
-      body: IndexedStack(index: currentIndex, children: pages),
+      body: pages[currentIndex],
       bottomNavigationBar: AppBottomNavBar(
         currentIndex: currentIndex,
         onTap: (index) {
           setState(() {
             currentIndex = index;
           });
-          if (index == 3) {
+          if (index == 2) {
             _loadWorkoutSession();
           } else if (index == 0) {
             setState(() {

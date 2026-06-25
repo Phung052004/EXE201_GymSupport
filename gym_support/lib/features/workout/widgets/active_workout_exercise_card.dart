@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../models/exercise.dart';
@@ -89,7 +90,7 @@ class _ActiveWorkoutExerciseCardState extends State<ActiveWorkoutExerciseCard> {
                       ),
                     ),
                     child: widget.isCompleted
-                        ? const Icon(Icons.check, color: AppColors.textDark, size: 16)
+                        ? const Icon(PhosphorIconsBold.check, color: AppColors.textDark, size: 16)
                         : null,
                   ),
                 ),
@@ -121,7 +122,7 @@ class _ActiveWorkoutExerciseCardState extends State<ActiveWorkoutExerciseCard> {
                 ),
                 GestureDetector(
                   onTap: widget.onRemove,
-                  child: Icon(Icons.close_rounded, color: Colors.white.withValues(alpha: 0.28), size: 22),
+                  child: Icon(PhosphorIconsBold.x, color: Colors.white.withValues(alpha: 0.28), size: 22),
                 ),
               ],
             ),
@@ -162,7 +163,7 @@ class _ActiveWorkoutExerciseCardState extends State<ActiveWorkoutExerciseCard> {
                 color: isDone ? AppColors.primary : Colors.transparent,
                 border: Border.all(color: isDone ? AppColors.primary : Colors.white24, width: 2),
               ),
-              child: isDone ? const Icon(Icons.check, color: AppColors.textDark, size: 16) : null,
+              child: isDone ? const Icon(PhosphorIconsBold.check, color: AppColors.textDark, size: 16) : null,
             ),
           ),
         ],

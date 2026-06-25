@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 
@@ -17,7 +18,7 @@ class SchedulingCard extends StatelessWidget {
       child: Row(
         children: [
           const Icon(
-            Icons.calendar_today_rounded,
+            PhosphorIconsBold.calendarCheck,
             color: AppColors.primary,
             size: 17,
           ),
@@ -40,7 +41,7 @@ class SchedulingCard extends StatelessWidget {
           ),
           const Spacer(),
           Icon(
-            Icons.chevron_right,
+            PhosphorIconsBold.caretRight,
             color: Colors.white.withValues(alpha: 0.35),
             size: 22,
           ),

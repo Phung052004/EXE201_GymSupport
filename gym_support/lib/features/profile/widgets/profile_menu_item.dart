@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 
@@ -37,7 +38,7 @@ class ProfileMenuItem extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(11),
               ),
-              child: Icon(icon, color: AppColors.primaryDark, size: 18),
+              child: Icon(icon, color: AppColors.primaryDim, size: 18),
             ),
             const SizedBox(width: 13),
             Expanded(
@@ -50,7 +51,7 @@ class ProfileMenuItem extends StatelessWidget {
                 ),
               ),
             ),
-            Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 22),
+            Icon(PhosphorIconsBold.caretRight, color: AppColors.textSecondary, size: 22),
           ],
         ),
       ),

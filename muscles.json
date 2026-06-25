@@ -1,0 +1,157 @@
+﻿[
+    {
+        "id":  "6a1fc3f5f0397a11812a80ee",
+        "name":  "Cơ khép đùi (Adductors)",
+        "category":  "Chân (Legs \u0026 Glutes)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80df",
+        "name":  "Cơ sấp/duỗi (Extensors \u0026 Brachioradialis)",
+        "category":  "Cẳng tay (Forearms)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80e8",
+        "name":  "Ngực nhỏ(Minor)",
+        "category":  "Cơ Ngực (Chest)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80f2",
+        "name":  "Cơ liên sườn trong(Internal Obliques)",
+        "category":  "Cơ Bụng (Abs \u0026 Core)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80dc",
+        "name":  "Đầu ngoài tay sau (Lateral head)",
+        "category":  "Tay sau (Triceps Brachii)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80e2",
+        "name":  "Lưng giữa (Rhomboids)",
+        "category":  "Cơ Lưng (Back)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80e5",
+        "name":  "Ngực trên (Clavicular head)",
+        "category":  "Cơ Ngực (Chest)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80d5",
+        "name":  "Vai trước (Anterior Deltoid)",
+        "category":  "Cơ vai (Deltoids)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80de",
+        "name":  "Cơ ngửa/gập (Flexors)",
+        "category":  "Cẳng tay (Forearms)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80e1",
+        "name":  "Cầu vai (Trapezius - Traps)",
+        "category":  "Cơ Lưng (Back)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80db",
+        "name":  "Đầu dài tay sau (Long head)",
+        "category":  "Tay sau (Triceps Brachii)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80e6",
+        "name":  "Ngực giữa(Sternal head)",
+        "category":  "Cơ Ngực (Chest)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80ec",
+        "name":  "Cơ mông nhỡ(Gluteus Medius)",
+        "category":  "Cơ mông (Glutes)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80d8",
+        "name":  "Cơ chóp xoay(Rotator Cuff)",
+        "category":  "Cơ vai (Deltoids)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80e0",
+        "name":  "Lưng xô (Latissimus Dorsi - Lats)",
+        "category":  "Cơ Lưng (Back)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80dd",
+        "name":  "Đầu giữa tay sau (Medial head)",
+        "category":  "Tay sau (Triceps Brachii)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80ed",
+        "name":  "Cơ mông nhỏ(Gluteus Minimus)",
+        "category":  "Cơ mông (Glutes)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80f0",
+        "name":  "Cơ thẳng bụng(Rectus Abdominis)",
+        "category":  "Cơ Bụng (Abs \u0026 Core)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80e4",
+        "name":  "Dựng cột sống (Erector Spinae)",
+        "category":  "Cơ Lưng (Back)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80d6",
+        "name":  "Vai giữa (Lateral Deltoid)",
+        "category":  "Cơ vai (Deltoids)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80d9",
+        "name":  " Cơ nhị đầu(Biceps Brachii)",
+        "category":  "Tay trước (Biceps)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80ea",
+        "name":  "Đùi sau(Hamstrings)",
+        "category":  "Chân (Legs \u0026 Glutes)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80ef",
+        "name":  "Cơ bắp chân (Calves)",
+        "category":  "Chân (Legs \u0026 Glutes)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80d7",
+        "name":  "Vai sau (Posterior Deltoid)",
+        "category":  "Cơ vai (Deltoids)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80da",
+        "name":  "Cơ cánh tay (Brachialis)",
+        "category":  "Tay trước (Biceps)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80eb",
+        "name":  "Cơ mông lớn(Gluteus Maximus)",
+        "category":  "Cơ mông (Glutes)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80f3",
+        "name":  "Cơ bụng ngang(Transversus Abdominis)",
+        "category":  "Cơ Bụng (Abs \u0026 Core)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80e3",
+        "name":  "Tròn lớn (Teres Major)",
+        "category":  "Cơ Lưng (Back)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80e7",
+        "name":  "Ngực dưới(Abdominal head)",
+        "category":  "Cơ Ngực (Chest)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80f1",
+        "name":  "Cơ liên sườn ngoài(External Obliques)",
+        "category":  "Cơ Bụng (Abs \u0026 Core)"
+    },
+    {
+        "id":  "6a1fc3f5f0397a11812a80e9",
+        "name":  "Đùi trước (Quadriceps)",
+        "category":  "Chân (Legs \u0026 Glutes)"
+    }
+]

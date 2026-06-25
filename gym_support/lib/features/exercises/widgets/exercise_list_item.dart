@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../models/exercise.dart';
@@ -104,7 +105,7 @@ class ExerciseListItem extends StatelessWidget {
                       OutlinedButton.icon(
                         onPressed: () =>
                             showExerciseDetailSheet(context, exercise),
-                        icon: const Icon(Icons.visibility_rounded, size: 16),
+                        icon: const Icon(PhosphorIconsBold.eye, size: 16),
                         label: const Text('View Detail'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.textPrimary,
@@ -139,7 +140,7 @@ class ExerciseListItem extends StatelessWidget {
                       ),
                     ),
                     child: Icon(
-                      isSelected ? Icons.check_rounded : Icons.add_rounded,
+                      isSelected ? PhosphorIconsBold.check : PhosphorIconsBold.plus,
                       color: isSelected
                           ? AppColors.textDark
                           : Colors.white.withValues(alpha: 0.42),

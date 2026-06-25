@@ -1,10 +1,11 @@
-import 'dart:async';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_images.dart';
+import '../../../core/constants/app_theme.dart';
 
-class TodayPlanCard extends StatefulWidget {
+class TodayPlanCard extends StatelessWidget {
   final VoidCallback onBuildRoutine;
   final VoidCallback onOpenWorkout;
   final Map<String, dynamic>? workout;
@@ -18,17 +19,8 @@ class TodayPlanCard extends StatefulWidget {
     this.isLoading = false,
   });
 
-  @override
-  State<TodayPlanCard> createState() => _TodayPlanCardState();
-}
-
-class _TodayPlanCardState extends State<TodayPlanCard> {
-  final PageController _pageController = PageController(viewportFraction: .88);
-  Timer? _timer;
-  int _page = 0;
-
   List<Map<String, dynamic>> get _exercises {
-    final plans = widget.workout?['workoutPlan'];
+    final plans = workout?['workoutPlan'];
     if (plans is! List || plans.isEmpty || plans.first is! Map) return const [];
     final day = Map<String, dynamic>.from(plans.first as Map);
     final raw = day['exercises'];
@@ -40,320 +32,364 @@ class _TodayPlanCardState extends State<TodayPlanCard> {
   }
 
   Map<String, dynamic>? get _selectedDay {
-    final plans = widget.workout?['workoutPlan'];
+    final plans = workout?['workoutPlan'];
     if (plans is! List || plans.isEmpty || plans.first is! Map) return null;
     return Map<String, dynamic>.from(plans.first as Map);
   }
 
   @override
-  void initState() {
-    super.initState();
-    _startTimer();
-  }
-
-  @override
-  void didUpdateWidget(covariant TodayPlanCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.workout != widget.workout) {
-      _page = 0;
-      _startTimer();
-    }
-  }
-
-  void _startTimer() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
-      final count = _exercises.length;
-      if (!mounted || count < 2 || !_pageController.hasClients) return;
-      final next = (_page + 1) % count;
-      _pageController.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 520),
-        curve: Curves.easeInOutCubic,
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.isLoading) return _loading();
-    if (widget.workout == null || _selectedDay == null) return _empty();
-
-    final day = _selectedDay!;
-    final exercises = _exercises;
-    if (exercises.isEmpty) return _empty();
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(0, 18, 0, 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.outline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    if (isLoading) {
+      return Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Row(
+          SkeletonBox(width: double.infinity, height: 160, radius: AppTheme.radiusLg),
+          const SizedBox(height: 10),
+          SkeletonBox(width: double.infinity, height: 56, radius: AppTheme.radiusMd),
+        ],
+      );
+    }
+
+    if (workout == null || _exercises.isEmpty) {
+      return _buildEmpty(context);
+    }
+
+    return _buildPlan(context);
+  }
+
+  Widget _buildEmpty(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+      child: Stack(
+        children: [
+          // Background image
+          SizedBox(
+            width: double.infinity,
+            height: 240,
+            child: CachedNetworkImage(
+              imageUrl: AppImages.workoutBanner,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => Container(color: AppColors.surface2),
+              errorWidget: (_, __, ___) => Image.asset(
+                AppImages.workoutBannerLocal, fit: BoxFit.cover),
+            ),
+          ),
+          // Dark overlay
+          Container(
+            width: double.infinity,
+            height: 240,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x88001820), Color(0xEE003D4D)],
+              ),
+            ),
+          ),
+          // Content
+          Container(
+            width: double.infinity,
+            height: 240,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+              borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        (day['day'] ?? 'Today').toString().toUpperCase(),
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        day['focus']?.toString() ?? 'Workout',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.20),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                  ),
+                  child: const Icon(
+                    PhosphorIconsBold.barbell,
+                    color: AppColors.primary,
+                    size: 24,
                   ),
                 ),
-                Text(
-                  '${exercises.length} bài',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                const SizedBox(height: 14),
+                const Text(
+                  'Chưa có lịch tập hôm nay',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Tạo kế hoạch để bắt đầu theo dõi tiến trình',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.cyanGradient,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: onBuildRoutine,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        foregroundColor: AppColors.textDark,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        ),
+                      ),
+                      child: const Text(
+                        'Tạo lịch tập ngay',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 220,
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: exercises.length,
-              onPageChanged: (value) => setState(() => _page = value),
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: _ExerciseSlide(
-                    exercise: exercises[index],
-                    index: index,
-                    total: exercises.length,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlan(BuildContext context) {
+    final day = _selectedDay!;
+    final exercises = _exercises;
+    final focus = day['focus']?.toString() ?? '';
+    final dayLabel = day['day']?.toString() ?? 'Hôm nay';
+
+    return Column(
+      children: [
+        // Hero card — dark teal gradient with cyan glow border
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: AppTheme.heroGradient,
+            borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Glow circle decoration
+              Positioned(
+                right: -30,
+                top: -30,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primary.withValues(alpha: 0.06),
                   ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 13),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(exercises.length, (index) {
-              final selected = index == _page;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: selected ? 18 : 6,
-                height: 6,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.primary : Colors.white24,
-                  borderRadius: BorderRadius.circular(99),
                 ),
-              );
-            }),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(50),
+                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            dayLabel,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: onOpenWorkout,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              PhosphorIconsBold.play,
+                              color: AppColors.textDark,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      focus.isEmpty ? 'Workout hôm nay' : focus,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(PhosphorIconsBold.barbell, color: AppColors.textSecondary, size: 13),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${exercises.length} bài tập',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 10),
+        // Exercise list (first 3)
+        ...exercises.take(3).map((ex) => _ExerciseRow(exercise: ex)),
+        if (exercises.length > 3)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: widget.onOpenWorkout,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textDark,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                ),
-                child: const Text(
-                  'MỞ BUỔI TẬP HÔM NAY',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+            padding: const EdgeInsets.only(top: 2, bottom: 4),
+            child: Center(
+              child: Text(
+                '+${exercises.length - 3} bài tập khác',
+                style: const TextStyle(
+                  color: AppColors.textTertiary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _loading() {
-    return Container(
-      height: 260,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: const Center(child: CircularProgressIndicator()),
-    );
-  }
-
-  Widget _empty() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.outline),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Bạn chưa có lịch tập hôm nay.',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
+        const SizedBox(height: 6),
+        // Start button
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: AppTheme.cyanGradient,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            ),
+            child: ElevatedButton(
+              onPressed: onOpenWorkout,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: AppColors.textDark,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(PhosphorIconsBold.play, size: 22),
+                  SizedBox(width: 8),
+                  Text(
+                    'Bắt đầu Workout',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: widget.onBuildRoutine,
-            child: const Text('Tạo lịch tập'),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-class _ExerciseSlide extends StatelessWidget {
+class _ExerciseRow extends StatelessWidget {
   final Map<String, dynamic> exercise;
-  final int index;
-  final int total;
-
-  const _ExerciseSlide({
-    required this.exercise,
-    required this.index,
-    required this.total,
-  });
+  const _ExerciseRow({required this.exercise});
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = exercise['imageUrl']?.toString() ?? '';
+    final name = exercise['name']?.toString() ?? 'Exercise';
+    final sets = exercise['sets']?.toString() ?? '3';
+    final reps = exercise['reps']?.toString() ?? '10';
+
     return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF30363B),
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppColors.outline),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
+      child: Row(
         children: [
-          if (imageUrl.isNotEmpty)
-            Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => _fallback(),
-            )
-          else
-            _fallback(),
-          const DecoratedBox(
+          Container(
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Color(0xED111417)],
-                stops: [.25, 1],
+              color: AppColors.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              PhosphorIconsBold.barbell,
+              color: AppColors.primary,
+              size: 17,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: .58),
-                borderRadius: BorderRadius.circular(99),
-              ),
-              child: Text(
-                '${index + 1}/$total',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.surface2,
+              borderRadius: BorderRadius.circular(8),
             ),
-          ),
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 14,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  exercise['name']?.toString() ?? 'Exercise',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    height: 1.1,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  '${exercise['sets'] ?? 3} sets × ${exercise['reps'] ?? '10'}  •  ${exercise['muscle'] ?? ''}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            child: Text(
+              '$sets×$reps',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _fallback() {
-    return Container(
-      color: const Color(0xFF30363B),
-      padding: const EdgeInsets.all(22),
-      alignment: Alignment.center,
-      child: Text(
-        exercise['name']?.toString() ?? 'Exercise',
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.white30,
-          fontSize: 20,
-          fontWeight: FontWeight.w900,
-        ),
       ),
     );
   }

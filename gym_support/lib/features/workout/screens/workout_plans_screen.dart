@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:gym_support/core/constants/app_colors.dart';
+import 'package:gym_support/core/constants/app_theme.dart';
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/models/workout_models.dart';
 import 'workout_plan_detail_screen.dart';
@@ -13,8 +15,9 @@ class WorkoutPlansScreen extends StatefulWidget {
 
 class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
   List<WorkoutPlan> _plans = [];
-  bool _isLoading = true;
+  bool _loading = true;
   String? _error;
+  final Set<String> _activating = {};
 
   @override
   void initState() {
@@ -23,45 +26,49 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
   }
 
   Future<void> _loadPlans() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+    setState(() { _loading = true; _error = null; });
     try {
-      final data = await BackendApi.getWorkoutPlansByUser();
+      final userId = await BackendApi.currentUserId();
+      if (userId == null || userId.isEmpty) throw Exception('Chưa đăng nhập');
+      final data = await BackendApi.getWorkoutPlansByUser(userId);
+      if (!mounted) return;
       setState(() {
-        _plans = data.map((e) => WorkoutPlan.fromJson(e)).toList();
-        _isLoading = false;
+        _plans = (data as List).map((e) => WorkoutPlan.fromJson(e as Map<String, dynamic>)).toList();
       });
     } catch (e) {
-      setState(() {
-        _error = 'Không thể tải danh sách workout plan.';
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _applyPlan(String planId) async {
-    setState(() => _isLoading = true);
+  Future<void> _activate(String planId) async {
+    setState(() => _activating.add(planId));
     try {
       await BackendApi.activateWorkoutPlan(planId);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Đã kích hoạt lịch tập!')));
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Đã kích hoạt lịch tập'),
+          backgroundColor: AppColors.surface3,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      await _loadPlans();
     } catch (e) {
       if (mounted) {
-        String msg = e.toString();
-        if (msg.contains('Exception: ')) msg = msg.split('Exception: ').last;
-        debugPrint('Apply plan error: $e');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Lỗi kích hoạt: $msg')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: AppColors.danger,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
       }
     } finally {
-      await Future.delayed(const Duration(milliseconds: 500));
-      _loadPlans();
+      if (mounted) setState(() => _activating.remove(planId));
     }
   }
 
@@ -69,246 +76,296 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Workout Plans',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w900,
-            fontSize: 24,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
-      ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primary,
-          strokeWidth: 2,
-        ),
-      );
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _error!,
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadPlans,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textDark,
-              ),
-              child: const Text('Thử lại'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_plans.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.fitness_center_rounded,
-              size: 64,
-              color: AppColors.textSecondary.withOpacity(0.2),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Bạn chưa có workout plan nào.',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      itemCount: _plans.length,
-      itemBuilder: (context, index) {
-        final plan = _plans[index];
-        return _buildPlanCard(plan);
-      },
-    );
-  }
-
-  Widget _buildPlanCard(WorkoutPlan plan) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: plan.isActive ? AppColors.primary : AppColors.outline,
-          width: plan.isActive ? 2 : 1,
-        ),
-        boxShadow: [
-          if (plan.isActive)
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+      body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 100,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: plan.isActive
-                      ? [AppColors.primary, AppColors.primary.withOpacity(0.6)]
-                      : [AppColors.ink, const Color(0xFF303A42)],
-                ),
-              ),
-              child: Stack(
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 16, 0),
+              child: Row(
                 children: [
-                  Positioned(
-                    right: -20,
-                    bottom: -20,
-                    child: Icon(
-                      Icons.fitness_center_rounded,
-                      size: 120,
-                      color: Colors.white.withOpacity(0.05),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          plan.name.toUpperCase(),
+                        const Text(
+                          'Lịch tập của tôi',
                           style: TextStyle(
-                            color: plan.isActive ? AppColors.ink : Colors.white,
-                            fontSize: 20,
+                            color: AppColors.textPrimary,
+                            fontSize: 26,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
                           ),
                         ),
-                        if (plan.isActive)
-                          Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.ink.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'ACTIVE NOW',
-                              style: TextStyle(
-                                color: AppColors.ink,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1,
-                              ),
+                        if (!_loading)
+                          Text(
+                            '${_plans.length} kế hoạch',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                       ],
                     ),
                   ),
+                  IconButton(
+                    onPressed: _loadPlans,
+                    icon: const Icon(PhosphorIconsBold.arrowClockwise, color: AppColors.textSecondary, size: 22),
+                  ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
+            const SizedBox(height: 16),
+            Expanded(child: _buildBody()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) return _buildSkeleton();
+    if (_error != null) {
+      return Center(child: AppErrorState(message: _error, onRetry: _loadPlans));
+    }
+    if (_plans.isEmpty) {
+      return Center(
+        child: AppEmptyState(
+          icon: PhosphorIconsBold.notepad,
+          title: 'Chưa có lịch tập',
+          message: 'Tạo lịch tập đầu tiên của bạn\ntrong tab Routine hoặc để AI tạo',
+        ),
+      );
+    }
+    return RefreshIndicator(
+      color: AppColors.primary,
+      backgroundColor: AppColors.surface,
+      onRefresh: _loadPlans,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+        itemCount: _plans.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (_, i) => _PlanCard(
+          plan: _plans[i],
+          isActivating: _activating.contains(_plans[i].id),
+          onActivate: () => _activate(_plans[i].id),
+          onDetail: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => WorkoutPlanDetailScreen(planId: _plans[i].id),
+              ),
+            );
+            _loadPlans();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeleton() {
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      itemCount: 4,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (_, __) => SkeletonBox(
+        width: double.infinity,
+        height: 160,
+        radius: AppTheme.radiusLg,
+      ),
+    );
+  }
+}
+
+// ── Plan Card ────────────────────────────────────────────────────────────────
+
+class _PlanCard extends StatelessWidget {
+  final WorkoutPlan plan;
+  final bool isActivating;
+  final VoidCallback onActivate;
+  final VoidCallback onDetail;
+
+  const _PlanCard({
+    required this.plan,
+    required this.isActivating,
+    required this.onActivate,
+    required this.onDetail,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = plan.isActive;
+
+    return GestureDetector(
+      onTap: onDetail,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(
+            color: isActive
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : AppColors.outline,
+            width: isActive ? 1.5 : 1,
+          ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: isActive ? AppTheme.heroGradient : null,
+                color: isActive ? null : AppColors.surface2,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppTheme.radiusLg),
+                ),
+              ),
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildMiniInfo(Icons.flag_rounded, plan.goal),
-                      _buildMiniInfo(Icons.bolt_rounded, plan.level),
-                      _buildMiniInfo(
-                        Icons.calendar_today_rounded,
-                        '${plan.daysPerWeek} Days',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            await Navigator.push<bool>(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    WorkoutPlanDetailScreen(planId: plan.id),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isActive) ...[
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(50),
+                              border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                            ),
+                            child: const Text(
+                              '● ĐANG HOẠT ĐỘNG',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
                               ),
-                            );
-                            if (mounted) {
-                              await _loadPlans();
-                            }
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.textPrimary,
-                            side: const BorderSide(color: AppColors.outline),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                          child: const Text(
-                            'View Detail',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                        ],
+                        Text(
+                          plan.name,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: plan.isActive
-                              ? null
-                              : () => _applyPlan(plan.id),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.textDark,
-                            disabledBackgroundColor: AppColors.surface2,
-                            disabledForegroundColor: AppColors.textSecondary,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            plan.isActive ? 'Active' : 'Apply Plan',
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? AppColors.primary.withValues(alpha: 0.12)
+                          : AppColors.surface3,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      PhosphorIconsBold.notepad,
+                      color: isActive ? AppColors.primary : AppColors.textSecondary,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Info pills
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  if (plan.goal.isNotEmpty)
+                    _InfoPill(PhosphorIconsBold.flag, plan.goal, AppColors.blue),
+                  _InfoPill(
+                    PhosphorIconsBold.calendarCheck,
+                    '${plan.daysPerWeek} buổi/tuần',
+                    AppColors.orange,
+                  ),
+                ],
+              ),
+            ),
+
+            // Actions
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onDetail,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textPrimary,
+                        side: const BorderSide(color: AppColors.outlineStrong),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                      child: const Text('Chi tiết'),
+                    ),
+                  ),
+                  if (!isActive) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: isActivating ? null : AppTheme.cyanGradient,
+                          color: isActivating ? AppColors.surface2 : null,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: isActivating ? null : onActivate,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            disabledBackgroundColor: Colors.transparent,
+                            foregroundColor: AppColors.textDark,
+                            disabledForegroundColor: AppColors.textSecondary,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                          ),
+                          child: isActivating
+                              ? const SizedBox(
+                                  width: 16, height: 16,
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.textSecondary, strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Kích hoạt'),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -317,21 +374,34 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
       ),
     );
   }
+}
 
-  Widget _buildMiniInfo(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: AppColors.primary),
-        const SizedBox(width: 6),
-        Text(
-          text,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+class _InfoPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _InfoPill(this.icon, this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

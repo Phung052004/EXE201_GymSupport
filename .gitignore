@@ -13,3 +13,5 @@ google-play-service-account.json
 **/obj/
 **/.dart_tool/
 **/build/
+
+**/generated-media/

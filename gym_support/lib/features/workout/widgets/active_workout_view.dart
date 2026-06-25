@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../models/exercise.dart';
@@ -181,7 +182,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
                       if (!isFinishing) ...[
                         const SizedBox(width: 8),
                         const Icon(
-                          Icons.check_circle_outline,
+                          PhosphorIconsRegular.checkCircle,
                           color: AppColors.textDark,
                           size: 20,
                         ),
@@ -331,7 +332,7 @@ class ActiveWorkoutHeader extends StatelessWidget {
               Row(
                 children: [
                   const Icon(
-                    Icons.calendar_today_rounded,
+                    PhosphorIconsBold.calendarCheck,
                     color: AppColors.primary,
                     size: 15,
                   ),
@@ -354,7 +355,7 @@ class ActiveWorkoutHeader extends StatelessWidget {
               Row(
                 children: [
                   const Icon(
-                    Icons.timer_outlined,
+                    PhosphorIconsRegular.timer,
                     color: AppColors.primary,
                     size: 15,
                   ),
@@ -389,7 +390,7 @@ class ActiveWorkoutHeader extends StatelessWidget {
               ],
             ),
             child: Icon(
-              isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              isRunning ? PhosphorIconsBold.pause : PhosphorIconsBold.play,
               color: AppColors.textDark,
               size: 32,
             ),

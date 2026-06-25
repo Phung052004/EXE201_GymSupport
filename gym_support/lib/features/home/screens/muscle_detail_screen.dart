@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -76,7 +77,7 @@ class _MuscleDetailScreenState extends State<MuscleDetailScreen> {
           backgroundColor: AppColors.background,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new),
+            icon: const Icon(PhosphorIconsBold.caretLeft),
             color: AppColors.textPrimary,
             onPressed: () => Navigator.pop(context),
           ),
@@ -104,7 +105,7 @@ class _MuscleDetailScreenState extends State<MuscleDetailScreen> {
           backgroundColor: AppColors.background,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new),
+            icon: const Icon(PhosphorIconsBold.caretLeft),
             color: AppColors.textPrimary,
             onPressed: () => Navigator.pop(context),
           ),
@@ -202,7 +203,7 @@ class _MuscleDetailScreenState extends State<MuscleDetailScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new),
+          icon: const Icon(PhosphorIconsBold.caretLeft),
           color: AppColors.textPrimary,
           onPressed: () => Navigator.pop(context),
         ),

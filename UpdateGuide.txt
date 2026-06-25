@@ -1,0 +1,52 @@
+1. Mỗi lần cập nhật Backend
+Trên Windows push code lên git
+cd /d/GymSupport/EXE201_GymSupport
+git status
+Chỉ add file cần thiết, không dùng git add .:
+git add GymSup-BE
+git commit -m "Update backend"
+git push origin main
+Trên VPS
+ssh root@103.190.37.231
+cd /opt/gymsupport/source
+git pull origin main
+Build kiểm tra:
+cd /opt/gymsupport/source/GymSup-BE
+dotnet build BE.sln -c Release
+Nếu Build succeeded:
+systemctl stop gymsupport-api
+dotnet publish GymSupport.API/GymSupport.API.csproj \
+  -c Release \
+  -o /opt/gymsupport/app
+chown -R gymapi:gymapi /opt/gymsupport/app
+systemctl start gymsupport-api
+systemctl status gymsupport-api --no-pager
+Test:
+curl -i https://api.gsfitness.xyz/api/subscriptions/plans
+Nếu code mới cần thêm biến môi trường:
+nano /etc/gymsupport.env
+systemctl restart gymsupport-api
+2. Mỗi lần cập nhật Admin React
+Trên Windows:
+cd D:\GymSupport\EXE201_GymSupport\gym_admin_dashboard
+npm.cmd run build
+Upload dist:
+scp -r .\dist\* root@103.190.37.231:/var/www/gsfitness-admin/
+Trên VPS:
+chown -R www-data:www-data /var/www/gsfitness-admin
+Không cần restart backend hoặc Nginx. Mở lại:
+https://admin.gsfitness.xyz
+Nếu trình duyệt còn bản cũ, nhấn Ctrl+F5.
+3. Mỗi lần cập nhật Flutter
+Flutter không upload lên VPS. Build app:
+cd D:\GymSupport\EXE201_GymSupport\gym_support
+flutter clean
+flutter pub get
+flutter build apk --release `
+  --dart-define=BACKEND_URL=https://api.gsfitness.xyz
+Đưa lên CH Play:
+flutter build appbundle --release `
+  --dart-define=BACKEND_URL=https://api.gsfitness.xyz
+File AAB:
+build\app\outputs\bundle\release\app-release.aab
+Nếu thay đổi cả backend và Flutter, hãy deploy backend trước, test API thành công rồi mới build Flutter.

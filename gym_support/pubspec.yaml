@@ -42,6 +42,8 @@ dependencies:
   firebase_auth: ^6.5.1
   google_sign_in: ^7.2.0
   in_app_purchase: ^3.2.3
+  phosphor_flutter: ^2.1.0
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
@@ -69,6 +71,7 @@ flutter:
     - assets/body/body_front.png
     - assets/body/body_back.png
     - assets/body/masks/
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

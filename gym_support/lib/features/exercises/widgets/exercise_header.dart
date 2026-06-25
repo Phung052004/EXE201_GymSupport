@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 
@@ -45,7 +46,7 @@ class ExerciseHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.add, color: AppColors.textDark, size: 26),
+              child: const Icon(PhosphorIconsBold.plus, color: AppColors.textDark, size: 26),
             ),
           ),
       ],
@@ -81,7 +82,7 @@ class ExerciseInfoChips extends StatelessWidget {
               children: [
                 Expanded(
                   child: _InfoChip(
-                    icon: Icons.bolt,
+                    icon: PhosphorIconsBold.lightning,
                     text: item.toUpperCase(),
                     color: AppColors.primary,
                   ),
@@ -94,7 +95,7 @@ class ExerciseInfoChips extends StatelessWidget {
           children: [
             Expanded(
               child: _InfoChip(
-                icon: Icons.calendar_month,
+                icon: PhosphorIconsBold.calendarBlank,
                 text: schedule.toUpperCase(),
                 color: const Color(0xFF248DFF),
               ),

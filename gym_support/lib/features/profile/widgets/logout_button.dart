@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class LogoutButton extends StatelessWidget {
   final VoidCallback onTap;
@@ -23,7 +24,7 @@ class LogoutButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.logout, color: Color(0xFFFF4D6D), size: 19),
+              Icon(PhosphorIconsBold.signOut, color: Color(0xFFFF4D6D), size: 19),
               SizedBox(width: 8),
               Text(
                 'Log Out',

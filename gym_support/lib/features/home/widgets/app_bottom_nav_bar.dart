@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 
 class AppBottomNavBar extends StatelessWidget {
@@ -12,95 +12,80 @@ class AppBottomNavBar extends StatelessWidget {
     required this.onTap,
   });
 
-  static const items = [
-    BottomNavItemData(icon: Icons.home_rounded, label: 'Home'),
-    BottomNavItemData(icon: Icons.auto_awesome_rounded, label: 'AI Coach'),
-    BottomNavItemData(icon: Icons.event_note_rounded, label: 'AI Plan'),
-    BottomNavItemData(icon: Icons.fitness_center_rounded, label: 'Workout'),
-    BottomNavItemData(icon: Icons.rocket_launch_rounded, label: 'Routine'),
-    BottomNavItemData(icon: Icons.person_outline_rounded, label: 'Profile'),
+  static const _items = [
+    _NavItem(active: PhosphorIconsBold.house,         inactive: PhosphorIconsRegular.house,         label: 'Home'),
+    _NavItem(active: PhosphorIconsBold.sparkle,       inactive: PhosphorIconsRegular.sparkle,       label: 'AI Coach'),
+    _NavItem(active: PhosphorIconsBold.barbell,       inactive: PhosphorIconsRegular.barbell,       label: 'Workout'),
+    _NavItem(active: PhosphorIconsBold.calendarCheck, inactive: PhosphorIconsRegular.calendarCheck, label: 'Routine'),
+    _NavItem(active: PhosphorIconsBold.user,          inactive: PhosphorIconsRegular.user,          label: 'Profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: 68,
-        margin: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-        padding: const EdgeInsets.all(7),
-        decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 45, 45, 45),
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.16),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: const Border(
+          top: BorderSide(color: AppColors.outline, width: 1),
         ),
-        child: Row(
-          children: List.generate(items.length, (index) {
-            final item = items[index];
-            final selected = currentIndex == index;
-
-            return Expanded(
-              flex: selected ? 2 : 1,
-              child: Semantics(
-                button: true,
-                selected: selected,
-                label: item.label,
-                child: InkWell(
-                  onTap: () => onTap(index),
-                  borderRadius: BorderRadius.circular(22),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    height: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: selected ? AppColors.primary : Colors.transparent,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          item.icon,
-                          color: selected ? AppColors.textDark : Colors.white,
-                          size: 20,
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: List.generate(_items.length, (i) {
+              final item = _items[i];
+              final selected = i == currentIndex;
+              return Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onTap(i),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppColors.primary.withValues(alpha: 0.12)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        if (selected) ...[
-                          const SizedBox(width: 7),
-                          Flexible(
-                            child: Text(
-                              item.label,
-                              maxLines: 1,
-                              overflow: TextOverflow.fade,
-                              style: const TextStyle(
-                                color: AppColors.textDark,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                        child: Icon(
+                          selected ? item.active : item.inactive,
+                          size: 22,
+                          color: selected ? AppColors.primary : AppColors.textTertiary,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 200),
+                        style: TextStyle(
+                          color: selected ? AppColors.primary : AppColors.textTertiary,
+                          fontSize: 9.5,
+                          fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                          letterSpacing: selected ? 0.2 : 0,
+                        ),
+                        child: Text(item.label),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
+          ),
         ),
       ),
     );
   }
 }
 
-class BottomNavItemData {
-  final IconData icon;
+class _NavItem {
+  final IconData active;
+  final IconData inactive;
   final String label;
-
-  const BottomNavItemData({required this.icon, required this.label});
+  const _NavItem({required this.active, required this.inactive, required this.label});
 }
