@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_images.dart';
 import '../../../core/constants/app_theme.dart';
 import '../../../core/services/backend_api.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/services/session_store.dart';
 import '../../workout/screens/workout_history_screen.dart';
 import '../widgets/muscle_progress_card.dart';
@@ -87,11 +88,33 @@ class _HomeScreenState extends State<HomeScreen> {
                   .toList()
             : const [];
       });
+
+      // Schedule local workout reminders from the active plan's sessions
+      _scheduleReminders(home['plans']);
     } catch (_) {
       // Fail silently — UI shows empty states
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _scheduleReminders(dynamic plans) {
+    if (plans is! List) return;
+    // Collect scheduled days from the first active plan
+    final activePlan = plans
+        .whereType<Map>()
+        .firstWhere((p) => p['isActive'] == true, orElse: () => plans.first as Map);
+    final sessions = activePlan['sessions'] as List? ?? activePlan['Sessions'] as List? ?? [];
+    final days = sessions
+        .whereType<Map>()
+        .map((s) => s['dayOfWeek']?.toString() ?? s['DayOfWeek']?.toString() ?? '')
+        .where((d) => d.isNotEmpty)
+        .toList();
+    if (days.isEmpty) return;
+    final planName = activePlan['name']?.toString() ?? activePlan['Name']?.toString() ?? '';
+    NotificationService.requestPermission().then((_) {
+      NotificationService.scheduleWorkoutReminders(days: days, planName: planName);
+    });
   }
 
   List<MuscleProgressData> _parseMuscleProgress(dynamic progress) {

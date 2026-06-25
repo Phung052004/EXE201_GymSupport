@@ -8,6 +8,7 @@ import '../../../core/services/backend_api.dart';
 import '../../../core/services/session_store.dart';
 import 'package:gym_support/features/ai_coach/screens/scan_equipment_screen.dart';
 import '../../../screens/auth_screen.dart';
+import '../../admin/screens/admin_dashboard_screen.dart';
 import 'subscription_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -37,7 +38,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late String _schedule;
   late String _bmi;
   Map<String, dynamic>? _dashboard;
+  List<Map<String, dynamic>> _badges = const [];
+  List<Map<String, dynamic>> _weeklyStats  = const [];
+  List<Map<String, dynamic>> _monthlyStats = const [];
   bool _dashLoading = true;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -53,9 +58,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final prefs = await SharedPreferences.getInstance();
       final email = prefs.getString(SessionStore.emailKey) ?? '';
       if (email.isEmpty) return;
-      final data = await BackendApi.getDashboardSummary(email);
+      final role = prefs.getString(SessionStore.roleKey) ?? '';
+      final results = await Future.wait([
+        BackendApi.getDashboardSummary(email),
+        BackendApi.getUserBadges(),
+        BackendApi.getWeeklyStats(weeks: 8),
+        BackendApi.getMonthlyStats(months: 6),
+      ]);
       if (!mounted) return;
-      setState(() { _dashboard = data; _dashLoading = false; });
+      setState(() {
+        _dashboard    = results[0] as Map<String, dynamic>?;
+        _badges       = (results[1] as List?)?.whereType<Map<String, dynamic>>().toList() ?? const [];
+        _weeklyStats  = (results[2] as List?)?.whereType<Map<String, dynamic>>().toList() ?? const [];
+        _monthlyStats = (results[3] as List?)?.whereType<Map<String, dynamic>>().toList() ?? const [];
+        _isAdmin      = role.toLowerCase() == 'admin';
+        _dashLoading  = false;
+      });
     } catch (_) {
       if (mounted) setState(() => _dashLoading = false);
     }
@@ -194,21 +212,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ? null
                         : () async {
                             setSheetState(() => saving = true);
+                            final messenger = ScaffoldMessenger.of(context);
                             try {
                               final result = await BackendApi.updateBodyMetrics(
                                 weight: weightCtrl.text.trim(),
                                 height: heightCtrl.text.trim(),
                               );
-                              if (!mounted) return;
+                              if (!mounted || !ctx.mounted) return;
                               Navigator.pop(ctx);
                               widget.onBmiUpdated?.call(result['bmi']?.toString() ?? _bmi);
                               setState(() => _bmi = result['bmi']?.toString() ?? _bmi);
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 const SnackBar(content: Text('Cập nhật thành công!')),
                               );
                             } catch (e) {
                               setSheetState(() => saving = false);
-                              ScaffoldMessenger.of(ctx).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppColors.danger),
                               );
                             }
@@ -307,6 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? null
                       : () async {
                           setSheetState(() => saving = true);
+                          final messenger = ScaffoldMessenger.of(context);
                           try {
                             final email = await _currentEmail();
                             await BackendApi.updateOnboardingProfile(
@@ -314,13 +334,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               goal: selectedGoal,
                               schedule: selectedSchedule,
                             );
-                            if (!mounted) return;
+                            if (!mounted || !ctx.mounted) return;
                             Navigator.pop(ctx);
                             setState(() { _goal = selectedGoal; _schedule = selectedSchedule; });
                             widget.onGoalsUpdated?.call(selectedGoal, selectedSchedule);
                           } catch (e) {
                             setSheetState(() => saving = false);
-                            ScaffoldMessenger.of(ctx).showSnackBar(
+                            messenger.showSnackBar(
                               SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppColors.danger),
                             );
                           }
@@ -478,6 +498,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
+            // Badges
+            if (!_dashLoading)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'HUY HIỆU',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (_badges.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.gold.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: Text(
+                                '${_badges.length}',
+                                style: const TextStyle(
+                                  color: AppColors.gold,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (_badges.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                            border: Border.all(color: AppColors.outline),
+                          ),
+                          child: const Column(
+                            children: [
+                              Text('🏅', style: TextStyle(fontSize: 28)),
+                              SizedBox(height: 8),
+                              Text(
+                                'Chưa có huy hiệu nào',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Tập liên tiếp để nhận badge streak!',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: _badges.map((b) => _BadgeChip(badge: b)).toList(),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            // Stats section
+            if (!_dashLoading)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: _StatsSection(
+                    weeklyStats: _weeklyStats,
+                    monthlyStats: _monthlyStats,
+                  ),
+                ),
+              ),
             // Menu items
             SliverToBoxAdapter(
               child: Padding(
@@ -541,6 +653,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ]),
+                    // Admin panel — only visible to admins
+                    if (_isAdmin) ...[
+                      const SizedBox(height: 20),
+                      const Text(
+                        'QUẢN TRỊ',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildMenuGroup([
+                        _ProfileMenuItem(
+                          icon: PhosphorIconsRegular.shieldStar,
+                          label: 'Admin Dashboard',
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const AdminDashboardScreen(),
+                            ),
+                          ),
+                        ),
+                      ]),
+                    ],
                     const SizedBox(height: 20),
                     // Logout button
                     Material(
@@ -796,6 +933,385 @@ class _InfoRow extends StatelessWidget {
         Text(label, style: AppTheme.bodyMedium),
         Text(value, style: AppTheme.titleMedium),
       ],
+    );
+  }
+}
+
+class _StatsSection extends StatefulWidget {
+  final List<Map<String, dynamic>> weeklyStats;
+  final List<Map<String, dynamic>> monthlyStats;
+
+  const _StatsSection({required this.weeklyStats, required this.monthlyStats});
+
+  @override
+  State<_StatsSection> createState() => _StatsSectionState();
+}
+
+class _StatsSectionState extends State<_StatsSection> {
+  bool _showMonthly = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = _showMonthly ? widget.monthlyStats : widget.weeklyStats;
+    final maxSessions = stats.isEmpty
+        ? 1
+        : stats.map((s) => (s['sessionCount'] as num?)?.toDouble() ?? 0).reduce((a, b) => a > b ? a : b);
+
+    // This week vs last week comparison
+    final thisWeek = widget.weeklyStats.isNotEmpty ? widget.weeklyStats.last : null;
+    final lastWeek = widget.weeklyStats.length >= 2 ? widget.weeklyStats[widget.weeklyStats.length - 2] : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'THỐNG KÊ',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const Spacer(),
+            _ToggleTab(
+              label: 'Tuần',
+              selected: !_showMonthly,
+              onTap: () => setState(() => _showMonthly = false),
+            ),
+            const SizedBox(width: 6),
+            _ToggleTab(
+              label: 'Tháng',
+              selected: _showMonthly,
+              onTap: () => setState(() => _showMonthly = true),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // This week vs last week quick comparison
+        if (!_showMonthly && thisWeek != null)
+          _WeekCompareRow(thisWeek: thisWeek, lastWeek: lastWeek),
+
+        if (!_showMonthly && thisWeek != null) const SizedBox(height: 12),
+
+        // Bar chart
+        if (stats.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              border: Border.all(color: AppColors.outline),
+            ),
+            child: const Center(
+              child: Text('Chưa có dữ liệu', style: TextStyle(color: AppColors.textTertiary, fontSize: 13)),
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              border: Border.all(color: AppColors.outline),
+            ),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 80,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: stats.map((s) {
+                      final count = (s['sessionCount'] as num?)?.toDouble() ?? 0;
+                      final ratio = maxSessions > 0 ? count / maxSessions : 0.0;
+                      final isLast = s == stats.last;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              if (count > 0)
+                                Text(
+                                  '${count.toInt()}',
+                                  style: TextStyle(
+                                    color: isLast ? AppColors.primary : AppColors.textTertiary,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              const SizedBox(height: 2),
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 400),
+                                height: (ratio * 56).clamp(3, 56),
+                                decoration: BoxDecoration(
+                                  color: isLast
+                                      ? AppColors.primary
+                                      : AppColors.primary.withValues(alpha: 0.28),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: stats.map((s) {
+                    final label = (s['label'] as String?) ?? '';
+                    final isLast = s == stats.last;
+                    return Expanded(
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: isLast ? AppColors.primary : AppColors.textTertiary,
+                          fontSize: 9,
+                          fontWeight: isLast ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+
+        // Monthly totals row
+        if (_showMonthly && stats.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _MonthSummaryRow(current: stats.last),
+        ],
+      ],
+    );
+  }
+}
+
+class _ToggleTab extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ToggleTab({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.primary.withValues(alpha: 0.5) : AppColors.outline,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColors.primary : AppColors.textTertiary,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WeekCompareRow extends StatelessWidget {
+  final Map<String, dynamic> thisWeek;
+  final Map<String, dynamic>? lastWeek;
+
+  const _WeekCompareRow({required this.thisWeek, this.lastWeek});
+
+  @override
+  Widget build(BuildContext context) {
+    final thisSessions = (thisWeek['sessionCount'] as num?)?.toInt() ?? 0;
+    final lastSessions = (lastWeek?['sessionCount'] as num?)?.toInt() ?? 0;
+    final thisMin      = (thisWeek['totalDurationMinutes'] as num?)?.toInt() ?? 0;
+    final lastMin      = (lastWeek?['totalDurationMinutes'] as num?)?.toInt() ?? 0;
+    final thisSets     = (thisWeek['totalSets'] as num?)?.toInt() ?? 0;
+    final lastSets     = (lastWeek?['totalSets'] as num?)?.toInt() ?? 0;
+
+    return Row(
+      children: [
+        _CompareCell(label: 'Buổi tập', current: thisSessions, previous: lastSessions, suffix: ''),
+        const SizedBox(width: 8),
+        _CompareCell(label: 'Thời gian', current: thisMin, previous: lastMin, suffix: 'ph'),
+        const SizedBox(width: 8),
+        _CompareCell(label: 'Tổng sets', current: thisSets, previous: lastSets, suffix: ''),
+      ],
+    );
+  }
+}
+
+class _CompareCell extends StatelessWidget {
+  final String label;
+  final int current;
+  final int previous;
+  final String suffix;
+
+  const _CompareCell({
+    required this.label,
+    required this.current,
+    required this.previous,
+    required this.suffix,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final diff = current - previous;
+    final Color trendColor = diff > 0
+        ? AppColors.success
+        : diff < 0
+            ? AppColors.danger
+            : AppColors.textTertiary;
+    final String trendStr = diff > 0
+        ? '+$diff'
+        : diff < 0
+            ? '$diff'
+            : '=';
+
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(color: AppColors.outline),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(color: AppColors.textTertiary, fontSize: 10, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$current${suffix.isNotEmpty ? suffix : ''}',
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+                const Spacer(),
+                Text(
+                  trendStr,
+                  style: TextStyle(color: trendColor, fontSize: 11, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthSummaryRow extends StatelessWidget {
+  final Map<String, dynamic> current;
+
+  const _MonthSummaryRow({required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    final sessions = (current['sessionCount'] as num?)?.toInt() ?? 0;
+    final minutes  = (current['totalDurationMinutes'] as num?)?.toInt() ?? 0;
+    final sets     = (current['totalSets'] as num?)?.toInt() ?? 0;
+    final exp      = (current['totalExpGained'] as num?)?.toInt() ?? 0;
+    final label    = current['label']?.toString() ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppColors.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tháng $label',
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _MiniStat(value: '$sessions', label: 'Buổi'),
+              _MiniStat(value: '${minutes}ph', label: 'Tổng g.'),
+              _MiniStat(value: '$sets', label: 'Sets'),
+              _MiniStat(value: '+$exp', label: 'EXP'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _MiniStat({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(value, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(color: AppColors.textTertiary, fontSize: 10)),
+        ],
+      ),
+    );
+  }
+}
+
+class _BadgeChip extends StatelessWidget {
+  final Map<String, dynamic> badge;
+
+  const _BadgeChip({required this.badge});
+
+  @override
+  Widget build(BuildContext context) {
+    final emoji = badge['emoji']?.toString() ?? '🏆';
+    final name = badge['name']?.toString() ?? '';
+    final description = badge['description']?.toString() ?? '';
+
+    return Tooltip(
+      message: description,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 8),
+            Text(
+              name,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

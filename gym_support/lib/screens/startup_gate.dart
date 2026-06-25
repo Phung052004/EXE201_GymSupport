@@ -32,18 +32,14 @@ class _StartupGateState extends State<StartupGate> {
     final profileComplete =
         prefs.getBool(SessionStore.profileCompleteKey) ?? false;
 
-    if (email == null || email.isEmpty) {
+    // Không có email hoặc không có token → chưa đăng nhập → về Login
+    if (email == null || email.isEmpty || token == null || token.isEmpty) {
+      await SessionStore.clear();
       return const AuthScreen();
     }
 
-    if (!profileComplete && (token == null || token.isEmpty)) {
-      return OnboardingNameScreen(email: email);
-    }
-
     try {
-      if ((userId == null || userId.isEmpty) &&
-          token != null &&
-          token.isNotEmpty) {
+      if (userId == null || userId.isEmpty) {
         userId = await BackendApi.getMeUserId();
         if (userId != null && userId.isNotEmpty) {
           await SessionStore.saveAuth(
@@ -66,7 +62,7 @@ class _StartupGateState extends State<StartupGate> {
       final completeProfile = profile!;
       await SessionStore.saveAuth(
         email: email,
-        token: token ?? '',
+        token: token,
         userId: userId,
         customerId: completeProfile['id']?.toString(),
         profileComplete: true,
@@ -79,10 +75,7 @@ class _StartupGateState extends State<StartupGate> {
         bmi: completeProfile['bmi']?.toString() ?? '--',
       );
     } catch (_) {
-      if (token != null && token.isNotEmpty) {
-        return OnboardingNameScreen(email: email);
-      }
-
+      // Lỗi mạng hoặc token hết hạn → về Login
       return const AuthScreen();
     }
   }

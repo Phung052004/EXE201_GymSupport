@@ -5,6 +5,7 @@ import 'package:gym_support/core/constants/app_colors.dart';
 import 'package:gym_support/core/constants/app_theme.dart';
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/models/workout_models.dart';
+import '../../../core/services/notification_service.dart';
 import 'workout_summary_screen.dart';
 
 class WorkoutSessionScreen extends StatefulWidget {
@@ -42,9 +43,13 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   final Map<String, List<TextEditingController>> _repsControllers = {};
   final Map<String, List<TextEditingController>> _weightControllers = {};
   final Set<String> _savingSets = {};
+  // null = loading, {} = not found
+  final Map<String, Map<String, dynamic>?> _exerciseStats = {};
 
   bool _isSaving = false;
   int _selectedExerciseIndex = 0;
+  // exerciseId → { exerciseName, value } for PRs set this session
+  final Map<String, Map<String, String>> _newPRs = {};
 
   @override
   void initState() {
@@ -68,6 +73,17 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         count, (i) => TextEditingController(
           text: i < weights.length ? '${weights[i]}' : '0'));
     }
+
+    _loadAllExerciseStats();
+  }
+
+  void _loadAllExerciseStats() {
+    for (final ex in widget.exercises) {
+      BackendApi.getExerciseStats(ex.exerciseId).then((stats) {
+        if (!mounted) return;
+        setState(() => _exerciseStats[ex.exerciseId] = stats ?? {});
+      });
+    }
   }
 
   String _extractReps(String repsStr) =>
@@ -89,10 +105,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     _timer.cancel();
     _stopwatch.stop();
     for (final list in _repsControllers.values) {
-      for (final c in list) c.dispose();
+      for (final c in list) { c.dispose(); }
     }
     for (final list in _weightControllers.values) {
-      for (final c in list) c.dispose();
+      for (final c in list) { c.dispose(); }
     }
     super.dispose();
   }
@@ -117,7 +133,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         reps: reps,
         weight: weight,
       );
-      if (mounted) setState(() => _completedSets[ex.exerciseId]![setIdx] = true);
+      if (mounted) {
+        setState(() => _completedSets[ex.exerciseId]![setIdx] = true);
+        _checkPR(ex, weight, reps);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -126,6 +145,38 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     } finally {
       if (mounted) setState(() => _savingSets.remove(key));
     }
+  }
+
+  void _checkPR(WorkoutExercise ex, double weight, int reps) {
+    final pr = _exerciseStats[ex.exerciseId]?['personalRecord'] as Map<String, dynamic>?;
+    if (pr == null) return;
+
+    final prevMaxWeight = (pr['maxWeight'] as num?)?.toDouble() ?? 0;
+    final prevMaxReps   = (pr['maxReps']   as num?)?.toInt()    ?? 0;
+
+    final isNewPR = weight > prevMaxWeight ||
+        (weight >= prevMaxWeight && reps > prevMaxReps);
+    if (!isNewPR) return;
+
+    final wStr = weight == weight.truncateToDouble()
+        ? '${weight.toInt()}kg'
+        : '${weight.toStringAsFixed(1)}kg';
+    final label = '$wStr × $reps reps';
+
+    setState(() => _newPRs[ex.exerciseId] = {
+      'exerciseName': ex.exerciseName,
+      'value': label,
+    });
+
+    // In-session banner
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('🏆 New PR! ${ex.exerciseName} — $label'),
+      backgroundColor: AppColors.gold,
+      duration: const Duration(seconds: 3),
+    ));
+
+    // System notification (fires in background)
+    NotificationService.showPRNotification(ex.exerciseName, label);
   }
 
   Future<void> _finishWorkout() async {
@@ -160,6 +211,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                 'name': e.exerciseName,
                 'sets': _completedSets[e.exerciseId]!.where((d) => d).length,
               }).toList(),
+              'newPRs': _newPRs.values.toList(),
             },
           ),
         ),
@@ -365,7 +417,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
         scrollDirection: Axis.horizontal,
         itemCount: widget.exercises.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (context, i) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final ex = widget.exercises[i];
           final done = _completedSets[ex.exerciseId]?.where((d) => d).length ?? 0;
@@ -459,7 +511,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        _buildLastPerfBanner(ex),
+        const SizedBox(height: 12),
 
         // Table header
         Container(
@@ -585,7 +639,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         ),
 
         // AI Tip
-        if (ex.note?.isNotEmpty == true) ...[
+        if (ex.note.isNotEmpty) ...[
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(14),
@@ -601,13 +655,118 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                     color: AppColors.violet, size: 18),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(ex.note!, style: AppTheme.bodyMedium),
+                  child: Text(ex.note, style: AppTheme.bodyMedium),
                 ),
               ],
             ),
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildLastPerfBanner(WorkoutExercise ex) {
+    final stats = _exerciseStats[ex.exerciseId];
+
+    // Still loading
+    if (stats == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(color: AppColors.outline),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textTertiary)),
+            SizedBox(width: 10),
+            Text('Đang tải lịch sử...', style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+          ],
+        ),
+      );
+    }
+
+    final lastPerf = stats['lastPerformance'] as Map<String, dynamic>?;
+    final pr       = stats['personalRecord'] as Map<String, dynamic>?;
+
+    if (lastPerf == null && pr == null) return const SizedBox.shrink();
+
+    final lastSets = (lastPerf?['sets'] as List?)
+        ?.whereType<Map<String, dynamic>>()
+        .toList() ?? [];
+    final lastDate = lastPerf?['date'] as String? ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppColors.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Row(
+            children: [
+              const Icon(PhosphorIconsBold.clockCounterClockwise, size: 13, color: AppColors.textSecondary),
+              const SizedBox(width: 6),
+              Text(
+                lastDate.isNotEmpty ? 'Lần trước  $lastDate' : 'Lần trước',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              if (pr != null) ...[
+                const Spacer(),
+                const Icon(PhosphorIconsBold.trophy, size: 12, color: AppColors.gold),
+                const SizedBox(width: 4),
+                Text(
+                  'Kỷ lục: ${(pr['maxWeight'] as num).toStringAsFixed(pr['maxWeight'] % 1 == 0 ? 0 : 1)}kg × ${pr['maxReps']}',
+                  style: const TextStyle(
+                    color: AppColors.gold,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (lastSets.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: lastSets.map((s) {
+                final w = (s['weight'] as num?)?.toDouble() ?? 0;
+                final r = (s['reps'] as num?)?.toInt() ?? 0;
+                final wStr = w == w.truncateToDouble()
+                    ? '${w.toInt()}kg'
+                    : '${w.toStringAsFixed(1)}kg';
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface2,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Set ${s['setNumber']}: $wStr × $r',
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

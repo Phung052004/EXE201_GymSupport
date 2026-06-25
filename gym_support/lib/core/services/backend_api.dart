@@ -1296,18 +1296,7 @@ class BackendApi {
       await prefs.remove(_currentWorkoutSessionKey);
       await prefs.remove(_currentWorkoutIsQuickKey);
 
-      return {
-        'success': true,
-        'log': decoded,
-        'totalDurationSeconds':
-            _value<num>(decoded, 'totalDurationSeconds')?.toInt() ?? 0,
-        'totalSets': _value<num>(decoded, 'totalSets')?.toInt() ?? 0,
-        'totalExpGained': _value<num>(decoded, 'totalExpGained')?.toInt() ?? 0,
-        'muscleExpGains':
-            _value<List>(decoded, 'muscleExpGains') ??
-            _value<List>(decoded, 'MuscleExpGains') ??
-            const [],
-      };
+      return _buildCompleteResult(decoded);
     }
 
     final planId =
@@ -1419,19 +1408,40 @@ class BackendApi {
     await prefs.remove(_currentWorkoutPlanKey);
     await prefs.remove(_currentWorkoutSessionKey);
     await prefs.remove(_currentWorkoutIsQuickKey);
+    return _buildCompleteResult(finishedLog);
+  }
+
+  // Backend now returns { session: {...}, currentStreak: N, newBadge: {...}|null }
+  static Map<String, dynamic> _buildCompleteResult(Map<String, dynamic>? raw) {
+    final session = (raw?['session'] is Map<String, dynamic>)
+        ? raw!['session'] as Map<String, dynamic>
+        : raw ?? <String, dynamic>{};
     return {
       'success': true,
-      'log': finishedLog,
+      'log': session,
       'totalDurationSeconds':
-          _value<num>(finishedLog ?? {}, 'totalDurationSeconds')?.toInt() ?? 0,
-      'totalSets': _value<num>(finishedLog ?? {}, 'totalSets')?.toInt() ?? 0,
-      'totalExpGained':
-          _value<num>(finishedLog ?? {}, 'totalExpGained')?.toInt() ?? 0,
+          _value<num>(session, 'totalDurationSeconds')?.toInt() ?? 0,
+      'totalSets': _value<num>(session, 'totalSets')?.toInt() ?? 0,
+      'totalExpGained': _value<num>(session, 'totalExpGained')?.toInt() ?? 0,
       'muscleExpGains':
-          _value<List>(finishedLog ?? {}, 'muscleExpGains') ??
-          _value<List>(finishedLog ?? {}, 'MuscleExpGains') ??
+          _value<List>(session, 'muscleExpGains') ??
+          _value<List>(session, 'MuscleExpGains') ??
           const [],
+      'currentStreak': raw?['currentStreak'] as int? ?? 0,
+      'newBadge': raw?['newBadge'],
     };
+  }
+
+  static Future<List<Map<String, dynamic>>> getUserBadges([String? userId]) async {
+    final uid = userId ?? await currentUserId();
+    if (uid == null || uid.isEmpty) return const [];
+    try {
+      final decoded = await _get('/api/users/$uid/badges', auth: true);
+      if (decoded is! List) return const [];
+      return decoded.whereType<Map<String, dynamic>>().toList();
+    } catch (_) {
+      return const [];
+    }
   }
 
   static Future<List<Map<String, dynamic>>> getUserMuscleProgress([
@@ -2095,5 +2105,112 @@ class BackendApi {
       'protein': '${(weight * 1.8).round()}g',
       'water': '${(weight * 35 / 1000).toStringAsFixed(1)}L',
     };
+  }
+
+  // ── Admin: subscription plan CRUD ─────────────────────────────────────────
+  static Future<List<Map<String, dynamic>>> adminGetAllPlans() async {
+    try {
+      final decoded = await _get('/api/subscriptions/plans', auth: true);
+      if (decoded is! List) return const [];
+      return decoded.whereType<Map<String, dynamic>>().toList();
+    } catch (_) { return const []; }
+  }
+
+  static Future<bool> adminCreatePlan({
+    required String name,
+    required int durationMonths,
+    required double price,
+    bool isActive = true,
+  }) async {
+    try {
+      await _post('/api/subscriptions/plans', body: {
+        'name': name,
+        'durationMonths': durationMonths,
+        'price': price,
+        'isActive': isActive,
+      }, auth: true);
+      return true;
+    } catch (_) { return false; }
+  }
+
+  static Future<bool> adminUpdatePlan({
+    required String id,
+    required String name,
+    required int durationMonths,
+    required double price,
+    required bool isActive,
+  }) async {
+    try {
+      await _put('/api/subscriptions/plans/$id', body: {
+        'name': name,
+        'durationMonths': durationMonths,
+        'price': price,
+        'isActive': isActive,
+      }, auth: true);
+      return true;
+    } catch (_) { return false; }
+  }
+
+  static Future<bool> adminDeletePlan(String id) async {
+    try {
+      await _delete('/api/subscriptions/plans/$id', auth: true);
+      return true;
+    } catch (_) { return false; }
+  }
+
+  static Future<List<Map<String, dynamic>>> adminGetUserSubscriptions() async {
+    try {
+      final decoded = await _get('/api/subscriptions/admin/all', auth: true);
+      if (decoded is! List) return const [];
+      return decoded.whereType<Map<String, dynamic>>().toList();
+    } catch (_) { return const []; }
+  }
+
+  // ── Exercise stats: last performance + personal record ─────────────────────
+  static Future<Map<String, dynamic>?> getExerciseStats(String exerciseId) async {
+    final uid = await currentUserId();
+    if (uid == null || uid.isEmpty) return null;
+    try {
+      final decoded = await _get(
+        '/api/users/$uid/exercise-stats/$exerciseId',
+        auth: true,
+      );
+      if (decoded is Map<String, dynamic>) return decoded;
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── Weekly stats ───────────────────────────────────────────────────────────
+  static Future<List<Map<String, dynamic>>> getWeeklyStats({int weeks = 8}) async {
+    final uid = await currentUserId();
+    if (uid == null || uid.isEmpty) return const [];
+    try {
+      final decoded = await _get(
+        '/api/users/$uid/stats/weekly?weeks=$weeks',
+        auth: true,
+      );
+      if (decoded is! List) return const [];
+      return decoded.whereType<Map<String, dynamic>>().toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  // ── Monthly stats ──────────────────────────────────────────────────────────
+  static Future<List<Map<String, dynamic>>> getMonthlyStats({int months = 6}) async {
+    final uid = await currentUserId();
+    if (uid == null || uid.isEmpty) return const [];
+    try {
+      final decoded = await _get(
+        '/api/users/$uid/stats/monthly?months=$months',
+        auth: true,
+      );
+      if (decoded is! List) return const [];
+      return decoded.whereType<Map<String, dynamic>>().toList();
+    } catch (_) {
+      return const [];
+    }
   }
 }

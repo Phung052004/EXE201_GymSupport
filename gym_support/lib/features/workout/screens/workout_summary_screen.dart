@@ -18,13 +18,18 @@ class WorkoutSummaryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final planName    = summary['planName']?.toString() ?? '';
-    final dayName     = summary['dayName']?.toString() ?? '';
-    final duration    = _formatDuration(summary['duration'] ?? summary['durationSeconds']);
-    final totalSets   = summary['totalSets']?.toString() ?? '0';
-    final totalExp    = summary['totalExpGained']?.toString() ?? '0';
-    final exercises   = (summary['exercises'] as List?)?.cast<Map>() ?? [];
-    final muscleGains = (summary['muscleExpGains'] as List?)?.cast<Map>() ?? [];
+    final planName     = summary['planName']?.toString() ?? '';
+    final dayName      = summary['dayName']?.toString() ?? '';
+    final duration     = _formatDuration(summary['duration'] ?? summary['durationSeconds']);
+    final totalSets    = summary['totalSets']?.toString() ?? '0';
+    final totalExp     = summary['totalExpGained']?.toString() ?? '0';
+    final exercises    = (summary['exercises'] as List?)?.cast<Map>() ?? [];
+    final muscleGains  = (summary['muscleExpGains'] as List?)?.cast<Map>() ?? [];
+    final currentStreak = summary['currentStreak'] as int? ?? 0;
+    final newBadge     = summary['newBadge'] as Map<String, dynamic>?;
+    final newPRs       = (summary['newPRs'] as List?)
+        ?.whereType<Map<String, dynamic>>()
+        .toList() ?? [];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -124,6 +129,205 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 ),
               ),
             ),
+
+            // ── Streak & Badge ───────────────────────────────────────────────
+            if (currentStreak > 0 || newBadge != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Column(
+                    children: [
+                      // Streak counter
+                      if (currentStreak > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFFFF6B35).withValues(alpha: 0.15),
+                                const Color(0xFFFF6B35).withValues(alpha: 0.05),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Text('🔥', style: TextStyle(fontSize: 32)),
+                              const SizedBox(width: 14),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$currentStreak ngày liên tiếp!',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFF6B35),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'Tiếp tục duy trì streak nhé 💪',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      // New badge awarded
+                      if (newBadge != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.gold.withValues(alpha: 0.18),
+                                AppColors.gold.withValues(alpha: 0.05),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.gold.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: AppColors.gold.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.gold.withValues(alpha: 0.4),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    newBadge['emoji']?.toString() ?? '🏆',
+                                    style: const TextStyle(fontSize: 26),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.gold.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(50),
+                                      ),
+                                      child: const Text(
+                                        '✨ HUY HIỆU MỚI',
+                                        style: TextStyle(
+                                          color: AppColors.gold,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.8,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      newBadge['name']?.toString() ?? '',
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    Text(
+                                      newBadge['description']?.toString() ?? '',
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+            // ── New PRs ───────────────────────────────────────────────────────
+            if (newPRs.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.gold.withValues(alpha: 0.18),
+                          AppColors.gold.withValues(alpha: 0.06),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                      border: Border.all(color: AppColors.gold.withValues(alpha: 0.4)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Text('🏆', style: TextStyle(fontSize: 18)),
+                            SizedBox(width: 8),
+                            Text(
+                              'Kỷ lục cá nhân mới!',
+                              style: TextStyle(
+                                color: AppColors.gold,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        ...newPRs.map((pr) => Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            children: [
+                              const Text('·  ', style: TextStyle(color: AppColors.gold)),
+                              Expanded(
+                                child: Text(
+                                  '${pr['exerciseName']}  —  ${pr['value']}',
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
 
             // ── Muscle Gains ──────────────────────────────────────────────────
             if (muscleGains.isNotEmpty) ...[

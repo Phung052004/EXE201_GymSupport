@@ -44,6 +44,8 @@ dependencies:
   in_app_purchase: ^3.2.3
   phosphor_flutter: ^2.1.0
   cached_network_image: ^3.4.1
+  flutter_local_notifications: ^18.0.0
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:

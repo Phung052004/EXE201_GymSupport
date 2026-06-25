@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'core/constants/app_colors.dart';
+import 'core/services/notification_service.dart';
 import 'screens/startup_gate.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.init();
   runApp(const GymSupportApp());
 }
 
