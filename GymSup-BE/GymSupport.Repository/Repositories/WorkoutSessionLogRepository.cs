@@ -50,4 +50,19 @@ public class WorkoutSessionLogRepository : IWorkoutSessionLogRepository
             x => x.Id == id,
             sessionLog);
     }
+
+    public async Task<List<WorkoutSessionLog>> GetAllAsync()
+    {
+        return await _collection
+            .Find(_ => true)
+            .ToListAsync();
+    }
+
+    public async Task<List<WorkoutSessionLog>> GetByDateRangeAsync(DateTime from, DateTime to)
+    {
+        return await _collection
+            .Find(x => x.StartTime >= from && x.StartTime < to)
+            .SortBy(x => x.StartTime)
+            .ToListAsync();
+    }
 }

@@ -18,6 +18,7 @@ public class HomeController : ControllerBase
     private readonly IExerciseRepository _exerciseRepository;
     private readonly IMuscleRepository _muscleRepository;
     private readonly IUserMuscleProgressRepository _muscleProgressRepository;
+    private readonly IUserBadgeRepository _badgeRepository;
 
     public HomeController(
         IWorkoutPlanRepository workoutPlanRepository,
@@ -25,7 +26,8 @@ public class HomeController : ControllerBase
         ICustomerRepository customerRepository,
         IExerciseRepository exerciseRepository,
         IMuscleRepository muscleRepository,
-        IUserMuscleProgressRepository muscleProgressRepository)
+        IUserMuscleProgressRepository muscleProgressRepository,
+        IUserBadgeRepository badgeRepository)
     {
         _workoutPlanRepository = workoutPlanRepository;
         _workoutSessionLogRepository = workoutSessionLogRepository;
@@ -33,6 +35,7 @@ public class HomeController : ControllerBase
         _exerciseRepository = exerciseRepository;
         _muscleRepository = muscleRepository;
         _muscleProgressRepository = muscleProgressRepository;
+        _badgeRepository = badgeRepository;
     }
 
     [HttpGet("{userId}")]
@@ -58,6 +61,7 @@ public class HomeController : ControllerBase
         var userMuscleProgress = await _muscleProgressRepository.GetByUserIdAsync(userId);
         var muscleProgress = BuildMuscleProgress(userMuscleProgress, muscles);
         var popularExercises = BuildPopularExercises(history, exercises);
+        var badges = await _badgeRepository.GetByUserIdAsync(userId);
 
         return Ok(new
         {
@@ -67,8 +71,9 @@ public class HomeController : ControllerBase
             nutrition,
             muscleProgress,
             popularExercises,
-            streak = CalculateStreak(history),
-            workoutCount = history.Count(x => x.Status == "COMPLETED")
+            streak = CalculateScheduleAwareStreak(history),
+            workoutCount = history.Count(x => x.Status == "COMPLETED"),
+            badges,
         });
     }
 
@@ -361,7 +366,72 @@ public class HomeController : ControllerBase
             .ToList();
     }
 
-    private static int CalculateStreak(List<WorkoutSessionLog> history)
+    // Uses per-session plan snapshots so changing plans never resets old streaks.
+    private static int CalculateScheduleAwareStreak(List<WorkoutSessionLog> history)
+    {
+        var completed = history
+            .Where(x => x.Status == "COMPLETED")
+            .Select(x => (
+                date: (x.EndTime ?? x.StartTime).ToLocalTime().Date,
+                schedule: x.ScheduledDaysOfWeek.Count > 0
+                    ? ParseScheduleSnapshot(x.ScheduledDaysOfWeek)
+                    : null
+            ))
+            .OrderBy(x => x.date)
+            .ToList();
+
+        if (!completed.Any()) return 0;
+        if (completed.All(s => s.schedule == null))
+            return CalculateCalendarStreak(history);
+
+        var completedDates = completed.Select(s => s.date).ToHashSet();
+        var today = DateTime.Now.Date;
+        var streak = 0;
+
+        for (var d = 0; d < 365; d++)
+        {
+            var date = today.AddDays(-d);
+
+            if (completedDates.Contains(date)) { streak++; continue; }
+
+            var schedule = ResolveScheduleForDate(date, completed);
+            if (schedule == null || !schedule.Contains(date.DayOfWeek)) continue;
+
+            if (date < today) break;
+        }
+
+        return streak;
+    }
+
+    private static HashSet<DayOfWeek>? ResolveScheduleForDate(
+        DateTime date,
+        List<(DateTime date, HashSet<DayOfWeek>? schedule)> sessions)
+    {
+        var withSnapshot = sessions.Where(s => s.schedule != null).ToList();
+        if (!withSnapshot.Any()) return null;
+
+        var before = withSnapshot.LastOrDefault(s => s.date <= date);
+        var after  = withSnapshot.FirstOrDefault(s => s.date > date);
+
+        if (before == default && after == default) return null;
+        if (before == default) return after.schedule;
+        if (after  == default) return before.schedule;
+
+        var dBefore = (date - before.date).TotalDays;
+        var dAfter  = (after.date  - date).TotalDays;
+        return dAfter <= dBefore ? after.schedule : before.schedule;
+    }
+
+    private static HashSet<DayOfWeek>? ParseScheduleSnapshot(List<string> days)
+    {
+        var result = new HashSet<DayOfWeek>();
+        foreach (var s in days)
+            if (Enum.TryParse<DayOfWeek>(s, out var d))
+                result.Add(d);
+        return result.Count > 0 ? result : null;
+    }
+
+    private static int CalculateCalendarStreak(List<WorkoutSessionLog> history)
     {
         var completedDays = history
             .Where(x => x.Status == "COMPLETED")
@@ -369,16 +439,10 @@ public class HomeController : ControllerBase
             .ToHashSet();
 
         var cursor = DateTime.Now.Date;
-        if (!completedDays.Contains(cursor))
-            cursor = cursor.AddDays(-1);
+        if (!completedDays.Contains(cursor)) cursor = cursor.AddDays(-1);
 
         var streak = 0;
-        while (completedDays.Contains(cursor))
-        {
-            streak++;
-            cursor = cursor.AddDays(-1);
-        }
-
+        while (completedDays.Contains(cursor)) { streak++; cursor = cursor.AddDays(-1); }
         return streak;
     }
 }

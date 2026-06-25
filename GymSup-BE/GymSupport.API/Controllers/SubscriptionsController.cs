@@ -148,6 +148,46 @@ public class SubscriptionsController : ControllerBase
     }
 
     /// <summary>
+    /// Delete a subscription plan (Admin only)
+    /// </summary>
+    [HttpDelete("plans/{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeletePlan(string id)
+    {
+        try
+        {
+            var plan = await _subscriptionService.GetSubscriptionPlanAsync(id);
+            if (plan == null)
+                return NotFound(new { message = "Subscription plan not found" });
+
+            await _subscriptionService.DeleteSubscriptionPlanAsync(id);
+            return Ok(new { message = "Subscription plan deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error deleting subscription plan", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get all user subscriptions (Admin only)
+    /// </summary>
+    [HttpGet("admin/all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllUserSubscriptions()
+    {
+        try
+        {
+            var subs = await _subscriptionService.GetAllUserSubscriptionsAsync();
+            return Ok(subs);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving user subscriptions", error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Get current subscription of authenticated user
     /// Response: { "planName", "startDate", "endDate", "daysRemaining", "status" }
     /// </summary>

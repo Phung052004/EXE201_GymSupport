@@ -1,4 +1,4 @@
-﻿using GymSupport.Repository.Models.DTOs.WorkoutPlan;
+using GymSupport.Repository.Models.DTOs.WorkoutPlan;
 
 using GymSupport.Service.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -82,8 +82,15 @@ public class WorkoutSessionLogsController : ControllerBase
     {
         try
         {
-            var result = await _service.FinishSessionAsync(sessionLogId);
-            return Ok(result);
+            var session = await _service.FinishSessionAsync(sessionLogId);
+            var (streak, newBadge) = await _service.CheckAndAwardStreakBadgeAsync(session.UserId);
+
+            return Ok(new
+            {
+                session,
+                currentStreak = streak,
+                newBadge,
+            });
         }
         catch (Exception ex)
         {

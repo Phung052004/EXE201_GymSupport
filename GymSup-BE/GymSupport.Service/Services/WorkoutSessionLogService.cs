@@ -9,24 +9,37 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
 {
     private const int ExpPerLevel = 100;
 
+    private static readonly (int days, string type, string name, string description, string emoji)[] StreakMilestones =
+    {
+        (3,   "streak_3",   "On Fire!",         "Tập 3 ngày liên tiếp",   "🔥"),
+        (7,   "streak_7",   "Week Warrior",     "Tập 7 ngày liên tiếp",   "⚡"),
+        (14,  "streak_14",  "Two-Week Beast",   "Tập 14 ngày liên tiếp",  "💪"),
+        (30,  "streak_30",  "Iron Discipline",  "Tập 30 ngày liên tiếp",  "🏆"),
+        (60,  "streak_60",  "Unstoppable",      "Tập 60 ngày liên tiếp",  "🚀"),
+        (100, "streak_100", "Legendary",        "Tập 100 ngày liên tiếp", "👑"),
+    };
+
     private readonly IWorkoutSessionLogRepository _sessionLogRepository;
     private readonly IWorkoutPlanRepository _workoutPlanRepository;
     private readonly IExerciseRepository _exerciseRepository;
     private readonly IMuscleRepository _muscleRepository;
     private readonly IUserMuscleProgressRepository _muscleProgressRepository;
+    private readonly IUserBadgeRepository _badgeRepository;
 
     public WorkoutSessionLogService(
         IWorkoutSessionLogRepository sessionLogRepository,
         IWorkoutPlanRepository workoutPlanRepository,
         IExerciseRepository exerciseRepository,
         IMuscleRepository muscleRepository,
-        IUserMuscleProgressRepository muscleProgressRepository)
+        IUserMuscleProgressRepository muscleProgressRepository,
+        IUserBadgeRepository badgeRepository)
     {
         _sessionLogRepository = sessionLogRepository;
         _workoutPlanRepository = workoutPlanRepository;
         _exerciseRepository = exerciseRepository;
         _muscleRepository = muscleRepository;
         _muscleProgressRepository = muscleProgressRepository;
+        _badgeRepository = badgeRepository;
     }
 
     public async Task<WorkoutSessionLog> StartSessionAsync(
@@ -219,6 +232,12 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
         session.MuscleExpGains = await ApplyMuscleExpAsync(session);
         session.TotalExpGained = session.MuscleExpGains.Sum(x => x.ExpGained);
 
+        // Snapshot the user's current scheduled days so streak survives future plan changes
+        var plans = await _workoutPlanRepository.GetByUserIdAsync(session.UserId);
+        session.ScheduledDaysOfWeek = GetScheduledDaysOfWeek(plans)
+            .Select(d => d.ToString())
+            .ToList();
+
         await _sessionLogRepository.UpdateAsync(session.Id, session);
 
         return session;
@@ -356,5 +375,164 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
     private static int CalculateLevel(int totalExp)
     {
         return Math.Max(1, totalExp / ExpPerLevel + 1);
+    }
+
+    public async Task<(int currentStreak, UserBadge? newBadge)> CheckAndAwardStreakBadgeAsync(string userId)
+    {
+        var history = await _sessionLogRepository.GetByUserIdAsync(userId);
+        var streak = CalculateScheduleAwareStreak(history);
+
+        UserBadge? newBadge = null;
+        foreach (var (days, type, name, description, emoji) in StreakMilestones.OrderByDescending(m => m.days))
+        {
+            if (streak < days) continue;
+
+            var existing = await _badgeRepository.GetByUserAndTypeAsync(userId, type);
+            if (existing != null) break;
+
+            newBadge = await _badgeRepository.CreateAsync(new UserBadge
+            {
+                UserId = userId,
+                BadgeType = type,
+                Name = name,
+                Description = description,
+                Emoji = emoji,
+                StreakDays = days,
+            });
+            break;
+        }
+
+        return (streak, newBadge);
+    }
+
+    // Streak only breaks when a SCHEDULED day is missed.
+    // Schedule is read from per-session snapshots so plan changes don't reset old streaks.
+    // Falls back to calendar streak for sessions without snapshots (legacy data).
+    internal static int CalculateScheduleAwareStreak(List<WorkoutSessionLog> history)
+    {
+        var completed = history
+            .Where(x => x.Status == "COMPLETED")
+            .Select(x => (
+                date: (x.EndTime ?? x.StartTime).ToLocalTime().Date,
+                schedule: x.ScheduledDaysOfWeek.Count > 0
+                    ? ParseScheduleSnapshot(x.ScheduledDaysOfWeek)
+                    : null
+            ))
+            .OrderBy(x => x.date)
+            .ToList();
+
+        if (!completed.Any()) return 0;
+
+        // No snapshots at all → legacy data, use calendar streak
+        if (completed.All(s => s.schedule == null))
+            return CalculateCalendarStreak(history);
+
+        var completedDates = completed.Select(s => s.date).ToHashSet();
+        var today = DateTime.Now.Date;
+        var streak = 0;
+
+        for (var d = 0; d < 365; d++)
+        {
+            var date = today.AddDays(-d);
+
+            if (completedDates.Contains(date))
+            {
+                streak++;
+                continue;
+            }
+
+            // No workout on this date — check if it was a scheduled day using nearest snapshot
+            var schedule = ResolveScheduleForDate(date, completed);
+            if (schedule == null || !schedule.Contains(date.DayOfWeek))
+                continue; // Rest day or no context — skip
+
+            if (date < today)
+                break; // Missed a scheduled day in the past
+            // date == today, still time to work out — don't break
+        }
+
+        return streak;
+    }
+
+    // Find the nearest session (before or after) with a schedule snapshot.
+    // Prefers the AFTER session on tie (more likely to reflect current plan).
+    private static HashSet<DayOfWeek>? ResolveScheduleForDate(
+        DateTime date,
+        List<(DateTime date, HashSet<DayOfWeek>? schedule)> sessions)
+    {
+        var withSnapshot = sessions.Where(s => s.schedule != null).ToList();
+        if (!withSnapshot.Any()) return null;
+
+        var before = withSnapshot.LastOrDefault(s => s.date <= date);
+        var after  = withSnapshot.FirstOrDefault(s => s.date > date);
+
+        if (before == default && after == default) return null;
+        if (before == default) return after.schedule;
+        if (after  == default) return before.schedule;
+
+        var dBefore = (date - before.date).TotalDays;
+        var dAfter  = (after.date - date).TotalDays;
+        return dAfter <= dBefore ? after.schedule : before.schedule;
+    }
+
+    private static HashSet<DayOfWeek>? ParseScheduleSnapshot(List<string> days)
+    {
+        var result = new HashSet<DayOfWeek>();
+        foreach (var s in days)
+            if (Enum.TryParse<DayOfWeek>(s, out var d))
+                result.Add(d);
+        return result.Count > 0 ? result : null;
+    }
+
+    private static int CalculateCalendarStreak(List<WorkoutSessionLog> history)
+    {
+        var completedDays = history
+            .Where(x => x.Status == "COMPLETED")
+            .Select(x => (x.EndTime ?? x.StartTime).ToLocalTime().Date)
+            .ToHashSet();
+
+        var cursor = DateTime.Now.Date;
+        if (!completedDays.Contains(cursor))
+            cursor = cursor.AddDays(-1);
+
+        var streak = 0;
+        while (completedDays.Contains(cursor))
+        {
+            streak++;
+            cursor = cursor.AddDays(-1);
+        }
+        return streak;
+    }
+
+    private static HashSet<DayOfWeek> GetScheduledDaysOfWeek(List<WorkoutPlan> plans)
+    {
+        var days = new HashSet<DayOfWeek>();
+        var activePlans = plans.Where(p => p.IsActive).ToList();
+        if (!activePlans.Any()) activePlans = plans;
+
+        foreach (var plan in activePlans)
+            foreach (var session in plan.Sessions)
+            {
+                var day = ParseDayOfWeek(session.DayOfWeek);
+                if (day.HasValue) days.Add(day.Value);
+            }
+
+        return days;
+    }
+
+    private static DayOfWeek? ParseDayOfWeek(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "monday"    or "thu 2" or "thứ 2" or "t2" => DayOfWeek.Monday,
+            "tuesday"   or "thu 3" or "thứ 3" or "t3" => DayOfWeek.Tuesday,
+            "wednesday" or "thu 4" or "thứ 4" or "t4" => DayOfWeek.Wednesday,
+            "thursday"  or "thu 5" or "thứ 5" or "t5" => DayOfWeek.Thursday,
+            "friday"    or "thu 6" or "thứ 6" or "t6" => DayOfWeek.Friday,
+            "saturday"  or "thu 7" or "thứ 7" or "t7" => DayOfWeek.Saturday,
+            "sunday"    or "chu nhat" or "chủ nhật" or "cn" => DayOfWeek.Sunday,
+            _ => null
+        };
     }
 }

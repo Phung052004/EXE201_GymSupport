@@ -14,4 +14,6 @@ public interface IChatRepository
     string userId);
 
     Task DeleteByUserIdAsync(string userId);
+
+    Task<List<ChatMessage>> GetByDateRangeAsync(DateTime from, DateTime to);
 }

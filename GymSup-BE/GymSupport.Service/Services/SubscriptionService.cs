@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace GymSupport.Service.Services;
 
@@ -13,15 +14,18 @@ public class SubscriptionService : ISubscriptionService
     private readonly ISubscriptionPlanRepository _planRepository;
     private readonly IUserSubscriptionRepository _userSubscriptionRepository;
     private readonly ICustomerRepository _customerRepository;
+    private readonly IUserRepository _userRepository;
 
     public SubscriptionService(
         ISubscriptionPlanRepository planRepository,
         IUserSubscriptionRepository userSubscriptionRepository,
-        ICustomerRepository customerRepository)
+        ICustomerRepository customerRepository,
+        IUserRepository userRepository)
     {
         _planRepository = planRepository;
         _userSubscriptionRepository = userSubscriptionRepository;
         _customerRepository = customerRepository;
+        _userRepository = userRepository;
     }
 
     public async Task<SubscriptionPlanDto?> GetSubscriptionPlanAsync(string planId)
@@ -178,6 +182,42 @@ public class SubscriptionService : ISubscriptionService
         plan.UpdatedAt = DateTime.UtcNow;
         
         await _planRepository.UpdateAsync(plan);
+    }
+
+    public async Task DeleteSubscriptionPlanAsync(string planId)
+    {
+        await _planRepository.DeleteAsync(planId);
+    }
+
+    public async Task<IEnumerable<AdminUserSubscriptionDto>> GetAllUserSubscriptionsAsync()
+    {
+        var subscriptions = await _userSubscriptionRepository.GetAllAsync();
+        var now = DateTime.UtcNow;
+        var result = new List<AdminUserSubscriptionDto>();
+
+        foreach (var sub in subscriptions)
+        {
+            var user = await _userRepository.GetByIdAsync(sub.UserId);
+            var daysRemaining = sub.ExpiredAt.HasValue
+                ? Math.Max(0, (int)(sub.ExpiredAt.Value - now).TotalDays)
+                : 0;
+
+            result.Add(new AdminUserSubscriptionDto
+            {
+                Id = sub.Id,
+                UserId = sub.UserId,
+                UserEmail = user?.Email ?? "",
+                UserName = user?.FullName ?? "",
+                PlanName = sub.PlanName,
+                Price = sub.Price,
+                Status = sub.Status,
+                StartDate = sub.StartedAt,
+                EndDate = sub.ExpiredAt,
+                DaysRemaining = daysRemaining,
+            });
+        }
+
+        return result.OrderByDescending(s => s.StartDate);
     }
 
     private SubscriptionPlanDto MapToPlanDto(SubscriptionPlan plan)

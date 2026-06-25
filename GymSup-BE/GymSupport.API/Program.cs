@@ -106,6 +106,7 @@ builder.Services.AddScoped<
     IMuscleRepository,
     MuscleRepository>();
 builder.Services.AddScoped<IUserMuscleProgressRepository, UserMuscleProgressRepository>();
+builder.Services.AddScoped<IUserBadgeRepository, UserBadgeRepository>();
 builder.Services.AddScoped<IWorkoutSessionLogService, WorkoutSessionLogService>();
 builder.Services.AddScoped<IWorkoutSessionLogRepository, WorkoutSessionLogRepository>();
 builder.Services.AddScoped<IExerciseRepository, ExerciseRepository>();
@@ -121,6 +122,8 @@ builder.Services.AddScoped<IUserSubscriptionRepository, UserSubscriptionReposito
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IMealPlanRepository, MealPlanRepository>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IStorePurchaseService, StorePurchaseService>();
 builder.Services.AddScoped<PremiumOnlyFilter>();

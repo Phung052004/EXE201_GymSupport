@@ -44,4 +44,12 @@ public class ChatRepository : IChatRepository
     {
         await _collection.DeleteManyAsync(x => x.UserId == userId);
     }
+
+    public async Task<List<ChatMessage>> GetByDateRangeAsync(DateTime from, DateTime to)
+    {
+        return await _collection
+            .Find(x => x.CreatedAt >= from && x.CreatedAt < to)
+            .SortBy(x => x.CreatedAt)
+            .ToListAsync();
+    }
 }

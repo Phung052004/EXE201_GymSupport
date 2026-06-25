@@ -20,4 +20,7 @@ public interface IWorkoutSessionLogService
 
     Task<List<WorkoutSessionLog>> GetHistoryAsync(
         string userId);
+
+    Task<(int currentStreak, UserBadge? newBadge)> CheckAndAwardStreakBadgeAsync(
+        string userId);
 }

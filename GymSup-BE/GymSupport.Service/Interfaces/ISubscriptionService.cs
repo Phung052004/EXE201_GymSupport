@@ -22,6 +22,8 @@ namespace GymSupport.Service.Interfaces
         Task UpdateSubscriptionPlanAsync(string planId, bool isActive);
         Task UpdateSubscriptionPlanFullAsync(string planId, UpdateSubscriptionPlanDto dto);
         Task CreateSubscriptionPlanAsync(CreateSubscriptionPlanDto dto);
+        Task DeleteSubscriptionPlanAsync(string planId);
+        Task<IEnumerable<AdminUserSubscriptionDto>> GetAllUserSubscriptionsAsync();
     }
 
     public class SubscriptionPlanDto
@@ -56,5 +58,19 @@ namespace GymSupport.Service.Interfaces
         public int DurationMonths { get; set; }
         public decimal Price { get; set; }
         public bool IsActive { get; set; }
+    }
+
+    public class AdminUserSubscriptionDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string UserId { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public string PlanName { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public int DaysRemaining { get; set; }
     }
 }

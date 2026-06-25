@@ -45,5 +45,9 @@ namespace GymSupport.Repository.Models.Entities
         public List<WorkoutExerciseLog> Exercises { get; set; } = new();
 
         public List<MuscleExpGain> MuscleExpGains { get; set; } = new();
+
+        // Snapshot of the user's scheduled days-of-week at the time this session was completed.
+        // Used by the schedule-aware streak algorithm to avoid plan-change false resets.
+        public List<string> ScheduledDaysOfWeek { get; set; } = new();
     }
 }
