@@ -12,6 +12,7 @@ import '../../../core/services/session_store.dart';
 import '../../workout/screens/workout_history_screen.dart';
 import '../widgets/muscle_progress_card.dart';
 import '../widgets/muscle_progress_teaser.dart';
+import './muscle_detail_screen.dart';
 import '../widgets/nutrition_plan_card.dart';
 import '../widgets/popular_exercises_section.dart';
 import '../widgets/today_plan_card.dart';
@@ -247,9 +248,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       MuscleProgressTeaser(
                         items: _muscleProgress,
                         isLoading: _loading,
-                        onViewAll: () => Navigator.pushNamed(
+                        onViewAll: () => Navigator.push(
                           context,
-                          '/muscle-detail',
+                          MaterialPageRoute(
+                            builder: (context) => const MuscleDetailScreen(),
+                          ),
                         ),
                       ),
                     ],
