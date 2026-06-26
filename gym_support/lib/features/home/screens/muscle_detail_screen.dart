@@ -4,7 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/backend_api.dart';
 import '../widgets/muscle_progress_card.dart';
-import '../widgets/muscle_body_map_display.dart';
+import '../widgets/muscle_simple_display.dart';
 
 class MuscleDetailScreen extends StatefulWidget {
   final List<MuscleProgressData>? items;
@@ -179,7 +179,7 @@ class _MuscleDetailScreenState extends State<MuscleDetailScreen> {
             children: [
               _StatsOverview(muscles: _muscles),
               const SizedBox(height: 20),
-              MuscleBodyMapDisplay(
+              MuscleSimpleDisplay(
                 items: _muscles,
                 isLoading: false,
               ),
