@@ -127,24 +127,16 @@ class _MuscleItemCardState extends State<_MuscleItemCard>
                     child: Row(
                       children: [
                         // Left: Rank badge
-                        Container(
-                          width: 60,
-                          height: 60,
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppColors.background.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: tc.withValues(alpha: 0.2),
-                            ),
-                          ),
+                        Padding(
+                          padding: const EdgeInsets.all(3),
                           child: RankImage(
                             tier: data.tier,
-                            size: 48,
+                            size: 54,
                             isSelected: widget.isExpanded,
+                            showContainer: true,
                           ),
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 10),
                         // Middle: Name and progress
                         Expanded(
                           child: Column(

@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 
-/// Widget để hiển thị rank/tier image từ assets
 class RankImage extends StatelessWidget {
   final String tier;
   final double size;
   final bool isSelected;
+  final bool showContainer;
 
   const RankImage({
     super.key,
     required this.tier,
     this.size = 100,
     this.isSelected = false,
+    this.showContainer = true,
   });
 
   String _getRankAssetPath(String tier) {
@@ -39,7 +40,7 @@ class RankImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
+    final rankImage = AnimatedScale(
       scale: isSelected ? 1.1 : 1.0,
       duration: const Duration(milliseconds: 300),
       curve: Curves.elasticOut,
@@ -53,6 +54,18 @@ class RankImage extends StatelessWidget {
           fit: BoxFit.contain,
         ),
       ),
+    );
+
+    if (!showContainer) return rankImage;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F0F0F),
+        borderRadius: BorderRadius.circular(size * 0.15),
+      ),
+      child: rankImage,
     );
   }
 }
