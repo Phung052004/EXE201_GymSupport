@@ -34,13 +34,13 @@ class _AnimatedMuscleMaskState extends State<AnimatedMuscleMask>
     );
 
     _opacityAnim = Tween<double>(
-      begin: 0.65,
-      end: 0.95,
+      begin: 0.2,
+      end: 0.9,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _scaleAnim = Tween<double>(
       begin: 1.0,
-      end: 1.05,
+      end: 1.1,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     if (widget.isSelected) {
