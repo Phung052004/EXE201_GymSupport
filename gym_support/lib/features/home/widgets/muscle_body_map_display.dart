@@ -3,6 +3,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import 'muscle_progress_card.dart';
 import 'muscle_detail_modal.dart';
+import 'animated_muscle_mask.dart';
 
 class MuscleBodyMapDisplay extends StatefulWidget {
   final List<MuscleProgressData> items;
@@ -274,48 +275,21 @@ class _MuscleBodyMapDisplayState extends State<MuscleBodyMapDisplay> {
                         fit: BoxFit.contain,
                       ),
                     ),
-                    // Tier-colored muscle masks
+                    // Tier-colored muscle masks with animation
                     ...maskColors.entries.map((entry) {
                       final muscle = entry.value;
                       final tierColor = _getTierColor(muscle.tier);
                       final isSelected = _selectedMuscleId == muscle.id;
 
-                      return GestureDetector(
+                      return AnimatedMuscleMask(
+                        assetPath: entry.key,
+                        tierColor: tierColor,
+                        isSelected: isSelected,
+                        height: 280,
                         onTap: () {
                           setState(() => _selectedMuscleId = muscle.id);
                           _showMuscleDetail(muscle);
                         },
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: AnimatedOpacity(
-                            opacity: isSelected ? 0.95 : 0.7,
-                            duration: const Duration(milliseconds: 200),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(100),
-                                boxShadow: isSelected
-                                    ? [
-                                        BoxShadow(
-                                          color: tierColor
-                                              .withValues(alpha: 0.4),
-                                          blurRadius: 12,
-                                          spreadRadius: 2,
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              child: Image.asset(
-                                entry.key,
-                                height: 280,
-                                fit: BoxFit.contain,
-                                color: tierColor.withValues(
-                                  alpha: isSelected ? 0.9 : 0.65,
-                                ),
-                                colorBlendMode: BlendMode.srcIn,
-                              ),
-                            ),
-                          ),
-                        ),
                       );
                     }),
                     // Glow effect on selected muscle
