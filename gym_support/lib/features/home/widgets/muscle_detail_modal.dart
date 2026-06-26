@@ -92,7 +92,7 @@ class _MuscleDetailModalState extends State<MuscleDetailModal>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header with close button
+                  // Header with close button (fixed at top)
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -133,12 +133,14 @@ class _MuscleDetailModalState extends State<MuscleDetailModal>
                       ],
                     ),
                   ),
-                  // Content
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
+                  // Content - scrollable
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
                         // Large rank image
                         TweenAnimationBuilder<double>(
                           tween: Tween(begin: 0, end: 1),
@@ -361,7 +363,9 @@ class _MuscleDetailModalState extends State<MuscleDetailModal>
                             ],
                           ),
                         ),
-                      ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],

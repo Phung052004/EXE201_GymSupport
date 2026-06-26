@@ -126,9 +126,9 @@ class _MuscleSimpleDisplayState extends State<MuscleSimpleDisplay> {
             crossAxisCount: 6,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 0.85,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 8,
+            childAspectRatio: 0.75,
             children: [
               for (int i = 0; i < (sorted.length > 6 ? 6 : sorted.length); i++)
                 GestureDetector(
@@ -137,6 +137,7 @@ class _MuscleSimpleDisplayState extends State<MuscleSimpleDisplay> {
                     _showMuscleDetail(sorted[i]);
                   },
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
                         decoration: BoxDecoration(
@@ -154,21 +155,23 @@ class _MuscleSimpleDisplayState extends State<MuscleSimpleDisplay> {
                         ),
                         child: RankImage(
                           tier: sorted[i].tier,
-                          size: 50,
+                          size: 48,
                           isSelected: _selectedMuscleId == sorted[i].id,
                           showContainer: true,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        sorted[i].name.split(' ').first,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textTertiary,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: Text(
+                          sorted[i].name.split(' ').first,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textTertiary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
