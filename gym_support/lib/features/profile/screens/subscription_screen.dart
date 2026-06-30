@@ -44,6 +44,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   String get _platform =>
       defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
 
+  /// Nguồn chân lý là cờ `isPremium` do backend tính (gói Premium + còn hạn).
+  /// Fallback cho backend cũ: gói Premium + status 'active'. KHÔNG chỉ dựa vào
+  /// tên gói, vì gói hết hạn vẫn giữ planName 'Premium'.
+  static bool _readPremium(Map<String, dynamic> subscription) {
+    final flag = subscription['isPremium'] ?? subscription['IsPremium'];
+    if (flag is bool) return flag;
+    final planName = (subscription['planName'] ?? subscription['PlanName'])
+            ?.toString()
+            .toLowerCase() ??
+        '';
+    final status = (subscription['status'] ?? subscription['Status'])
+        ?.toString()
+        .toLowerCase();
+    return planName.contains('premium') && status == 'active';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -70,11 +86,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     try {
       final subscription = await BackendApi.getSubscription();
       if (!_isMobileStore) {
-        final isPremiumNow = (subscription['planName'] ?? subscription['PlanName'])
-                ?.toString()
-                .toLowerCase()
-                .contains('premium') ??
-            false;
+        final isPremiumNow = _readPremium(subscription);
         await SessionStore.savePremiumStatus(isPremiumNow);
         if (!mounted) return;
         setState(() {
@@ -96,11 +108,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       }
 
       if (!mounted) return;
-      final isPremiumNow = (subscription['planName'] ?? subscription['PlanName'])
-              ?.toString()
-              .toLowerCase()
-              .contains('premium') ??
-          false;
+      final isPremiumNow = _readPremium(subscription);
       await SessionStore.savePremiumStatus(isPremiumNow);
       if (!mounted) return;
       setState(() {
@@ -165,6 +173,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             await _store.completePurchase(purchase);
           }
           final current = await BackendApi.getSubscription();
+          await SessionStore.savePremiumStatus(_readPremium(current));
           if (!mounted) return;
           setState(() {
             _subscription = current;
@@ -208,11 +217,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentPlan =
-        (_subscription['planName'] ?? _subscription['PlanName'])?.toString() ??
-            'Free';
-    final isPremium =
-        currentPlan.toLowerCase().contains('premium');
+    final isPremium = _readPremium(_subscription);
+    final currentPlan = isPremium
+        ? ((_subscription['planName'] ?? _subscription['PlanName'])?.toString() ??
+            'Premium')
+        : 'Free';
 
     return Scaffold(
       backgroundColor: AppColors.background,

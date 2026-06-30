@@ -1,0 +1,17 @@
+# Mẫu cấu hình release signing cho Google Play.
+# Cách dùng:
+#   1) Tạo keystore (xem lệnh keytool bên dưới).
+#   2) Copy file này thành  android/key.properties  (KHÔNG commit file thật).
+#   3) Điền 4 giá trị dưới đây cho khớp keystore của bạn.
+#
+# Tạo keystore (chạy 1 lần, PowerShell):
+#   keytool -genkey -v -keystore $env:USERPROFILE\gymsupport-upload.jks `
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# storeFile: đường dẫn TỚI file .jks. Trên Windows dùng dấu / hoặc \\ , ví dụ:
+#   storeFile=C:/Users/Admin/gymsupport-upload.jks
+
+storePassword=MAT_KHAU_KEYSTORE
+keyPassword=MAT_KHAU_KEY
+keyAlias=upload
+storeFile=C:/Users/Admin/gymsupport-upload.jks
