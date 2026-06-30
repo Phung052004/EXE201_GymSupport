@@ -74,6 +74,7 @@ flutter:
     - assets/body/body_back.png
     - assets/body/masks/
     - assets/images/
+    - assets/images/ranks/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

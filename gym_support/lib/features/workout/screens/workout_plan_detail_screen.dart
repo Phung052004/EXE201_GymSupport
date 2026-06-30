@@ -3,6 +3,8 @@ import 'package:gym_support/core/constants/app_colors.dart';
 import 'package:gym_support/core/constants/app_theme.dart';
 import 'package:gym_support/core/services/backend_api.dart';
 import 'package:gym_support/models/workout_models.dart';
+import 'package:gym_support/models/exercise.dart';
+import 'exercise_selection_screen.dart';
 
 class WorkoutPlanDetailScreen extends StatefulWidget {
   final String planId;
@@ -311,7 +313,12 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
           ),
           SliverList(
             delegate: SliverChildBuilderDelegate(
-              (_, i) => _DayCard(day: plan.workoutDays[i], index: i),
+              (_, i) => _DayCard(
+                day: plan.workoutDays[i],
+                index: i,
+                planId: plan.id,
+                onChanged: _loadPlan,
+              ),
               childCount: plan.workoutDays.length,
             ),
           ),
@@ -386,7 +393,14 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
 class _DayCard extends StatefulWidget {
   final WorkoutDay day;
   final int index;
-  const _DayCard({required this.day, required this.index});
+  final String planId;
+  final Future<void> Function() onChanged;
+  const _DayCard({
+    required this.day,
+    required this.index,
+    required this.planId,
+    required this.onChanged,
+  });
 
   @override
   State<_DayCard> createState() => _DayCardState();
@@ -394,6 +408,149 @@ class _DayCard extends StatefulWidget {
 
 class _DayCardState extends State<_DayCard> {
   bool _expanded = false;
+  bool _busy = false;
+
+  Future<void> _editExercise(WorkoutExercise ex) async {
+    final setsCtrl = TextEditingController(text: ex.sets.toString());
+    final repsCtrl = TextEditingController(text: ex.reps);
+    final notesCtrl = TextEditingController(text: ex.note);
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(ex.exerciseName, style: AppTheme.headlineSmall),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: setsCtrl,
+              style: const TextStyle(color: AppColors.textPrimary),
+              keyboardType: TextInputType.number,
+              decoration: AppTheme.inputDecoration(hint: 'Số set'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: repsCtrl,
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: AppTheme.inputDecoration(hint: 'Số rep (vd: 10 hoặc 8-12)'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesCtrl,
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: AppTheme.inputDecoration(hint: 'Ghi chú'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textDark,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+    final sets = int.tryParse(setsCtrl.text.trim()) ?? ex.sets;
+    final reps = repsCtrl.text.trim();
+    final notes = notesCtrl.text.trim();
+    setsCtrl.dispose();
+    repsCtrl.dispose();
+    notesCtrl.dispose();
+    if (saved != true) return;
+    setState(() => _busy = true);
+    try {
+      await BackendApi.updateExerciseInPlanSession(
+        planId: widget.planId,
+        sessionId: widget.day.id,
+        exerciseId: ex.exerciseId,
+        sets: sets,
+        reps: reps.isEmpty ? ex.reps : reps,
+        notes: notes,
+      );
+      await widget.onChanged();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _deleteExercise(WorkoutExercise ex) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Xóa bài tập?', style: AppTheme.headlineSmall),
+        content: Text('Xóa "${ex.exerciseName}" khỏi buổi tập này?',
+            style: AppTheme.bodyMedium),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xóa', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _busy = true);
+    try {
+      await BackendApi.deleteExerciseFromPlanSession(
+        planId: widget.planId,
+        sessionId: widget.day.id,
+        exerciseId: ex.exerciseId,
+      );
+      await widget.onChanged();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _addExercise() async {
+    final picked = await Navigator.push<Exercise>(
+      context,
+      MaterialPageRoute(builder: (_) => const ExerciseSelectionScreen()),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await BackendApi.addExerciseToPlanSession(
+        planId: widget.planId,
+        sessionId: widget.day.id,
+        exerciseId: picked.id,
+        exerciseName: picked.name,
+        sets: picked.defaultSets,
+        reps: picked.defaultReps,
+      );
+      await widget.onChanged();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -480,52 +637,94 @@ class _DayCardState extends State<_DayCard> {
                       border: Border(top: BorderSide(color: AppColors.outline)),
                     ),
                     child: Column(
-                      children: day.exercises.asMap().entries.map((entry) {
-                        final i = entry.key;
-                        final ex = entry.value;
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            border: i < day.exercises.length - 1
-                                ? const Border(
-                                    bottom: BorderSide(color: AppColors.outline))
-                                : null,
-                          ),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 24,
-                                child: Text(
-                                  '${i + 1}',
-                                  style: const TextStyle(
-                                    color: AppColors.textTertiary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
+                      children: [
+                        ...day.exercises.asMap().entries.map((entry) {
+                          final i = entry.key;
+                          final ex = entry.value;
+                          return Container(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                  bottom: BorderSide(color: AppColors.outline)),
+                            ),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 24,
+                                  child: Text(
+                                    '${i + 1}',
+                                    style: const TextStyle(
+                                      color: AppColors.textTertiary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  ex.exerciseName,
-                                  style: AppTheme.bodyMedium.copyWith(
-                                      color: AppColors.textPrimary,
-                                      fontWeight: FontWeight.w500),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        ex.exerciseName,
+                                        style: AppTheme.bodyMedium.copyWith(
+                                            color: AppColors.textPrimary,
+                                            fontWeight: FontWeight.w500),
+                                      ),
+                                      Text(
+                                        '${ex.sets}×${ex.reps}',
+                                        style: const TextStyle(
+                                          color: AppColors.primary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '${ex.sets}×${ex.reps}',
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
+                                IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: _busy ? null : () => _editExercise(ex),
+                                  icon: const Icon(Icons.edit_rounded, size: 18),
+                                  color: AppColors.textSecondary,
                                 ),
+                                IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: _busy ? null : () => _deleteExercise(ex),
+                                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                                  color: AppColors.danger,
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: _busy ? null : _addExercise,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: BorderSide(
+                                    color: AppColors.primary.withValues(alpha: 0.5)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(AppTheme.radiusMd),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
                               ),
-                            ],
+                              icon: _busy
+                                  ? const SizedBox(
+                                      width: 16, height: 16,
+                                      child: CircularProgressIndicator(
+                                          color: AppColors.primary, strokeWidth: 2))
+                                  : const Icon(Icons.add_rounded, size: 18),
+                              label: const Text('Thêm bài tập'),
+                            ),
                           ),
-                        );
-                      }).toList(),
+                        ),
+                      ],
                     ),
                   )
                 : const SizedBox.shrink(),
