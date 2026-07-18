@@ -1,0 +1,45 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'GymSup-BE/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        working-directory: GymSup-BE
+        run: dotnet restore BE.sln
+
+      - name: Build
+        working-directory: GymSup-BE
+        run: dotnet build BE.sln --configuration Release --no-restore
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /opt/gymsupport/source
+            git pull origin main
+            dotnet publish GymSup-BE/GymSupport.API/GymSupport.API.csproj -c Release -o /opt/gymsupport/app
+            chown -R gymapi:gymapi /opt/gymsupport/app
+            systemctl restart gymsupport-api
