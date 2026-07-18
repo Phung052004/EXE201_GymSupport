@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'GymSup-BE/**'
+  workflow_dispatch:
 
 jobs:
   build:
