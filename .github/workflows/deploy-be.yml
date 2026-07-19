@@ -41,6 +41,5 @@ jobs:
             set -e
             cd /opt/gymsupport/source
             git pull origin main
-            dotnet publish GymSup-BE/GymSupport.API/GymSupport.API.csproj -c Release -o /opt/gymsupport/app
-            chown -R gymapi:gymapi /opt/gymsupport/app
-            systemctl restart gymsupport-api
+            cd GymSup-BE
+            docker compose up -d --build
