@@ -6,47 +6,60 @@ Chỉ add file cần thiết, không dùng git add .:
 git add GymSup-BE
 git commit -m "Update backend"
 git push origin main
-Trên VPS
-ssh root@103.190.37.231
+Trên EC2
+ssh -i gymsupport-key.pem ubuntu@46.51.222.230
 cd /opt/gymsupport/source
 git pull origin main
-Build kiểm tra:
+Build + chạy lại container:
 cd /opt/gymsupport/source/GymSup-BE
-dotnet build BE.sln -c Release
-Nếu Build succeeded:
-systemctl stop gymsupport-api
-dotnet publish GymSupport.API/GymSupport.API.csproj \
-  -c Release \
-  -o /opt/gymsupport/app
-chown -R gymapi:gymapi /opt/gymsupport/app
-systemctl start gymsupport-api
-systemctl status gymsupport-api --no-pager
+sudo docker compose up -d --build
+Xem log:
+sudo docker logs gymsup-be-api-1 --tail 50
 Test:
-curl -i https://api.gsfitness.xyz/api/subscriptions/plans
+curl -i https://api.gsfitness.id.vn/api/subscriptions/plans
 Nếu code mới cần thêm biến môi trường:
-nano /etc/gymsupport.env
-systemctl restart gymsupport-api
+sudo nano /etc/gymsupport.env
+sudo docker compose restart
+(secrets đọc từ /etc/gymsupport.env, không cần rebuild image khi chỉ đổi biến môi trường)
+
 2. Mỗi lần cập nhật Admin React
 Trên Windows:
 cd D:\GymSupport\EXE201_GymSupport\gym_admin_dashboard
-npm.cmd run build
+npm run build
 Upload dist:
-scp -r .\dist\* root@103.190.37.231:/var/www/gsfitness-admin/
-Trên VPS:
-chown -R www-data:www-data /var/www/gsfitness-admin
+scp -i gymsupport-key.pem -r .\dist\* ubuntu@46.51.222.230:/tmp/admin-dist/
+Trên EC2:
+sudo rm -rf /var/www/admin-dashboard/*
+sudo cp -r /tmp/admin-dist/* /var/www/admin-dashboard/
+sudo chown -R www-data:www-data /var/www/admin-dashboard
+rm -rf /tmp/admin-dist
 Không cần restart backend hoặc Nginx. Mở lại:
-https://admin.gsfitness.xyz
+https://admin.gsfitness.id.vn
 Nếu trình duyệt còn bản cũ, nhấn Ctrl+F5.
+
 3. Mỗi lần cập nhật Flutter
-Flutter không upload lên VPS. Build app:
+Flutter không upload lên EC2. Build app:
 cd D:\GymSupport\EXE201_GymSupport\gym_support
 flutter clean
 flutter pub get
 flutter build apk --release `
-  --dart-define=BACKEND_URL=https://api.gsfitness.xyz
+  --dart-define=BACKEND_URL=https://api.gsfitness.id.vn
 Đưa lên CH Play:
+Nhớ tăng version trong pubspec.yaml (vd 1.0.0+4 -> 1.0.0+5) trước khi build.
 flutter build appbundle --release `
-  --dart-define=BACKEND_URL=https://api.gsfitness.xyz
+  --dart-define=BACKEND_URL=https://api.gsfitness.id.vn
 File AAB:
 build\app\outputs\bundle\release\app-release.aab
 Nếu thay đổi cả backend và Flutter, hãy deploy backend trước, test API thành công rồi mới build Flutter.
+
+4. Thông tin hạ tầng
+EC2: Ubuntu 26.04, ap-southeast-1 (Singapore), instance gymsupport-api
+Elastic IP (cố định): 46.51.222.230
+SSH: ssh -i gymsupport-key.pem ubuntu@46.51.222.230 (file .pem trong Downloads)
+Domain: gsfitness.id.vn (quản lý trên Mat Bao) - domain gsfitness.xyz cu bi Mat Bao khoa "verification hold", da chuyen sang id.vn
+Backend: chay bang Docker Compose tai /opt/gymsupport/source/GymSup-BE, container gymsup-be-api-1, lang nghe 127.0.0.1:5028
+Secrets: /etc/gymsupport.env tren EC2 (khong commit vao git)
+Google service account (Play Billing): /opt/gymsupport/secrets/gym-support-sa.json tren EC2
+Admin dashboard: file tinh tai /var/www/admin-dashboard, serve boi Nginx
+Nginx: reverse proxy api.gsfitness.id.vn -> 127.0.0.1:5028, serve static admin.gsfitness.id.vn
+CI/CD: GitHub Actions .github/workflows/deploy-be.yml (dang tro VPS cu, can cap nhat secrets VPS_HOST/VPS_USER/VPS_SSH_PRIVATE_KEY sang EC2)

@@ -17,7 +17,7 @@ class BackendApi {
   static Uri get _baseUri {
     const backendUrl = String.fromEnvironment(
       'BACKEND_HOST',
-      defaultValue: 'https://api.gsfitness.xyz',
+      defaultValue: 'https://api.gsfitness.id.vn',
     );
 
     return Uri.parse(backendUrl);
