@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace GymSupport.Repository.Models.Entities;
 
+[BsonIgnoreExtraElements]
 public class Payment
 {
     [BsonId]
