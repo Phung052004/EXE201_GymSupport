@@ -40,6 +40,7 @@ jobs:
           script: |
             set -e
             cd /opt/gymsupport/source
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             cd GymSup-BE
             docker compose up -d --build
