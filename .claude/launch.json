@@ -2,6 +2,13 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "gym_homepage",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5183"],
+      "cwd": "gym_homepage",
+      "port": 5183
+    },
+    {
       "name": "gymsup_fe-web",
       "runtimeExecutable": "cmd",
       "runtimeArgs": [

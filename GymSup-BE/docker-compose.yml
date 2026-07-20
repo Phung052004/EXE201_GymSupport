@@ -1,7 +1,7 @@
 services:
   api:
     build: .
-    image: gymsupport-api:latest
+    image: ghcr.io/phung052004/gymsupport-api:latest
     restart: unless-stopped
     env_file:
       - /etc/gymsupport.env

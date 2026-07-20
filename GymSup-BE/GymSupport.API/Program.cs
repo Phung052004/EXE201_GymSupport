@@ -129,6 +129,8 @@ builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IMealPlanRepository, MealPlanRepository>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IStorePurchaseService, StorePurchaseService>();
+builder.Services.AddScoped<IPayOsService, PayOsService>();
+builder.Services.AddHostedService<SubscriptionExpiryWorker>();
 builder.Services.AddScoped<PremiumOnlyFilter>();
 
 
