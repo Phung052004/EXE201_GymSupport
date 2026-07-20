@@ -58,6 +58,7 @@ public class AiUsageRepository : IAiUsageRepository
             "Chat" => Builders<AiDailyQuota>.Update.Inc(x => x.ChatCount, 1),
             "Generate" => Builders<AiDailyQuota>.Update.Inc(x => x.GenerateCount, 1),
             "Analyze" => Builders<AiDailyQuota>.Update.Inc(x => x.AnalyzeCount, 1),
+            "Evaluate" => Builders<AiDailyQuota>.Update.Inc(x => x.EvaluateCount, 1),
             _ => throw new ArgumentException($"Unknown counter field: {counterField}", nameof(counterField))
         };
 
@@ -80,6 +81,7 @@ public class AiUsageRepository : IAiUsageRepository
         {
             "Chat" => result.ChatCount,
             "Generate" => result.GenerateCount,
+            "Evaluate" => result.EvaluateCount,
             _ => result.AnalyzeCount
         };
     }

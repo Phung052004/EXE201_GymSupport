@@ -1488,4 +1488,123 @@ Trả về JSON đúng schema.
         return analysis;
     }
 
+    public async Task<WorkoutEvaluationNarrativeDto> EvaluateWorkoutAsync(
+        string userId,
+        WorkoutEvaluationMetricsDto metrics)
+    {
+        var apiKey = _configuration["OpenAI:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new Exception("OpenAI API key is missing.");
+        }
+
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", apiKey);
+
+        var metricsJson = JsonSerializer.Serialize(metrics, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+        var messages = new List<object>
+        {
+            new
+            {
+                role = "system",
+                content =
+"""
+Bạn là AI Coach viết nhận xét ngắn gọn cho báo cáo buổi tập. Toàn bộ số liệu
+(score, grade, summary, highlights, improvements, recovery, dinh dưỡng, streak)
+ĐÃ được tính toán chính xác sẵn - TUYỆT ĐỐI không tự tính lại, không bịa thêm số liệu mới.
+Nhiệm vụ của bạn CHỈ là viết 4 đoạn văn ngắn, tự nhiên, cá nhân hoá dựa đúng trên
+các số liệu được cung cấp:
+- narrativeSummary: 2-3 câu tóm tắt buổi tập, nêu bật điểm số/hạng và 1-2 điểm nổi bật thật.
+- mealSuggestion: 1 câu gợi ý bữa ăn phục hồi cụ thể (món ăn thật, không chung chung), dựa trên lượng protein/nước đã tính.
+- suggestedNextWorkout: 1 câu gợi ý buổi tập tiếp theo, ưu tiên dùng gợi ý buổi kế hoạch nếu có, hoặc dựa vào tình trạng phục hồi nhóm cơ.
+- motivationalMessage: 1-2 câu động viên chân thành, nhắc tới số liệu thật (streak, điểm số...) thay vì lời khen chung chung.
+Không chẩn đoán y tế. Trả lời bằng tiếng Việt, giọng văn ấm áp như bạn tập gym.
+"""
+            },
+            new
+            {
+                role = "user",
+                content = $"Số liệu buổi tập:\n{metricsJson}"
+            }
+        };
+
+        var requestBody = new
+        {
+            model = "gpt-4o-mini",
+            messages,
+            temperature = 0.6,
+            max_tokens = 500,
+            response_format = new
+            {
+                type = "json_schema",
+                json_schema = new
+                {
+                    name = "workout_evaluation_narrative",
+                    strict = true,
+                    schema = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            narrativeSummary = new { type = "string" },
+                            mealSuggestion = new { type = "string" },
+                            suggestedNextWorkout = new { type = "string" },
+                            motivationalMessage = new { type = "string" }
+                        },
+                        required = new[] { "narrativeSummary", "mealSuggestion", "suggestedNextWorkout", "motivationalMessage" },
+                        additionalProperties = false
+                    }
+                }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(requestBody);
+        var response = await _httpClient.PostAsync(
+            "https://api.openai.com/v1/chat/completions",
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"OpenAI Error: {error}");
+        }
+
+        var result = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(result);
+        await RecordUsageAsync(userId, AiFeature.EvaluateWorkout, "gpt-4o-mini", document.RootElement);
+
+        var aiContent = document.RootElement
+            .GetProperty("choices")[0]
+            .GetProperty("message")
+            .GetProperty("content")
+            .GetString();
+
+        var fallback = new WorkoutEvaluationNarrativeDto
+        {
+            NarrativeSummary = $"Bạn đạt {metrics.Score} điểm ({metrics.Grade}) cho buổi tập {metrics.Focus}.",
+            MealSuggestion = "Bổ sung đạm nạc và rau xanh sau buổi tập.",
+            SuggestedNextWorkout = metrics.NextPlannedSession ?? "Nghỉ ngơi hoặc tập nhẹ nhàng nhóm cơ khác.",
+            MotivationalMessage = "Tiếp tục duy trì phong độ này nhé!"
+        };
+
+        if (string.IsNullOrWhiteSpace(aiContent))
+        {
+            return fallback;
+        }
+
+        var narrative = JsonSerializer.Deserialize<WorkoutEvaluationNarrativeDto>(
+            aiContent,
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true
+            });
+
+        return narrative ?? fallback;
+    }
+
 }

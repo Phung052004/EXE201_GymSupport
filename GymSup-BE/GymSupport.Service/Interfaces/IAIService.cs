@@ -25,4 +25,8 @@ public interface IAIService
     Stream videoStream,
     string fileName,
     string contentType);
+
+    Task<WorkoutEvaluationNarrativeDto> EvaluateWorkoutAsync(
+        string userId,
+        WorkoutEvaluationMetricsDto metrics);
 }

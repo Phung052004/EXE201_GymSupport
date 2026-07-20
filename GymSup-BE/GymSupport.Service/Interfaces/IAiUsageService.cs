@@ -7,7 +7,8 @@ public enum AiFeature
     Chat,
     GenerateWorkoutPlan,
     AnalyzeImage,
-    AnalyzeFormVideo
+    AnalyzeFormVideo,
+    EvaluateWorkout
 }
 
 public class AiUsageCheckResult

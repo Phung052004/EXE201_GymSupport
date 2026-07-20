@@ -17,5 +17,7 @@ public class AiUsageSnapshotDto
 
     public AiUsageQuotaDto Analyze { get; set; } = new();
 
+    public AiUsageQuotaDto Evaluate { get; set; } = new();
+
     public bool BudgetExhausted { get; set; }
 }

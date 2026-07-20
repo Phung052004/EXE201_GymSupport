@@ -21,4 +21,6 @@ public class AiDailyQuota
     public int GenerateCount { get; set; }
 
     public int AnalyzeCount { get; set; }
+
+    public int EvaluateCount { get; set; }
 }

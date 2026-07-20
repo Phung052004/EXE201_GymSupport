@@ -72,6 +72,10 @@ public class AiUsageService : IAiUsageService
                 quota?.GenerateCount ?? 0,
                 GetLimit("PremiumGenerateDailyLimit", 5),
                 "Generate"),
+            AiFeature.EvaluateWorkout => (
+                quota?.EvaluateCount ?? 0,
+                GetLimit("PremiumEvaluateDailyLimit", 5),
+                "Evaluate"),
             _ => (
                 quota?.AnalyzeCount ?? 0,
                 GetLimit("PremiumAnalyzeDailyLimit", 15),
@@ -143,6 +147,11 @@ public class AiUsageService : IAiUsageService
             {
                 Used = quota?.AnalyzeCount ?? 0,
                 Limit = GetLimit("PremiumAnalyzeDailyLimit", 15)
+            },
+            Evaluate = new AiUsageQuotaDto
+            {
+                Used = quota?.EvaluateCount ?? 0,
+                Limit = GetLimit("PremiumEvaluateDailyLimit", 5)
             },
             BudgetExhausted = budgetExhausted
         };
