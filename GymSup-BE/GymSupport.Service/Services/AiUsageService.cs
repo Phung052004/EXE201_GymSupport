@@ -9,7 +9,7 @@ namespace GymSupport.Service.Services;
 public class AiUsageService : IAiUsageService
 {
     private readonly IAiUsageRepository _usageRepository;
-    private readonly IUserSubscriptionRepository _subscriptionRepository;
+    private readonly ISubscriptionService _subscriptionService;
     private readonly IConfiguration _configuration;
 
     // Giá tham khảo USD / 1 triệu token theo bảng giá OpenAI tại thời điểm viết code.
@@ -25,11 +25,11 @@ public class AiUsageService : IAiUsageService
 
     public AiUsageService(
         IAiUsageRepository usageRepository,
-        IUserSubscriptionRepository subscriptionRepository,
+        ISubscriptionService subscriptionService,
         IConfiguration configuration)
     {
         _usageRepository = usageRepository;
-        _subscriptionRepository = subscriptionRepository;
+        _subscriptionService = subscriptionService;
         _configuration = configuration;
     }
 
@@ -150,11 +150,9 @@ public class AiUsageService : IAiUsageService
 
     private async Task<bool> IsPremiumAsync(string userId)
     {
-        var subscription = await _subscriptionRepository.GetByUserIdAsync(userId);
-        return subscription != null &&
-            subscription.Status.Equals("Active", StringComparison.OrdinalIgnoreCase) &&
-            subscription.Price > 0 &&
-            (!subscription.ExpiredAt.HasValue || subscription.ExpiredAt > DateTime.UtcNow);
+        // Cùng một nguồn sự thật với PremiumOnlyFilter và /api/subscriptions/me.
+        var subscription = await _subscriptionService.GetUserCurrentSubscriptionAsync(userId);
+        return subscription?.IsPremium ?? false;
     }
 
     private (decimal InputPer1M, decimal OutputPer1M) GetPricing(string model)
