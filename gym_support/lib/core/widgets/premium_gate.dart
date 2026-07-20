@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_theme.dart';
+import '../services/backend_api.dart';
 import '../services/session_store.dart';
 import '../../features/profile/screens/subscription_screen.dart';
 
@@ -17,7 +18,7 @@ class PremiumGate {
   PremiumGate._();
 
   static Future<bool> check(BuildContext context) async {
-    final premium = await SessionStore.isPremium();
+    final premium = await _isPremiumLive();
     if (premium) return true;
     if (!context.mounted) return false;
     await showModalBottomSheet(
@@ -27,6 +28,25 @@ class PremiumGate {
       builder: (_) => const _PremiumSheet(),
     );
     // Re-check after sheet closes (user may have just subscribed)
+    return _isPremiumLive();
+  }
+
+  /// Hỏi thẳng backend (nguồn chân lý) thay vì chỉ tin cache local — vì gói
+  /// Premium giờ có thể được mua qua website (PayOS), không đi qua màn hình
+  /// Subscription trong app nên cache local có thể chưa từng được cập nhật.
+  /// Nếu gọi mạng lỗi (vd offline) thì fallback về cache đã lưu gần nhất.
+  static Future<bool> _isPremiumLive() async {
+    try {
+      final subscription = await BackendApi.getSubscription();
+      if (subscription.isNotEmpty) {
+        final flag = subscription['isPremium'] ?? subscription['IsPremium'];
+        final isPremium = flag is bool ? flag : false;
+        await SessionStore.savePremiumStatus(isPremium);
+        return isPremium;
+      }
+    } catch (_) {
+      // Lỗi mạng — rơi xuống cache bên dưới.
+    }
     return SessionStore.isPremium();
   }
 }
