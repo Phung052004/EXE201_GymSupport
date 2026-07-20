@@ -7,6 +7,15 @@
       "runtimeArgs": ["run", "dev", "--", "--port", "5183"],
       "cwd": "gym_homepage",
       "port": 5183
+    },
+    {
+      "name": "gymsup_fe-web",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\GymSupport\\PRM393Project\\PRM393Project\\gymsup_fe && flutter run -d web-server --web-port 5173 --web-hostname 0.0.0.0"
+      ],
+      "port": 5173
     }
   ]
 }
