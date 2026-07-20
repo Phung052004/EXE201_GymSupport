@@ -15,11 +15,13 @@ public interface IAIService
     Task ApplySuggestionsAsync(ApplySuggestionsRequestDto dto);
 
     Task<ImageAnalyzeResponseDto> AnalyzeImageAsync(
+      string userId,
       Stream imageStream,
       string contentType,
       string mode);
 
     Task<VideoFormAnalyzeResponseDto> AnalyzeFormVideoAsync(
+    string userId,
     Stream videoStream,
     string fileName,
     string contentType);

@@ -20,6 +20,7 @@ public class OpenAIService : IAIService
     private readonly IExerciseRepository _exerciseRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IAiUsageService _aiUsageService;
 
     public OpenAIService(
      HttpClient httpClient,
@@ -28,7 +29,8 @@ public class OpenAIService : IAIService
      IWorkoutPlanRepository workoutRepository,
      IExerciseRepository exerciseRepository,
      ICustomerRepository customerRepository,
-     IUserRepository userRepository)
+     IUserRepository userRepository,
+     IAiUsageService aiUsageService)
     {
         _httpClient = httpClient;
         _configuration = configuration;
@@ -37,6 +39,20 @@ public class OpenAIService : IAIService
         _exerciseRepository = exerciseRepository;
         _customerRepository = customerRepository;
         _userRepository = userRepository;
+        _aiUsageService = aiUsageService;
+    }
+
+    private async Task RecordUsageAsync(string userId, AiFeature feature, string model, JsonElement root)
+    {
+        if (!root.TryGetProperty("usage", out var usage))
+        {
+            return;
+        }
+
+        var promptTokens = usage.TryGetProperty("prompt_tokens", out var p) ? p.GetInt32() : 0;
+        var completionTokens = usage.TryGetProperty("completion_tokens", out var c) ? c.GetInt32() : 0;
+
+        await _aiUsageService.RecordCostAsync(userId, feature, model, promptTokens, completionTokens);
     }
 
     public async Task ApplySuggestionsAsync(ApplySuggestionsRequestDto dto)
@@ -362,6 +378,7 @@ VALID_EXERCISES:
 
         var result = await response.Content.ReadAsStringAsync();
         using var document = JsonDocument.Parse(result);
+        await RecordUsageAsync(userId, AiFeature.GenerateWorkoutPlan, "gpt-4o-mini", document.RootElement);
         var aiContent = document.RootElement
             .GetProperty("choices")[0]
             .GetProperty("message")
@@ -700,6 +717,7 @@ QUY TẮC CẤU TRÚC JSON CHO TỪNG HÀNH ĐỘNG (BẮT BUỘC TUÂN THỦ):
 
         var result = await response.Content.ReadAsStringAsync();
         using var document = JsonDocument.Parse(result);
+        await RecordUsageAsync(userId, AiFeature.Chat, "gpt-4o-mini", document.RootElement);
         var aiContent = document.RootElement
             .GetProperty("choices")[0]
             .GetProperty("message")
@@ -751,6 +769,7 @@ QUY TẮC CẤU TRÚC JSON CHO TỪNG HÀNH ĐỘNG (BẮT BUỘC TUÂN THỦ):
     }
 
     public async Task<ImageAnalyzeResponseDto> AnalyzeImageAsync(
+    string userId,
     Stream imageStream,
     string contentType,
     string mode)
@@ -1012,6 +1031,7 @@ Trả về JSON đúng schema.
         var result = await response.Content.ReadAsStringAsync();
 
         using var document = JsonDocument.Parse(result);
+        await RecordUsageAsync(userId, AiFeature.AnalyzeImage, "gpt-4.1-mini", document.RootElement);
 
         var aiContent = document.RootElement
             .GetProperty("choices")[0]
@@ -1049,6 +1069,7 @@ Trả về JSON đúng schema.
         };
     }
     public async Task<VideoFormAnalyzeResponseDto> AnalyzeFormVideoAsync(
+    string userId,
     Stream videoStream,
     string fileName,
     string contentType)
@@ -1108,7 +1129,7 @@ Trả về JSON đúng schema.
                 throw new Exception("Không thể trích xuất frame từ video.");
             }
 
-            return await AnalyzeFramesWithOpenAIAsync(frameFiles);
+            return await AnalyzeFramesWithOpenAIAsync(userId, frameFiles);
         }
         finally
         {
@@ -1119,6 +1140,7 @@ Trả về JSON đúng schema.
         }
     }
     private async Task<VideoFormAnalyzeResponseDto> AnalyzeFramesWithOpenAIAsync(
+    string userId,
     List<string> frameFiles)
     {
         var apiKey = _configuration["OpenAI:ApiKey"];
@@ -1343,6 +1365,7 @@ Trả về JSON đúng schema.
         var result = await response.Content.ReadAsStringAsync();
 
         using var document = JsonDocument.Parse(result);
+        await RecordUsageAsync(userId, AiFeature.AnalyzeFormVideo, "gpt-4.1-mini", document.RootElement);
 
         var aiContent = document.RootElement
             .GetProperty("choices")[0]

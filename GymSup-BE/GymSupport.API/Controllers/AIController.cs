@@ -15,13 +15,31 @@ public class AIController : ControllerBase
 {
     private readonly IAIService _aiService;
     private readonly IChatRepository _chatRepository;
+    private readonly IAiUsageService _aiUsageService;
 
     public AIController(
         IAIService aiService,
-        IChatRepository chatRepository)
+        IChatRepository chatRepository,
+        IAiUsageService aiUsageService)
     {
         _aiService = aiService;
         _chatRepository = chatRepository;
+        _aiUsageService = aiUsageService;
+    }
+
+    private IActionResult DeniedResult(AiUsageCheckResult check) =>
+        StatusCode(
+            check.Code == "PREMIUM_REQUIRED" ? StatusCodes.Status403Forbidden : StatusCodes.Status429TooManyRequests,
+            new { code = check.Code, message = check.Message });
+
+    [HttpGet("usage/me")]
+    public async Task<IActionResult> GetMyUsage()
+    {
+        var userId = CurrentUserId();
+        if (userId == null) return Unauthorized();
+
+        var snapshot = await _aiUsageService.GetUsageSnapshotAsync(userId);
+        return Ok(snapshot);
     }
 
     [HttpPost("chat")]
@@ -31,6 +49,9 @@ public class AIController : ControllerBase
         {
             var userId = CurrentUserId();
             if (userId == null) return Unauthorized();
+
+            var usageCheck = await _aiUsageService.CheckAndReserveAsync(userId, AiFeature.Chat);
+            if (!usageCheck.Allowed) return DeniedResult(usageCheck);
 
             var result = await _aiService.ChatAsync(
                 userId,
@@ -54,6 +75,9 @@ public class AIController : ControllerBase
         {
             var userId = CurrentUserId();
             if (userId == null) return Unauthorized();
+
+            var usageCheck = await _aiUsageService.CheckAndReserveAsync(userId, AiFeature.GenerateWorkoutPlan);
+            if (!usageCheck.Allowed) return DeniedResult(usageCheck);
 
             var result = await _aiService.GenerateWorkoutPlanAsync(userId, dto);
             return Ok(result);
@@ -167,11 +191,18 @@ public class AIController : ControllerBase
             });
         }
 
+        var userId = CurrentUserId();
+        if (userId == null) return Unauthorized();
+
+        var usageCheck = await _aiUsageService.CheckAndReserveAsync(userId, AiFeature.AnalyzeImage);
+        if (!usageCheck.Allowed) return DeniedResult(usageCheck);
+
         await using var stream = image.OpenReadStream();
 
         try
         {
             var result = await _aiService.AnalyzeImageAsync(
+                userId,
                 stream,
                 image.ContentType,
                 mode);
@@ -225,11 +256,18 @@ public class AIController : ControllerBase
             });
         }
 
+        var userId = CurrentUserId();
+        if (userId == null) return Unauthorized();
+
+        var usageCheck = await _aiUsageService.CheckAndReserveAsync(userId, AiFeature.AnalyzeFormVideo);
+        if (!usageCheck.Allowed) return DeniedResult(usageCheck);
+
         try
         {
             await using var stream = video.OpenReadStream();
 
             var result = await _aiService.AnalyzeFormVideoAsync(
+                userId,
                 stream,
                 video.FileName,
                 video.ContentType);
