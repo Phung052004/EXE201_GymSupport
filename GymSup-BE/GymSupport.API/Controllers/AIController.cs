@@ -1,5 +1,6 @@
 ﻿using GymSupport.Repository.Interfaces;
 using GymSupport.Repository.Models.DTOs.AIModel;
+using GymSupport.Repository.Models.Entities;
 using GymSupport.Service.Interfaces;
 using GymSupport.API.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -15,13 +16,41 @@ public class AIController : ControllerBase
 {
     private readonly IAIService _aiService;
     private readonly IChatRepository _chatRepository;
+    private readonly IFeatureUsageLogRepository _featureUsageLogRepository;
+    private readonly ISubscriptionService _subscriptionService;
 
     public AIController(
         IAIService aiService,
-        IChatRepository chatRepository)
+        IChatRepository chatRepository,
+        IFeatureUsageLogRepository featureUsageLogRepository,
+        ISubscriptionService subscriptionService)
     {
         _aiService = aiService;
         _chatRepository = chatRepository;
+        _featureUsageLogRepository = featureUsageLogRepository;
+        _subscriptionService = subscriptionService;
+    }
+
+    /// <summary>
+    /// Ghi nhận 1 lượt dùng tính năng AI Premium cho thống kê (best-effort — không được làm hỏng
+    /// response chính nếu ghi log lỗi).
+    /// </summary>
+    private async Task LogFeatureUsageAsync(string userId, string feature)
+    {
+        try
+        {
+            var subscription = await _subscriptionService.GetUserCurrentSubscriptionAsync(userId);
+            await _featureUsageLogRepository.CreateAsync(new FeatureUsageLog
+            {
+                UserId = userId,
+                Feature = feature,
+                IsPremiumUser = subscription?.IsPremium ?? false
+            });
+        }
+        catch
+        {
+            // Thống kê không phải nghiệp vụ cốt lõi — bỏ qua lỗi ghi log, không throw lại cho user.
+        }
     }
 
     [HttpPost("chat")]
@@ -56,6 +85,7 @@ public class AIController : ControllerBase
             if (userId == null) return Unauthorized();
 
             var result = await _aiService.GenerateWorkoutPlanAsync(userId, dto);
+            await LogFeatureUsageAsync(userId, "GenerateWorkoutPlan");
             return Ok(result);
         }
         catch (Exception ex)
@@ -176,6 +206,13 @@ public class AIController : ControllerBase
                 image.ContentType,
                 mode);
 
+            var userId = CurrentUserId();
+            if (userId != null)
+            {
+                var feature = mode == "body_check" ? "BodyCheck" : "EquipmentInfo";
+                await LogFeatureUsageAsync(userId, feature);
+            }
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -233,6 +270,12 @@ public class AIController : ControllerBase
                 stream,
                 video.FileName,
                 video.ContentType);
+
+            var userId = CurrentUserId();
+            if (userId != null)
+            {
+                await LogFeatureUsageAsync(userId, "FormCheckVideo");
+            }
 
             return Ok(result);
         }

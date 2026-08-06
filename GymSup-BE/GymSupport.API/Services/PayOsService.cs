@@ -23,19 +23,31 @@ public sealed class PayOsService : IPayOsService
     private readonly IPaymentRepository _payments;
     private readonly ISubscriptionPlanRepository _plans;
     private readonly ISubscriptionService _subscriptions;
+    private readonly IUserRepository _users;
+    private readonly IReceiptRepository _receipts;
+    private readonly IEmailService _emailService;
+    private readonly ILogger<PayOsService> _logger;
 
     public PayOsService(
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
         IPaymentRepository payments,
         ISubscriptionPlanRepository plans,
-        ISubscriptionService subscriptions)
+        ISubscriptionService subscriptions,
+        IUserRepository users,
+        IReceiptRepository receipts,
+        IEmailService emailService,
+        ILogger<PayOsService> logger)
     {
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
         _payments = payments;
         _plans = plans;
         _subscriptions = subscriptions;
+        _users = users;
+        _receipts = receipts;
+        _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<PayOsCheckoutResult> CreateCheckoutAsync(string userId, string planId)
@@ -215,6 +227,72 @@ public sealed class PayOsService : IPayOsService
         payment.ProviderMessage = providerMessage;
         payment.UpdatedAt = DateTime.UtcNow;
         await _payments.UpdateAsync(payment);
+
+        // Lưu receipt + gửi email — best-effort: lỗi ở đây không được làm hỏng việc kích hoạt
+        // subscription đã thành công ở trên.
+        await CreateAndSendReceiptAsync(payment, transactionId, paidAt);
+    }
+
+    private async Task CreateAndSendReceiptAsync(Payment payment, string? transactionId, DateTime paidAt)
+    {
+        Receipt? receipt = null;
+        try
+        {
+            var existing = await _receipts.GetByPaymentIdAsync(payment.Id);
+            if (existing != null) return; // idempotent — webhook/polling có thể gọi lại.
+
+            var user = await _users.GetByIdAsync(payment.UserId);
+            var receiptCount = await _receipts.CountAsync();
+
+            receipt = new Receipt
+            {
+                ReceiptNumber = $"GS-{DateTime.UtcNow:yyyyMMdd}-{receiptCount + 1:D5}",
+                PaymentId = payment.Id,
+                UserId = payment.UserId,
+                CustomerEmail = user?.Email ?? string.Empty,
+                CustomerName = user?.FullName ?? string.Empty,
+                PlanName = payment.PlanName,
+                Amount = payment.Amount,
+                Currency = "VND",
+                PaymentMethod = payment.PaymentMethod,
+                OrderId = payment.OrderId,
+                TransactionId = transactionId,
+                PaidAt = paidAt
+            };
+            await _receipts.CreateAsync(receipt);
+
+            if (string.IsNullOrWhiteSpace(receipt.CustomerEmail))
+            {
+                _logger.LogWarning("Receipt {ReceiptNumber} không có email — bỏ qua gửi mail.", receipt.ReceiptNumber);
+                return;
+            }
+
+            await _emailService.SendPaymentReceiptAsync(receipt.CustomerEmail, new PaymentReceiptEmailDto
+            {
+                ReceiptNumber = receipt.ReceiptNumber,
+                CustomerName = string.IsNullOrWhiteSpace(receipt.CustomerName) ? "Quý khách" : receipt.CustomerName,
+                PlanName = receipt.PlanName,
+                AmountFormatted = $"{receipt.Amount:N0} {receipt.Currency}",
+                PaymentMethod = receipt.PaymentMethod,
+                OrderId = receipt.OrderId,
+                TransactionId = receipt.TransactionId ?? string.Empty,
+                PaidAtFormatted = receipt.PaidAt.ToString("dd/MM/yyyy HH:mm")
+            });
+
+            receipt.EmailStatus = "Sent";
+            receipt.EmailSentAt = DateTime.UtcNow;
+            await _receipts.UpdateAsync(receipt);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Không gửi được receipt email cho Payment {PaymentId}.", payment.Id);
+            if (receipt != null)
+            {
+                receipt.EmailStatus = "Failed";
+                receipt.EmailError = ex.Message;
+                try { await _receipts.UpdateAsync(receipt); } catch { /* best-effort */ }
+            }
+        }
     }
 
     private static bool IsTerminalStatus(string status) =>

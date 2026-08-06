@@ -377,4 +377,6 @@ export const adminApi = {
     request(`/admin/analytics/feature-usage?from=${from}&to=${to}`, { emptyValue: null }),
   getWorkoutAnalytics: (from, to) =>
     request(`/admin/analytics/workouts?from=${from}&to=${to}`, { emptyValue: null }),
+  getPremiumFeatureUsage: (from, to) =>
+    request(`/admin/analytics/premium-feature-usage?from=${from}&to=${to}`, { emptyValue: null }),
 }

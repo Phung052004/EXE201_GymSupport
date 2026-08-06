@@ -12,6 +12,7 @@ namespace GymSupport.Service.Services
     {
         private readonly IConfiguration _config;
         private const string EmailTemplatePath = "Templates/EmailVerificationTemplate.html";
+        private const string ReceiptTemplatePath = "Templates/PaymentReceiptTemplate.html";
 
         public SmtpEmailService(IConfiguration config)
         {
@@ -20,25 +21,35 @@ namespace GymSupport.Service.Services
 
         public async Task SendEmailVerificationAsync(string email, string verificationUrl)
         {
+            var body = await BuildEmailBodyAsync(verificationUrl);
+            await SendAsync(email, "Verify your email", body);
+        }
+
+        public async Task SendPaymentReceiptAsync(string email, PaymentReceiptEmailDto receipt)
+        {
+            var body = await BuildReceiptBodyAsync(receipt);
+            await SendAsync(email, $"Biên nhận thanh toán GymSupport #{receipt.ReceiptNumber}", body);
+        }
+
+        private async Task SendAsync(string toEmail, string subject, string htmlBody)
+        {
             var smtpHost = _config["Smtp:Host"];
             if (string.IsNullOrWhiteSpace(smtpHost))
             {
-                Console.WriteLine("[Email] SMTP is not configured. Verification link:");
-                Console.WriteLine($"To: {email}");
-                Console.WriteLine($"{verificationUrl}");
+                Console.WriteLine("[Email] SMTP is not configured. Would have sent:");
+                Console.WriteLine($"To: {toEmail}");
+                Console.WriteLine($"Subject: {subject}");
                 return;
             }
 
             var smtpPort = int.TryParse(_config["Smtp:Port"], out var port) ? port : 25;
             var enableSsl = bool.TryParse(_config["Smtp:EnableSsl"], out var ssl) && ssl;
             var fromAddress = _config["Smtp:From"] ?? _config["Smtp:Username"] ?? "no-reply@example.com";
-            var subject = "Verify your email";
-            var body = await BuildEmailBodyAsync(verificationUrl);
 
             var smtpUser = _config["Smtp:Username"];
             var smtpPass = _config["Smtp:Password"];
 
-            using var message = new MailMessage(fromAddress, email, subject, body)
+            using var message = new MailMessage(fromAddress, toEmail, subject, htmlBody)
             {
                 IsBodyHtml = true
             };
@@ -57,14 +68,43 @@ namespace GymSupport.Service.Services
 
         private async Task<string> BuildEmailBodyAsync(string verificationUrl)
         {
-            var templateFile = Path.Combine(AppContext.BaseDirectory, EmailTemplatePath.Replace('/', Path.DirectorySeparatorChar));
-            if (File.Exists(templateFile))
+            var template = await ReadTemplateAsync(EmailTemplatePath);
+            if (template != null)
             {
-                var template = await File.ReadAllTextAsync(templateFile);
                 return template.Replace("{{VERIFICATION_URL}}", verificationUrl, StringComparison.Ordinal);
             }
 
             return $"<html><body><p>Welcome! Please verify your email by clicking the link below:</p><p><a href='{verificationUrl}'>Verify</a></p><p>This link is valid for 10 minutes.</p></body></html>";
+        }
+
+        private async Task<string> BuildReceiptBodyAsync(PaymentReceiptEmailDto receipt)
+        {
+            var template = await ReadTemplateAsync(ReceiptTemplatePath);
+            if (template != null)
+            {
+                return template
+                    .Replace("{{RECEIPT_NUMBER}}", receipt.ReceiptNumber, StringComparison.Ordinal)
+                    .Replace("{{CUSTOMER_NAME}}", receipt.CustomerName, StringComparison.Ordinal)
+                    .Replace("{{PLAN_NAME}}", receipt.PlanName, StringComparison.Ordinal)
+                    .Replace("{{AMOUNT}}", receipt.AmountFormatted, StringComparison.Ordinal)
+                    .Replace("{{PAYMENT_METHOD}}", receipt.PaymentMethod, StringComparison.Ordinal)
+                    .Replace("{{ORDER_ID}}", receipt.OrderId, StringComparison.Ordinal)
+                    .Replace("{{TRANSACTION_ID}}", string.IsNullOrWhiteSpace(receipt.TransactionId) ? "—" : receipt.TransactionId, StringComparison.Ordinal)
+                    .Replace("{{PAID_AT}}", receipt.PaidAtFormatted, StringComparison.Ordinal);
+            }
+
+            return $"<html><body><p>Thanh toán #{receipt.ReceiptNumber} thành công: {receipt.AmountFormatted} cho gói {receipt.PlanName}.</p></body></html>";
+        }
+
+        private static async Task<string?> ReadTemplateAsync(string relativePath)
+        {
+            var templateFile = Path.Combine(AppContext.BaseDirectory, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(templateFile))
+            {
+                return await File.ReadAllTextAsync(templateFile);
+            }
+
+            return null;
         }
     }
 }

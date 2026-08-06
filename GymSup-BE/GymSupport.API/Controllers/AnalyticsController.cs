@@ -167,4 +167,34 @@ public class AnalyticsController : ControllerBase
             return StatusCode(500, new { message = "Lỗi khi lấy dữ liệu workout analytics", error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Báo cáo tổng lượt sử dụng các tính năng AI Premium
+    /// </summary>
+    /// <remarks>
+    /// Các tính năng được thống kê (ghi nhận qua FeatureUsageLog mỗi lần gọi thành công):
+    /// - EquipmentInfo:       phân tích máy tập/dụng cụ qua ảnh
+    /// - BodyCheck:           phân tích thể hình qua ảnh
+    /// - FormCheckVideo:      kiểm tra form tập qua video
+    /// - GenerateWorkoutPlan: tạo lịch tập bằng AI
+    /// PremiumUsageCount/FreeUsageCount tách theo trạng thái Premium của user tại thời điểm gọi.
+    /// </remarks>
+    [HttpGet("premium-feature-usage")]
+    public async Task<IActionResult> GetPremiumFeatureUsage(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to)
+    {
+        try
+        {
+            if (from > to)
+                return BadRequest(new { message = "from phải nhỏ hơn hoặc bằng to" });
+
+            var result = await _analyticsService.GetPremiumFeatureUsageAsync(from, to);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi khi lấy dữ liệu premium feature usage", error = ex.Message });
+        }
+    }
 }

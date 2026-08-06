@@ -17,6 +17,7 @@ import ActiveUsersPage from '../pages/admin/analytics/ActiveUsersPage.jsx'
 import RetentionPage from '../pages/admin/analytics/RetentionPage.jsx'
 import FunnelPage from '../pages/admin/analytics/FunnelPage.jsx'
 import FeatureUsagePage from '../pages/admin/analytics/FeatureUsagePage.jsx'
+import PremiumFeatureUsagePage from '../pages/admin/analytics/PremiumFeatureUsagePage.jsx'
 import WorkoutAnalyticsPage from '../pages/admin/analytics/WorkoutAnalyticsPage.jsx'
 import SubscriptionPlansPage from '../pages/admin/SubscriptionPlansPage.jsx'
 import UserSubscriptionsPage from '../pages/admin/UserSubscriptionsPage.jsx'
@@ -56,6 +57,7 @@ export default function AdminRoutes() {
         <Route path="analytics/retention" element={<RetentionPage />} />
         <Route path="analytics/funnel" element={<FunnelPage />} />
         <Route path="analytics/feature-usage" element={<FeatureUsagePage />} />
+        <Route path="analytics/premium-usage" element={<PremiumFeatureUsagePage />} />
         <Route path="analytics/workouts" element={<WorkoutAnalyticsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/admin" replace />} />

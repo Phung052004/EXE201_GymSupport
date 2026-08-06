@@ -12,6 +12,7 @@ public class AnalyticsService : IAnalyticsService
     private readonly IChatRepository _chatRepository;
     private readonly IUserSubscriptionRepository _userSubscriptionRepository;
     private readonly IMealPlanRepository _mealPlanRepository;
+    private readonly IFeatureUsageLogRepository _featureUsageLogRepository;
 
     public AnalyticsService(
         IUserRepository userRepository,
@@ -20,7 +21,8 @@ public class AnalyticsService : IAnalyticsService
         IWorkoutPlanRepository workoutPlanRepository,
         IChatRepository chatRepository,
         IUserSubscriptionRepository userSubscriptionRepository,
-        IMealPlanRepository mealPlanRepository)
+        IMealPlanRepository mealPlanRepository,
+        IFeatureUsageLogRepository featureUsageLogRepository)
     {
         _userRepository = userRepository;
         _customerRepository = customerRepository;
@@ -29,6 +31,7 @@ public class AnalyticsService : IAnalyticsService
         _chatRepository = chatRepository;
         _userSubscriptionRepository = userSubscriptionRepository;
         _mealPlanRepository = mealPlanRepository;
+        _featureUsageLogRepository = featureUsageLogRepository;
     }
 
     // ── API 2: Active Users ───────────────────────────────────────────────────
@@ -258,6 +261,13 @@ public class AnalyticsService : IAnalyticsService
         int workoutCount = sessions.Count;
         int workoutUsers = sessions.Select(s => s.UserId).Distinct().Count();
 
+        // Scan Equipment (equipment_info + body_check + form_check qua ảnh/video — xem GetPremiumFeatureUsageAsync)
+        var scanFeatures = new[] { "EquipmentInfo", "BodyCheck", "FormCheckVideo" };
+        var allUsageLogs = await _featureUsageLogRepository.GetByDateRangeAsync(fromDate, toExclusive);
+        var scanLogs = allUsageLogs.Where(x => scanFeatures.Contains(x.Feature)).ToList();
+        int scanCount = scanLogs.Count;
+        int scanUsers = scanLogs.Select(x => x.UserId).Distinct().Count();
+
         // AI Coach (count user-sent messages only to avoid counting assistant replies)
         var chatMessages = await _chatRepository.GetByDateRangeAsync(fromDate, toExclusive);
         var userMessages = chatMessages.Where(m => m.Role == "user").ToList();
@@ -293,7 +303,7 @@ public class AnalyticsService : IAnalyticsService
             {
                 new() { Feature = "Workout",        UsageCount = workoutCount,       UniqueUsers = workoutUsers },
                 new() { Feature = "AI Coach",       UsageCount = aiCoachCount,       UniqueUsers = aiCoachUsers },
-                new() { Feature = "Scan Equipment", UsageCount = 0,                  UniqueUsers = 0 },
+                new() { Feature = "Scan Equipment", UsageCount = scanCount,          UniqueUsers = scanUsers },
                 new() { Feature = "Generate Plan",  UsageCount = generatePlanCount,  UniqueUsers = generatePlanUsers },
                 new() { Feature = "Nutrition",      UsageCount = nutritionCount,     UniqueUsers = nutritionUsers },
                 new() { Feature = "Subscription",   UsageCount = subscriptionCount,  UniqueUsers = subscriptionUsers },
@@ -374,6 +384,47 @@ public class AnalyticsService : IAnalyticsService
             MostPopularExercises = topExercises,
             MostTrainedMuscles = topMuscles,
             MostConsistentUsers = topUsers
+        };
+    }
+
+    // ── API 7: Premium Feature Usage ─────────────────────────────────────────
+
+    private static readonly (string Key, string Label)[] PremiumFeatureLabels =
+    {
+        ("EquipmentInfo",      "Phân tích máy tập"),
+        ("BodyCheck",          "Phân tích thể hình"),
+        ("FormCheckVideo",     "Kiểm tra form (video)"),
+        ("GenerateWorkoutPlan","Tạo lịch tập bằng AI")
+    };
+
+    public async Task<PremiumFeatureUsageDto> GetPremiumFeatureUsageAsync(DateTime from, DateTime to)
+    {
+        var fromDate = from.Date;
+        var toExclusive = to.Date.AddDays(1);
+
+        var logs = await _featureUsageLogRepository.GetByDateRangeAsync(fromDate, toExclusive);
+
+        var items = PremiumFeatureLabels.Select(f =>
+        {
+            var matched = logs.Where(x => x.Feature == f.Key).ToList();
+            return new PremiumFeatureUsageItemDto
+            {
+                Feature = f.Key,
+                Label = f.Label,
+                UsageCount = matched.Count,
+                UniqueUsers = matched.Select(x => x.UserId).Distinct().Count(),
+                PremiumUsageCount = matched.Count(x => x.IsPremiumUser),
+                FreeUsageCount = matched.Count(x => !x.IsPremiumUser)
+            };
+        }).ToList();
+
+        return new PremiumFeatureUsageDto
+        {
+            From = from.ToString("yyyy-MM-dd"),
+            To = to.ToString("yyyy-MM-dd"),
+            TotalUsageCount = logs.Count,
+            TotalUniqueUsers = logs.Select(x => x.UserId).Distinct().Count(),
+            Features = items
         };
     }
 }
