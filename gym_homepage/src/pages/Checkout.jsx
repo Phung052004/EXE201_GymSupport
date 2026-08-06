@@ -70,24 +70,24 @@ export default function Checkout() {
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-6 text-center">
         <CheckCircle2 className="mb-4 h-16 w-16 text-brand-success" />
-        <h1 className="mb-2 text-2xl font-black text-brand-textPrimary">Thanh toán thành công!</h1>
-        <p className="text-brand-textSecondary">Tài khoản của bạn đã được nâng cấp lên Premium.</p>
+        <h1 className="mb-2 text-2xl font-bold text-brand-ink">Thanh toán thành công!</h1>
+        <p className="text-brand-inkMuted">Tài khoản của bạn đã được nâng cấp lên Premium.</p>
       </div>
     )
   }
 
   return (
     <div className="mx-auto max-w-md px-6 py-12">
-      <h1 className="mb-6 text-2xl font-black text-brand-textPrimary">Nâng cấp Premium</h1>
+      <h1 className="mb-6 text-2xl font-bold text-brand-ink">Nâng cấp Premium</h1>
 
       {!checkout ? (
-        <div className="card space-y-4">
+        <div className="feature-card space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-semibold text-brand-textSecondary">Chọn gói</label>
+            <label className="mb-1 block text-sm font-medium text-brand-inkSecondary">Chọn gói</label>
             <select
               value={selectedPlanId}
               onChange={(e) => setSelectedPlanId(e.target.value)}
-              className="w-full rounded-lg border border-brand-outlineStrong bg-brand-surface2 px-3 py-2 text-brand-textPrimary outline-none focus:border-brand-primary"
+              className="text-input"
             >
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.id}>{plan.name}</option>
@@ -96,27 +96,27 @@ export default function Checkout() {
           </div>
 
           {selectedPlan && (
-            <div className="rounded-lg border border-brand-outline bg-brand-surface2 p-4">
-              <p className="text-2xl font-black text-brand-primary">{formatVnd(selectedPlan.price)}</p>
-              <p className="text-sm text-brand-textSecondary">{selectedPlan.durationMonths} tháng</p>
+            <div className="rounded-md border border-brand-hairline bg-brand-canvasSoft p-4">
+              <p className="text-2xl font-bold text-brand-primary">{formatVnd(selectedPlan.price)}</p>
+              <p className="text-sm text-brand-inkMuted">{selectedPlan.durationMonths} tháng</p>
             </div>
           )}
 
           {error && <p className="text-sm text-brand-danger">{error}</p>}
 
-          <button onClick={handlePay} disabled={creating || !selectedPlanId} className="btn-accent w-full">
+          <button onClick={handlePay} disabled={creating || !selectedPlanId} className="btn-primary w-full">
             {creating ? 'Đang tạo đơn thanh toán...' : 'Thanh toán'}
           </button>
         </div>
       ) : (
-        <div className="card flex flex-col items-center text-center">
-          <p className="mb-4 text-sm text-brand-textSecondary">
+        <div className="feature-card flex flex-col items-center text-center">
+          <p className="mb-4 text-sm text-brand-inkMuted">
             Quét mã QR bằng ứng dụng ngân hàng để thanh toán {formatVnd(checkout.amount)}
           </p>
-          <div className="mb-4 rounded-xl bg-white p-4">
+          <div className="mb-4 rounded-xl border border-brand-hairline bg-white p-4">
             <QRCodeSVG value={checkout.qrCode} size={220} />
           </div>
-          <p className="mb-4 flex items-center gap-2 text-sm text-brand-textSecondary">
+          <p className="mb-4 flex items-center gap-2 text-sm text-brand-inkMuted">
             <span className="h-2 w-2 animate-pulse rounded-full bg-brand-warning" />
             Đang chờ thanh toán...
           </p>
@@ -124,7 +124,7 @@ export default function Checkout() {
             href={checkout.checkoutUrl}
             target="_blank"
             rel="noreferrer"
-            className="btn-outline flex items-center gap-2"
+            className="btn-utility flex items-center gap-2"
           >
             Mở trang thanh toán
             <ExternalLink className="h-4 w-4" />

@@ -102,6 +102,10 @@ builder.Services.AddScoped<
     IAIService,
     OpenAIService>();
 
+builder.Services.AddScoped<IAiUsageRepository, AiUsageRepository>();
+builder.Services.AddScoped<IAiUsageService, AiUsageService>();
+builder.Services.AddScoped<IWorkoutEvaluationService, WorkoutEvaluationService>();
+
 builder.Services.AddScoped<
     IMuscleRepository,
     MuscleRepository>();
