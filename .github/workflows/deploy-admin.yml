@@ -1,0 +1,51 @@
+name: Deploy Admin Dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'gym_admin_dashboard/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: gym_admin_dashboard
+        run: npm ci
+
+      - name: Build
+        working-directory: gym_admin_dashboard
+        run: npm run build
+
+      - name: Upload build to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          source: 'gym_admin_dashboard/dist/*'
+          target: '/tmp/gym_admin_dashboard_dist_new'
+          strip_components: 2
+
+      - name: Publish to /var/www/admin-dashboard
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            sudo rm -rf /var/www/admin-dashboard/*
+            sudo cp -r /tmp/gym_admin_dashboard_dist_new/* /var/www/admin-dashboard/
+            sudo chown -R www-data:www-data /var/www/admin-dashboard
+            rm -rf /tmp/gym_admin_dashboard_dist_new

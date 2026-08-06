@@ -1,0 +1,66 @@
+name: Release Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'gym_support/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # PIN CỨNG Flutter 3.41.9 — Flutter >=3.44 làm vỡ phosphor_flutter (IconData final).
+      # Xem ghi chú dự án trước khi đổi version này.
+      - name: Setup Flutter 3.41.9
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.9'
+          channel: 'stable'
+
+      - name: Restore release keystore
+        working-directory: gym_support
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=${{ github.workspace }}/gym_support/android/app/upload-keystore.jks
+          EOF
+
+      - name: Flutter pub get
+        working-directory: gym_support
+        run: flutter pub get
+
+      - name: Build release APK
+        working-directory: gym_support
+        run: flutter build apk --release --build-number=${{ github.run_number }}
+
+      - name: Remove keystore from runner
+        if: always()
+        working-directory: gym_support
+        run: rm -f android/app/upload-keystore.jks android/key.properties
+
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mobile-build-${{ github.run_number }}
+          name: Mobile Build #${{ github.run_number }}
+          body: |
+            Auto build từ commit ${{ github.sha }}.
+            APK này chỉ để test nội bộ — không phải bản Google Play chính thức.
+          files: gym_support/build/app/outputs/flutter-apk/app-release.apk
