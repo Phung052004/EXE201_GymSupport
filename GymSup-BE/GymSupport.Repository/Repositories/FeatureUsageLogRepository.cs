@@ -30,4 +30,10 @@ public class FeatureUsageLogRepository : IFeatureUsageLogRepository
 
     public async Task<List<FeatureUsageLog>> GetAllAsync() =>
         await _collection.Find(_ => true).ToListAsync();
+
+    public async Task<List<FeatureUsageLog>> GetByUserAndFeatureAsync(string userId, string feature) =>
+        await _collection
+            .Find(x => x.UserId == userId && x.Feature == feature)
+            .SortByDescending(x => x.CreatedAt)
+            .ToListAsync();
 }

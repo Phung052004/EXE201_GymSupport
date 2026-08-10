@@ -23,4 +23,10 @@ public class FeatureUsageLog
     public bool IsPremiumUser { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Câu trả lời AI dạng text dễ đọc — hiển thị ở detail view trên admin.</summary>
+    public string ResponseSummary { get; set; } = string.Empty;
+
+    /// <summary>Input người dùng đã nhập (JSON) — chỉ có ở GenerateWorkoutPlan.</summary>
+    public string? RequestSnapshot { get; set; }
 }

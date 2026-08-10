@@ -169,7 +169,7 @@ public class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Báo cáo tổng lượt sử dụng các tính năng AI Premium
+    /// Danh sách user từng mua Premium (kể cả đã hết hạn) kèm số lượt dùng từng tính năng AI.
     /// </summary>
     /// <remarks>
     /// Các tính năng được thống kê (ghi nhận qua FeatureUsageLog mỗi lần gọi thành công):
@@ -177,24 +177,41 @@ public class AnalyticsController : ControllerBase
     /// - BodyCheck:           phân tích thể hình qua ảnh
     /// - FormCheckVideo:      kiểm tra form tập qua video
     /// - GenerateWorkoutPlan: tạo lịch tập bằng AI
-    /// PremiumUsageCount/FreeUsageCount tách theo trạng thái Premium của user tại thời điểm gọi.
     /// </remarks>
-    [HttpGet("premium-feature-usage")]
-    public async Task<IActionResult> GetPremiumFeatureUsage(
-        [FromQuery] DateTime from,
-        [FromQuery] DateTime to)
+    [HttpGet("premium-users")]
+    public async Task<IActionResult> GetPremiumUsers()
     {
         try
         {
-            if (from > to)
-                return BadRequest(new { message = "from phải nhỏ hơn hoặc bằng to" });
-
-            var result = await _analyticsService.GetPremiumFeatureUsageAsync(from, to);
+            var result = await _analyticsService.GetPremiumUsersUsageAsync();
             return Ok(result);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Lỗi khi lấy dữ liệu premium feature usage", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy danh sách premium users", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Chi tiết từng lần dùng 1 tính năng AI của 1 user cụ thể (cho dropdown "Detail" trên bảng
+    /// Premium Users) — mỗi dòng là 1 lần gọi, kèm câu trả lời AI (và input người dùng nếu là
+    /// GenerateWorkoutPlan).
+    /// </summary>
+    [HttpGet("premium-users/{userId}/{feature}")]
+    public async Task<IActionResult> GetPremiumUserFeatureDetail(string userId, string feature)
+    {
+        var allowedFeatures = new[] { "EquipmentInfo", "BodyCheck", "FormCheckVideo", "GenerateWorkoutPlan" };
+        if (!allowedFeatures.Contains(feature))
+            return BadRequest(new { message = "feature không hợp lệ." });
+
+        try
+        {
+            var result = await _analyticsService.GetFeatureUsageDetailAsync(userId, feature);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi khi lấy chi tiết feature usage", error = ex.Message });
         }
     }
 }

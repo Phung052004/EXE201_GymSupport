@@ -1,85 +1,105 @@
-import { useEffect, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { Crown, Dumbbell, ScanFace, Sparkles, UserCheck } from 'lucide-react'
-import DateRangePicker from '../../../components/common/DateRangePicker.jsx'
-import StatCard from '../../../components/common/StatCard.jsx'
+import { ChevronDown, Crown } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import Modal from '../../../components/common/Modal.jsx'
 import { adminApi } from '../../../services/adminApi.js'
 
-const toISO = (date) => date.toISOString().slice(0, 10)
+const FEATURES = [
+  { countKey: 'equipmentInfoCount', feature: 'EquipmentInfo', label: 'Phân tích máy tập' },
+  { countKey: 'bodyCheckCount', feature: 'BodyCheck', label: 'Phân tích thể hình' },
+  { countKey: 'formCheckVideoCount', feature: 'FormCheckVideo', label: 'Phân tích form' },
+  { countKey: 'generateWorkoutPlanCount', feature: 'GenerateWorkoutPlan', label: 'Tạo lịch AI' },
+]
 
-const defaultRange = () => {
-  const to = new Date()
-  const from = new Date()
-  from.setDate(from.getDate() - 29)
-  return { from: toISO(from), to: toISO(to) }
+const fmtDateTime = (raw) => {
+  if (!raw) return '—'
+  try {
+    const d = new Date(raw)
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  } catch {
+    return '—'
+  }
 }
 
-const FEATURE_CONFIG = {
-  EquipmentInfo: { icon: ScanFace, color: '#f59e0b' },
-  BodyCheck: { icon: ScanFace, color: '#8b5cf6' },
-  FormCheckVideo: { icon: Dumbbell, color: '#06b6d4' },
-  GenerateWorkoutPlan: { icon: Sparkles, color: '#10b981' },
+const REQUEST_FIELD_LABELS = {
+  goal: 'Mục tiêu',
+  experienceLevel: 'Kinh nghiệm',
+  daysPerWeek: 'Số buổi/tuần',
+  trainingDays: 'Ngày tập',
+  intensity: 'Cường độ',
+  trainingCondition: 'Điều kiện tập',
+  healthIssues: 'Vấn đề sức khỏe',
 }
 
-const CustomBarTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
+function RequestSnapshotView({ json }) {
+  let parsed = null
+  try {
+    parsed = JSON.parse(json)
+  } catch {
+    return <p className="text-xs text-slate-500 whitespace-pre-wrap">{json}</p>
+  }
+  const entries = Object.entries(parsed).filter(([, v]) => v !== null && v !== '' && !(Array.isArray(v) && v.length === 0))
+  if (entries.length === 0) return null
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xl">
-      <p className="mb-2 text-xs font-bold text-slate-500">{label}</p>
-      {payload.map((p) => (
-        <p key={p.name} className="text-sm font-black" style={{ color: p.color }}>
-          {p.name}: {p.value.toLocaleString()}
-        </p>
+    <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg bg-slate-50 p-3 text-xs">
+      {entries.map(([key, value]) => (
+        <div key={key}>
+          <span className="font-semibold text-slate-500">{REQUEST_FIELD_LABELS[key] ?? key}: </span>
+          <span className="text-slate-800">{Array.isArray(value) ? value.join(', ') : String(value)}</span>
+        </div>
       ))}
     </div>
   )
 }
 
 export default function PremiumFeatureUsagePage() {
-  const [range, setRange] = useState(defaultRange)
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [openDropdownFor, setOpenDropdownFor] = useState(null)
+  const dropdownRef = useRef(null)
 
-  const load = async (r) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await adminApi.getPremiumFeatureUsage(r.from, r.to)
-      setData(result)
-    } catch {
-      setError('Không thể tải dữ liệu. Vui lòng thử lại.')
-    } finally {
-      setLoading(false)
+  const [detail, setDetail] = useState(null) // { userId, userName, feature, featureLabel }
+  const [detailItems, setDetailItems] = useState([])
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState(null)
+
+  useEffect(() => {
+    adminApi
+      .getPremiumUsersUsage()
+      .then((data) => setRows(Array.isArray(data) ? data : []))
+      .catch(() => setError('Không thể tải dữ liệu. Vui lòng thử lại.'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    const onClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setOpenDropdownFor(null)
     }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  const openDetail = (row, featureCfg) => {
+    setOpenDropdownFor(null)
+    setDetail({ userId: row.userId, userName: row.name || row.email, feature: featureCfg.feature, featureLabel: featureCfg.label })
+    setDetailItems([])
+    setDetailError(null)
+    setDetailLoading(true)
+    adminApi
+      .getPremiumUserFeatureDetail(row.userId, featureCfg.feature)
+      .then((data) => setDetailItems(Array.isArray(data) ? data : []))
+      .catch(() => setDetailError('Không thể tải chi tiết. Vui lòng thử lại.'))
+      .finally(() => setDetailLoading(false))
   }
-
-  useEffect(() => { load(range) }, [])
-
-  const features = data?.features ?? []
-  const barData = features.map((f) => ({
-    name: f.label,
-    Premium: f.premiumUsageCount,
-    Free: f.freeUsageCount,
-    color: FEATURE_CONFIG[f.feature]?.color ?? '#94a3b8',
-  }))
-
-  const totalUsage = data?.totalUsageCount ?? 0
-  const totalUsers = data?.totalUniqueUsers ?? 0
-  const totalPremiumCalls = features.reduce((s, f) => s + f.premiumUsageCount, 0)
-  const leakRate = totalUsage > 0 ? (((totalUsage - totalPremiumCalls) / totalUsage) * 100).toFixed(1) : '0.0'
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-xl font-black text-slate-900">Premium Feature Usage</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
-            Lượt dùng tính năng AI Premium: phân tích máy tập, thể hình, form video, tạo lịch tập AI
-          </p>
-        </div>
-        <DateRangePicker from={range.from} to={range.to} onChange={setRange} onApply={load} />
+      <div>
+        <h2 className="text-xl font-black text-slate-900">Premium Users</h2>
+        <p className="mt-0.5 text-sm text-slate-500">
+          Danh sách user đã từng mua Premium (kể cả đã hết hạn) và số lần dùng từng tính năng AI
+        </p>
       </div>
 
       {error && (
@@ -88,132 +108,110 @@ export default function PremiumFeatureUsagePage() {
         </div>
       )}
 
-      {/* Stat Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={Crown}
-          label="Tổng lượt dùng"
-          value={loading ? '—' : totalUsage.toLocaleString()}
-          helper="4 tính năng Premium"
-          color="violet"
-        />
-        <StatCard
-          icon={UserCheck}
-          label="User duy nhất"
-          value={loading ? '—' : totalUsers.toLocaleString()}
-          helper="không loại trùng qua tính năng"
-          color="cyan"
-        />
-        <StatCard
-          icon={Sparkles}
-          label="Lượt dùng bởi Premium"
-          value={loading ? '—' : totalPremiumCalls.toLocaleString()}
-          helper="user đang có gói Premium"
-          color="emerald"
-        />
-        <StatCard
-          icon={ScanFace}
-          label="Tỉ lệ gọi khi chưa Premium"
-          value={loading ? '—' : `${leakRate}%`}
-          helper="đáng chú ý nếu > 0% — cần soát lại chặn quyền phía client"
-          color="orange"
-        />
-      </div>
-
-      {/* Chart */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="section-title">Premium vs Free theo tính năng</h3>
-        <p className="section-subtitle">Số lượt gọi tách theo trạng thái Premium của user tại thời điểm dùng</p>
-        {loading ? (
-          <div className="mt-6 flex h-72 items-center justify-center text-sm text-slate-400">Đang tải...</div>
-        ) : features.length === 0 ? (
-          <div className="mt-6 flex h-72 items-center justify-center text-sm text-slate-400">Không có dữ liệu</div>
-        ) : (
-          <div className="mt-6 h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} />
-                <Tooltip content={<CustomBarTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="Premium" stackId="usage" fill="#8b5cf6" radius={[0, 0, 0, 0]} maxBarSize={40} />
-                <Bar dataKey="Free" stackId="usage" fill="#e2e8f0" radius={[4, 4, 0, 0]} maxBarSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
-
-      {/* Detailed table */}
-      {!loading && features.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-6 py-4">
-            <h3 className="section-title">Chi tiết từng tính năng Premium</h3>
-          </div>
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Tính năng
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Tổng lượt dùng
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                  User duy nhất
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Premium
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Free
-                </th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Email</th>
+                {FEATURES.map((f) => (
+                  <th key={f.feature} className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                    {f.label}
+                  </th>
+                ))}
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {features
-                .slice()
-                .sort((a, b) => b.usageCount - a.usageCount)
-                .map((f) => {
-                  const cfg = FEATURE_CONFIG[f.feature] || {}
-                  const IconComp = cfg.icon
-                  return (
-                    <tr key={f.feature} className="hover:bg-slate-50">
-                      <td className="px-6 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className="grid h-7 w-7 place-items-center rounded-lg text-white"
-                            style={{ backgroundColor: cfg.color ?? '#94a3b8' }}
-                          >
-                            {IconComp && <IconComp size={13} />}
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">Đang tải...</td>
+                </tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">Chưa có user Premium nào</td>
+                </tr>
+              ) : (
+                rows.map((row) => (
+                  <tr key={row.userId} className="hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {row.isCurrentlyPremium && <Crown size={13} className="text-amber-500" />}
+                        <span className="font-semibold text-slate-800">{row.name || '—'}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{row.email}</td>
+                    {FEATURES.map((f) => (
+                      <td key={f.feature} className="px-4 py-3 text-right font-bold text-slate-900">
+                        {row[f.countKey]}
+                      </td>
+                    ))}
+                    <td className="px-4 py-3 text-right">
+                      <div className="relative inline-block" ref={openDropdownFor === row.userId ? dropdownRef : null}>
+                        <button
+                          className="btn-secondary"
+                          onClick={() => setOpenDropdownFor(openDropdownFor === row.userId ? null : row.userId)}
+                        >
+                          Detail <ChevronDown size={14} />
+                        </button>
+                        {openDropdownFor === row.userId && (
+                          <div className="absolute right-0 z-10 mt-1 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+                            {FEATURES.map((f) => (
+                              <button
+                                key={f.feature}
+                                onClick={() => openDetail(row, f)}
+                                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                              >
+                                {f.label}
+                                <span className="text-xs font-bold text-slate-400">{row[f.countKey]}</span>
+                              </button>
+                            ))}
                           </div>
-                          <span className="font-semibold text-slate-700">{f.label}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-3 text-right font-bold text-slate-900">
-                        {f.usageCount.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-3 text-right font-semibold text-slate-600">
-                        {f.uniqueUsers.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-3 text-right">
-                        <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-600">
-                          {f.premiumUsageCount.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-right">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">
-                          {f.freeUsageCount.toLocaleString()}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-      )}
+      </div>
+
+      <Modal
+        open={!!detail}
+        title={detail ? `${detail.featureLabel} — ${detail.userName}` : ''}
+        onClose={() => setDetail(null)}
+      >
+        {detailLoading ? (
+          <p className="py-8 text-center text-sm text-slate-400">Đang tải...</p>
+        ) : detailError ? (
+          <p className="py-8 text-center text-sm text-rose-600">{detailError}</p>
+        ) : detailItems.length === 0 ? (
+          <p className="py-8 text-center text-sm text-slate-400">Chưa có lượt dùng nào</p>
+        ) : (
+          <div className="space-y-3">
+            {detailItems.map((item, idx) => (
+              <div key={idx} className="rounded-lg border border-slate-200 p-3">
+                <p className="mb-2 text-xs font-bold text-slate-400">{fmtDateTime(item.createdAt)}</p>
+                {item.requestSnapshot && (
+                  <div className="mb-2">
+                    <p className="mb-1 text-xs font-bold uppercase text-slate-500">Input người dùng</p>
+                    <RequestSnapshotView json={item.requestSnapshot} />
+                  </div>
+                )}
+                <div>
+                  {item.requestSnapshot && (
+                    <p className="mb-1 text-xs font-bold uppercase text-slate-500">Câu trả lời AI</p>
+                  )}
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{item.responseSummary || '—'}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

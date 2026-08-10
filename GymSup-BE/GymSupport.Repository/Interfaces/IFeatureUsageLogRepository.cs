@@ -7,4 +7,5 @@ public interface IFeatureUsageLogRepository
     Task CreateAsync(FeatureUsageLog log);
     Task<List<FeatureUsageLog>> GetByDateRangeAsync(DateTime from, DateTime to);
     Task<List<FeatureUsageLog>> GetAllAsync();
+    Task<List<FeatureUsageLog>> GetByUserAndFeatureAsync(string userId, string feature);
 }

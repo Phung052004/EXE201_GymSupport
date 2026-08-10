@@ -49,9 +49,11 @@ public class AIController : ControllerBase
     /// <summary>
     /// Ghi nhận 1 lượt dùng tính năng AI Premium cho thống kê admin (tách theo từng mode cụ thể —
     /// khác với <see cref="IAiUsageService"/> vốn gộp chung "AnalyzeImage" cho cả body_check lẫn
-    /// equipment_info). Best-effort — không được làm hỏng response chính nếu ghi log lỗi.
+    /// equipment_info), kèm câu trả lời AI để hiển thị ở detail view. Best-effort — không được
+    /// làm hỏng response chính nếu ghi log lỗi.
     /// </summary>
-    private async Task LogFeatureUsageAsync(string userId, string feature)
+    private async Task LogFeatureUsageAsync(
+        string userId, string feature, string responseSummary, string? requestSnapshot = null)
     {
         try
         {
@@ -60,13 +62,42 @@ public class AIController : ControllerBase
             {
                 UserId = userId,
                 Feature = feature,
-                IsPremiumUser = subscription?.IsPremium ?? false
+                IsPremiumUser = subscription?.IsPremium ?? false,
+                ResponseSummary = responseSummary,
+                RequestSnapshot = requestSnapshot
             });
         }
         catch
         {
             // Thống kê không phải nghiệp vụ cốt lõi — bỏ qua lỗi ghi log, không throw lại cho user.
         }
+    }
+
+    private static string FormatImageAnalysis(ImageAnalyzeResponseDto r)
+    {
+        var parts = new List<string> { r.Title, r.Summary };
+        if (r.DetectedItems.Count > 0) parts.Add("Nhận diện: " + string.Join(", ", r.DetectedItems));
+        if (r.PriorityMuscles.Count > 0) parts.Add("Nhóm cơ ưu tiên: " + string.Join(", ", r.PriorityMuscles));
+        if (r.SuggestedExercises.Count > 0) parts.Add("Gợi ý bài tập: " + string.Join(", ", r.SuggestedExercises));
+        if (r.TrainingAdvice.Count > 0) parts.Add("Lời khuyên: " + string.Join(" ", r.TrainingAdvice));
+        if (r.Warnings.Count > 0) parts.Add("Lưu ý: " + string.Join(" ", r.Warnings));
+        return string.Join("\n", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
+    }
+
+    private static string FormatVideoFormAnalysis(VideoFormAnalyzeResponseDto r)
+    {
+        var parts = new List<string>
+        {
+            r.Title,
+            r.Summary,
+            $"Bài tập nhận diện: {r.DetectedExercise}",
+            $"Kết luận: {r.OverallVerdict}"
+        };
+        if (r.MajorIssues.Count > 0) parts.Add("Lỗi lớn: " + string.Join(" ", r.MajorIssues));
+        if (r.MinorIssues.Count > 0) parts.Add("Lỗi nhỏ: " + string.Join(" ", r.MinorIssues));
+        if (r.CorrectPoints.Count > 0) parts.Add("Điểm đúng: " + string.Join(" ", r.CorrectPoints));
+        if (r.CorrectiveCues.Count > 0) parts.Add("Cách sửa: " + string.Join(" ", r.CorrectiveCues));
+        return string.Join("\n", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
     }
 
     [HttpPost("evaluate-workout/{sessionLogId}")]
@@ -136,7 +167,11 @@ public class AIController : ControllerBase
             if (!usageCheck.Allowed) return DeniedResult(usageCheck);
 
             var result = await _aiService.GenerateWorkoutPlanAsync(userId, dto);
-            await LogFeatureUsageAsync(userId, "GenerateWorkoutPlan");
+            await LogFeatureUsageAsync(
+                userId,
+                "GenerateWorkoutPlan",
+                responseSummary: result.Response ?? "",
+                requestSnapshot: System.Text.Json.JsonSerializer.Serialize(dto));
             return Ok(result);
         }
         catch (Exception ex)
@@ -265,7 +300,7 @@ public class AIController : ControllerBase
                 mode);
 
             var feature = mode == "body_check" ? "BodyCheck" : "EquipmentInfo";
-            await LogFeatureUsageAsync(userId, feature);
+            await LogFeatureUsageAsync(userId, feature, FormatImageAnalysis(result));
 
             return Ok(result);
         }
@@ -332,7 +367,7 @@ public class AIController : ControllerBase
                 video.FileName,
                 video.ContentType);
 
-            await LogFeatureUsageAsync(userId, "FormCheckVideo");
+            await LogFeatureUsageAsync(userId, "FormCheckVideo", FormatVideoFormAnalysis(result));
 
             return Ok(result);
         }

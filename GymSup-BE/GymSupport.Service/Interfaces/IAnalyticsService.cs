@@ -7,7 +7,8 @@ public interface IAnalyticsService
     Task<FunnelDto> GetFunnelAsync(string name);
     Task<FeatureUsageDto> GetFeatureUsageAsync(DateTime from, DateTime to);
     Task<WorkoutAnalyticsDto> GetWorkoutAnalyticsAsync(DateTime from, DateTime to);
-    Task<PremiumFeatureUsageDto> GetPremiumFeatureUsageAsync(DateTime from, DateTime to);
+    Task<List<PremiumUserUsageDto>> GetPremiumUsersUsageAsync();
+    Task<List<FeatureUsageDetailDto>> GetFeatureUsageDetailAsync(string userId, string feature);
 }
 
 // ── Active Users ──────────────────────────────────────────────────────────────
@@ -125,26 +126,26 @@ public class ConsistentUserDto
     public int CompletedSessions { get; set; }
 }
 
-// ── Premium Feature Usage ───────────────────────────────────────────────────
+// ── Premium Users Usage (list theo user, không phải theo feature) ──────────
 
-public class PremiumFeatureUsageDto
+public class PremiumUserUsageDto
 {
-    public string From { get; set; } = "";
-    public string To { get; set; } = "";
-    public int TotalUsageCount { get; set; }
-    public int TotalUniqueUsers { get; set; }
-    public List<PremiumFeatureUsageItemDto> Features { get; set; } = new();
+    public string UserId { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Email { get; set; } = "";
+    /// <summary>User có đang trong thời hạn Premium hiệu lực tại thời điểm xem hay không
+    /// (danh sách vẫn liệt kê cả user Premium đã hết hạn).</summary>
+    public bool IsCurrentlyPremium { get; set; }
+    public int EquipmentInfoCount { get; set; }
+    public int BodyCheckCount { get; set; }
+    public int FormCheckVideoCount { get; set; }
+    public int GenerateWorkoutPlanCount { get; set; }
 }
 
-public class PremiumFeatureUsageItemDto
+public class FeatureUsageDetailDto
 {
-    /// <summary>EquipmentInfo, BodyCheck, FormCheckVideo, GenerateWorkoutPlan</summary>
-    public string Feature { get; set; } = "";
-    public string Label { get; set; } = "";
-    public int UsageCount { get; set; }
-    public int UniqueUsers { get; set; }
-    /// <summary>Số lượt gọi được thực hiện bởi user đang có Premium tại thời điểm gọi.</summary>
-    public int PremiumUsageCount { get; set; }
-    /// <summary>Số lượt gọi bởi user không có Premium (free trial/leak — đáng chú ý để soát lại việc chặn quyền).</summary>
-    public int FreeUsageCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    /// <summary>Input người dùng đã nhập (JSON) — chỉ có ở GenerateWorkoutPlan, null với 3 tính năng còn lại.</summary>
+    public string? RequestSnapshot { get; set; }
+    public string ResponseSummary { get; set; } = "";
 }

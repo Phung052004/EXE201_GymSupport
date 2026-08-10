@@ -387,44 +387,62 @@ public class AnalyticsService : IAnalyticsService
         };
     }
 
-    // ── API 7: Premium Feature Usage ─────────────────────────────────────────
+    // ── API 7: Premium Users Usage ───────────────────────────────────────────
 
-    private static readonly (string Key, string Label)[] PremiumFeatureLabels =
+    /// <summary>
+    /// Danh sách user từng mua Premium (Price > 0 trên UserSubscription — record của user chỉ
+    /// có 1 dòng duy nhất, Price không revert về 0 khi hết hạn nên đây bao gồm cả user đã hết
+    /// hạn) kèm số lượt dùng từng tính năng AI Premium.
+    /// </summary>
+    public async Task<List<PremiumUserUsageDto>> GetPremiumUsersUsageAsync()
     {
-        ("EquipmentInfo",      "Phân tích máy tập"),
-        ("BodyCheck",          "Phân tích thể hình"),
-        ("FormCheckVideo",     "Kiểm tra form (video)"),
-        ("GenerateWorkoutPlan","Tạo lịch tập bằng AI")
-    };
+        var allSubs = (await _userSubscriptionRepository.GetAllAsync()).ToList();
+        var premiumSubs = allSubs.Where(s => s.Price > 0).ToList();
+        if (premiumSubs.Count == 0) return new List<PremiumUserUsageDto>();
 
-    public async Task<PremiumFeatureUsageDto> GetPremiumFeatureUsageAsync(DateTime from, DateTime to)
-    {
-        var fromDate = from.Date;
-        var toExclusive = to.Date.AddDays(1);
+        var now = DateTime.UtcNow;
+        var allLogs = await _featureUsageLogRepository.GetAllAsync();
+        var logsByUser = allLogs
+            .GroupBy(x => x.UserId)
+            .ToDictionary(g => g.Key, g => g.ToList());
 
-        var logs = await _featureUsageLogRepository.GetByDateRangeAsync(fromDate, toExclusive);
-
-        var items = PremiumFeatureLabels.Select(f =>
+        var result = new List<PremiumUserUsageDto>();
+        foreach (var sub in premiumSubs)
         {
-            var matched = logs.Where(x => x.Feature == f.Key).ToList();
-            return new PremiumFeatureUsageItemDto
+            var user = await _userRepository.GetByIdAsync(sub.UserId);
+            logsByUser.TryGetValue(sub.UserId, out var userLogs);
+            userLogs ??= new List<Repository.Models.Entities.FeatureUsageLog>();
+
+            result.Add(new PremiumUserUsageDto
             {
-                Feature = f.Key,
-                Label = f.Label,
-                UsageCount = matched.Count,
-                UniqueUsers = matched.Select(x => x.UserId).Distinct().Count(),
-                PremiumUsageCount = matched.Count(x => x.IsPremiumUser),
-                FreeUsageCount = matched.Count(x => !x.IsPremiumUser)
-            };
-        }).ToList();
+                UserId = sub.UserId,
+                Name = user?.FullName ?? "",
+                Email = user?.Email ?? "",
+                IsCurrentlyPremium = sub.ExpiredAt.HasValue && sub.ExpiredAt.Value > now,
+                EquipmentInfoCount = userLogs.Count(x => x.Feature == "EquipmentInfo"),
+                BodyCheckCount = userLogs.Count(x => x.Feature == "BodyCheck"),
+                FormCheckVideoCount = userLogs.Count(x => x.Feature == "FormCheckVideo"),
+                GenerateWorkoutPlanCount = userLogs.Count(x => x.Feature == "GenerateWorkoutPlan")
+            });
+        }
 
-        return new PremiumFeatureUsageDto
-        {
-            From = from.ToString("yyyy-MM-dd"),
-            To = to.ToString("yyyy-MM-dd"),
-            TotalUsageCount = logs.Count,
-            TotalUniqueUsers = logs.Select(x => x.UserId).Distinct().Count(),
-            Features = items
-        };
+        return result
+            .OrderByDescending(x => x.IsCurrentlyPremium)
+            .ThenByDescending(x =>
+                x.EquipmentInfoCount + x.BodyCheckCount + x.FormCheckVideoCount + x.GenerateWorkoutPlanCount)
+            .ToList();
+    }
+
+    public async Task<List<FeatureUsageDetailDto>> GetFeatureUsageDetailAsync(string userId, string feature)
+    {
+        var logs = await _featureUsageLogRepository.GetByUserAndFeatureAsync(userId, feature);
+        return logs
+            .Select(x => new FeatureUsageDetailDto
+            {
+                CreatedAt = x.CreatedAt,
+                RequestSnapshot = x.RequestSnapshot,
+                ResponseSummary = x.ResponseSummary
+            })
+            .ToList();
     }
 }

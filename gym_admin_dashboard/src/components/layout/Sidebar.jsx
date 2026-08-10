@@ -32,7 +32,7 @@ const navGroups = [
       { label: 'Retention', path: '/admin/analytics/retention', icon: Target },
       { label: 'Funnel', path: '/admin/analytics/funnel', icon: Zap },
       { label: 'Feature Usage', path: '/admin/analytics/feature-usage', icon: BarChart2 },
-      { label: 'Premium Usage', path: '/admin/analytics/premium-usage', icon: Crown },
+      { label: 'Premium Users', path: '/admin/analytics/premium-usage', icon: Crown },
       { label: 'Workout Analytics', path: '/admin/analytics/workouts', icon: Flame },
     ],
   },
