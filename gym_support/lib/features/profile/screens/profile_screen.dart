@@ -404,7 +404,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const Expanded(child: Text('Hồ sơ', style: AppTheme.displaySmall)),
                     GestureDetector(
                       onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Settings sẽ sớm ra mắt')),
+                        const SnackBar(content: Text('Cài đặt sẽ sớm ra mắt')),
                       ),
                       child: Container(
                         width: 42,
@@ -669,7 +669,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildMenuGroup([
                         _ProfileMenuItem(
                           icon: PhosphorIconsRegular.shieldStar,
-                          label: 'Admin Dashboard',
+                          label: 'Bảng điều khiển quản trị',
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => const AdminDashboardScreen(),

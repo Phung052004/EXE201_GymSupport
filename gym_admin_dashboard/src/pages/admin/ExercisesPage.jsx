@@ -39,20 +39,20 @@ export default function ExercisesPage() {
   const optionValues = (key) => ['All', ...new Set(rows.map((item) => item[key]))]
 
   const columns = [
-    { key: 'name', header: 'Exercise Name', render: (row) => <span className="font-black text-slate-950">{row.name}</span> },
-    { key: 'mainMuscleGroup', header: 'Main Muscle' },
-    { key: 'difficulty', header: 'Difficulty' },
-    { key: 'equipment', header: 'Equipment' },
-    { key: 'defaultSets', header: 'Sets/Reps', render: (row) => `${row.defaultSets} x ${row.defaultReps}` },
-    { key: 'status', header: 'Status', render: (row) => <Badge>{row.status}</Badge> },
+    { key: 'name', header: 'Tên bài tập', render: (row) => <span className="font-black text-slate-950">{row.name}</span> },
+    { key: 'mainMuscleGroup', header: 'Nhóm cơ chính' },
+    { key: 'difficulty', header: 'Độ khó' },
+    { key: 'equipment', header: 'Dụng cụ' },
+    { key: 'defaultSets', header: 'Hiệp/Lần', render: (row) => `${row.defaultSets} x ${row.defaultReps}` },
+    { key: 'status', header: 'Trạng thái', render: (row) => <Badge>{row.status}</Badge> },
     {
       key: 'actions',
-      header: 'Actions',
+      header: 'Thao tác',
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary" onClick={() => setDetail(row)}><Eye size={15} /> View</button>
-          <Link className="btn-secondary" to={`/admin/exercises/${row.id}`}><Edit size={15} /> Edit</Link>
-          <button className="btn-secondary" onClick={() => setDeleteTarget(row)}><Trash2 size={15} /> Hide</button>
+          <button className="btn-secondary" onClick={() => setDetail(row)}><Eye size={15} /> Xem</button>
+          <Link className="btn-secondary" to={`/admin/exercises/${row.id}`}><Edit size={15} /> Sửa</Link>
+          <button className="btn-secondary" onClick={() => setDeleteTarget(row)}><Trash2 size={15} /> Ẩn</button>
         </div>
       ),
     },
@@ -68,14 +68,14 @@ export default function ExercisesPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-lg font-black text-slate-950">Exercise Library</h2>
-          <p className="text-sm text-slate-500">Create, review and hide exercise content used by AI and routines.</p>
+          <h2 className="text-lg font-black text-slate-950">Thư viện bài tập</h2>
+          <p className="text-sm text-slate-500">Tạo, xem và ẩn nội dung bài tập được AI và chương trình tập sử dụng.</p>
         </div>
-        <Link className="btn-primary" to="/admin/exercises/new"><Plus size={16} /> Add Exercise</Link>
+        <Link className="btn-primary" to="/admin/exercises/new"><Plus size={16} /> Thêm bài tập</Link>
       </div>
 
       <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-4">
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search exercises" className="rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm kiếm bài tập" className="rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" />
         <Filter value={muscle} onChange={setMuscle} options={optionValues('mainMuscleGroup')} />
         <Filter value={difficulty} onChange={setDifficulty} options={optionValues('difficulty')} />
         <Filter value={equipment} onChange={setEquipment} options={optionValues('equipment')} />
@@ -89,14 +89,14 @@ export default function ExercisesPage() {
             <img src={detail.imageUrl} alt={detail.name} className="h-56 w-full rounded-lg object-cover" />
             <div className="space-y-4 text-sm text-slate-700">
               <p>{detail.description}</p>
-              <DetailRow label="Instruction" value={detail.instruction} />
-              <DetailRow label="Safety Notes" value={detail.safetyNotes} />
-              <DetailRow label="Common Mistakes" value={detail.commonMistakes} />
-              <DetailRow label="Tips" value={detail.tips} />
-              <DetailRow label="Video URL" value={detail.videoUrl} />
-              <DetailRow label="Rest Time" value={detail.restTime} />
+              <DetailRow label="Hướng dẫn" value={detail.instruction} />
+              <DetailRow label="Lưu ý an toàn" value={detail.safetyNotes} />
+              <DetailRow label="Lỗi thường gặp" value={detail.commonMistakes} />
+              <DetailRow label="Mẹo tập" value={detail.tips} />
+              <DetailRow label="Đường dẫn video" value={detail.videoUrl} />
+              <DetailRow label="Thời gian nghỉ" value={detail.restTime} />
               <div>
-                <p className="mb-2 text-xs font-black uppercase text-slate-400">Muscle Impacts</p>
+                <p className="mb-2 text-xs font-black uppercase text-slate-400">Mức độ tác động cơ</p>
                 <div className="space-y-2">
                   {detail.muscleImpacts.map((impact) => (
                     <div key={impact.muscle}>
@@ -113,9 +113,9 @@ export default function ExercisesPage() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Hide exercise"
-        message={`Hide ${deleteTarget?.name}? Admin can restore hidden content later when API is connected.`}
-        confirmText="Hide"
+        title="Ẩn bài tập"
+        message={`Ẩn ${deleteTarget?.name}? Quản trị viên có thể khôi phục nội dung đã ẩn sau khi kết nối API.`}
+        confirmText="Ẩn"
         onCancel={() => setDeleteTarget(null)}
         onConfirm={removeExercise}
       />
@@ -126,7 +126,7 @@ export default function ExercisesPage() {
 function Filter({ value, onChange, options }) {
   return (
     <select value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500">
-      {options.map((option) => <option key={option}>{option}</option>)}
+      {options.map((option) => <option key={option} value={option}>{option === 'All' ? 'Tất cả' : option}</option>)}
     </select>
   )
 }

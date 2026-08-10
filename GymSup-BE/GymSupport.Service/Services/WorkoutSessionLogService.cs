@@ -1,4 +1,5 @@
-﻿using GymSupport.Repository.Interfaces;
+﻿using System.Collections.Concurrent;
+using GymSupport.Repository.Interfaces;
 using GymSupport.Repository.Models.DTOs.WorkoutPlan;
 using GymSupport.Repository.Models.Entities;
 using GymSupport.Service.Interfaces;
@@ -9,14 +10,25 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
 {
     private const int ExpPerLevel = 100;
 
+    // AddSetAsync/FinishSessionAsync do a read-modify-write (full document replace) on the
+    // same WorkoutSessionLog. Without serializing per-session, two requests firing close
+    // together (e.g. tapping "hoàn thành set" too fast) can both load the same stale copy
+    // and the later write silently overwrites the earlier one's set. Keyed per session so
+    // different sessions/users never block each other; static because the service is
+    // registered Scoped (a new instance per request) and the lock must survive across them.
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _sessionLocks = new();
+
+    private static SemaphoreSlim GetSessionLock(string sessionLogId) =>
+        _sessionLocks.GetOrAdd(sessionLogId, _ => new SemaphoreSlim(1, 1));
+
     private static readonly (int days, string type, string name, string description, string emoji)[] StreakMilestones =
     {
-        (3,   "streak_3",   "On Fire!",         "Tập 3 ngày liên tiếp",   "🔥"),
-        (7,   "streak_7",   "Week Warrior",     "Tập 7 ngày liên tiếp",   "⚡"),
-        (14,  "streak_14",  "Two-Week Beast",   "Tập 14 ngày liên tiếp",  "💪"),
-        (30,  "streak_30",  "Iron Discipline",  "Tập 30 ngày liên tiếp",  "🏆"),
-        (60,  "streak_60",  "Unstoppable",      "Tập 60 ngày liên tiếp",  "🚀"),
-        (100, "streak_100", "Legendary",        "Tập 100 ngày liên tiếp", "👑"),
+        (3,   "streak_3",   "Rực Lửa!",             "Tập 3 ngày liên tiếp",   "🔥"),
+        (7,   "streak_7",   "Chiến Binh Tuần",      "Tập 7 ngày liên tiếp",   "⚡"),
+        (14,  "streak_14",  "Quái Vật Hai Tuần",    "Tập 14 ngày liên tiếp",  "💪"),
+        (30,  "streak_30",  "Kỷ Luật Thép",         "Tập 30 ngày liên tiếp",  "🏆"),
+        (60,  "streak_60",  "Không Thể Cản Bước",   "Tập 60 ngày liên tiếp",  "🚀"),
+        (100, "streak_100", "Huyền Thoại",          "Tập 100 ngày liên tiếp", "👑"),
     };
 
     private readonly IWorkoutSessionLogRepository _sessionLogRepository;
@@ -101,7 +113,7 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
             WorkoutPlanId = dto.WorkoutPlanId,
             PlanSessionId = dto.PlanSessionId,
             Name = string.IsNullOrWhiteSpace(planSession.Focus)
-                ? "Workout Session"
+                ? "Buổi tập"
                 : planSession.Focus,
             Focus = planSession.Focus,
             StartTime = DateTime.UtcNow,
@@ -127,120 +139,138 @@ public class WorkoutSessionLogService : IWorkoutSessionLogService
         string exerciseLogId,
         AddWorkoutSetRequestDto dto)
     {
-        var session =
-            await _sessionLogRepository.GetByIdAsync(sessionLogId);
-
-        if (session == null)
+        var sessionLock = GetSessionLock(sessionLogId);
+        await sessionLock.WaitAsync();
+        try
         {
-            throw new Exception("Không tìm thấy buổi tập.");
+            var session =
+                await _sessionLogRepository.GetByIdAsync(sessionLogId);
+
+            if (session == null)
+            {
+                throw new Exception("Không tìm thấy buổi tập.");
+            }
+
+            if (session.Status != "IN_PROGRESS")
+            {
+                throw new Exception("Chỉ có thể thêm set khi buổi tập đang diễn ra.");
+            }
+
+            var exerciseLog = session.Exercises.FirstOrDefault(
+                x => x.Id == exerciseLogId || x.ExerciseId == exerciseLogId);
+
+            if (exerciseLog == null)
+            {
+                throw new Exception("Không tìm thấy bài tập trong buổi tập.");
+            }
+
+            var setLog = new WorkoutSetLog
+            {
+                SetNumber = dto.SetNumber,
+                Weight = dto.Weight,
+                Reps = dto.Reps,
+                DurationSeconds = dto.DurationSeconds,
+                Rpe = dto.Rpe,
+                Status = "COMPLETED",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var existingSet = exerciseLog.Sets.FirstOrDefault(
+                x => x.SetNumber == dto.SetNumber);
+            if (existingSet == null)
+            {
+                exerciseLog.Sets.Add(setLog);
+            }
+            else
+            {
+                existingSet.Weight = setLog.Weight;
+                existingSet.Reps = setLog.Reps;
+                existingSet.DurationSeconds = setLog.DurationSeconds;
+                existingSet.Rpe = setLog.Rpe;
+                existingSet.Status = "COMPLETED";
+                existingSet.CreatedAt = setLog.CreatedAt;
+            }
+            exerciseLog.Status = "IN_PROGRESS";
+
+            session.TotalSets = session.Exercises
+                .SelectMany(x => x.Sets)
+                .Count(x => x.Status == "COMPLETED");
+
+            session.TotalVolume = session.Exercises
+                .SelectMany(x => x.Sets)
+                .Where(x => x.Status == "COMPLETED")
+                .Sum(x => (x.Weight ?? 0) * (x.Reps ?? 0));
+
+            await _sessionLogRepository.UpdateAsync(session.Id, session);
+
+            return session;
         }
-
-        if (session.Status != "IN_PROGRESS")
+        finally
         {
-            throw new Exception("Chỉ có thể thêm set khi buổi tập đang diễn ra.");
+            sessionLock.Release();
         }
-
-        var exerciseLog = session.Exercises.FirstOrDefault(
-            x => x.Id == exerciseLogId || x.ExerciseId == exerciseLogId);
-
-        if (exerciseLog == null)
-        {
-            throw new Exception("Không tìm thấy bài tập trong buổi tập.");
-        }
-
-        var setLog = new WorkoutSetLog
-        {
-            SetNumber = dto.SetNumber,
-            Weight = dto.Weight,
-            Reps = dto.Reps,
-            DurationSeconds = dto.DurationSeconds,
-            Rpe = dto.Rpe,
-            Status = "COMPLETED",
-            CreatedAt = DateTime.UtcNow
-        };
-
-        var existingSet = exerciseLog.Sets.FirstOrDefault(
-            x => x.SetNumber == dto.SetNumber);
-        if (existingSet == null)
-        {
-            exerciseLog.Sets.Add(setLog);
-        }
-        else
-        {
-            existingSet.Weight = setLog.Weight;
-            existingSet.Reps = setLog.Reps;
-            existingSet.DurationSeconds = setLog.DurationSeconds;
-            existingSet.Rpe = setLog.Rpe;
-            existingSet.Status = "COMPLETED";
-            existingSet.CreatedAt = setLog.CreatedAt;
-        }
-        exerciseLog.Status = "IN_PROGRESS";
-
-        session.TotalSets = session.Exercises
-            .SelectMany(x => x.Sets)
-            .Count(x => x.Status == "COMPLETED");
-
-        session.TotalVolume = session.Exercises
-            .SelectMany(x => x.Sets)
-            .Where(x => x.Status == "COMPLETED")
-            .Sum(x => (x.Weight ?? 0) * (x.Reps ?? 0));
-
-        await _sessionLogRepository.UpdateAsync(session.Id, session);
-
-        return session;
     }
 
     public async Task<WorkoutSessionLog> FinishSessionAsync(
         string sessionLogId)
     {
-        var session =
-            await _sessionLogRepository.GetByIdAsync(sessionLogId);
-
-        if (session == null)
+        var sessionLock = GetSessionLock(sessionLogId);
+        await sessionLock.WaitAsync();
+        try
         {
-            throw new Exception("Không tìm thấy buổi tập.");
-        }
+            var session =
+                await _sessionLogRepository.GetByIdAsync(sessionLogId);
 
-        if (session.Status != "IN_PROGRESS" && session.Status != "PAUSED")
-        {
-            throw new Exception("Buổi tập này không thể kết thúc.");
-        }
-
-        session.EndTime = DateTime.UtcNow;
-        session.Status = "COMPLETED";
-
-        session.TotalDurationSeconds =
-            (int)(session.EndTime.Value - session.StartTime).TotalSeconds;
-
-        session.TotalSets = session.Exercises
-            .SelectMany(x => x.Sets)
-            .Count(x => x.Status == "COMPLETED");
-
-        session.TotalVolume = session.Exercises
-            .SelectMany(x => x.Sets)
-            .Where(x => x.Status == "COMPLETED")
-            .Sum(x => (x.Weight ?? 0) * (x.Reps ?? 0));
-
-        foreach (var exercise in session.Exercises)
-        {
-            if (exercise.Sets.Any(x => x.Status == "COMPLETED"))
+            if (session == null)
             {
-                exercise.Status = "COMPLETED";
+                throw new Exception("Không tìm thấy buổi tập.");
             }
+
+            if (session.Status != "IN_PROGRESS" && session.Status != "PAUSED")
+            {
+                throw new Exception("Buổi tập này không thể kết thúc.");
+            }
+
+            session.EndTime = DateTime.UtcNow;
+            session.Status = "COMPLETED";
+
+            session.TotalDurationSeconds =
+                (int)(session.EndTime.Value - session.StartTime).TotalSeconds;
+
+            session.TotalSets = session.Exercises
+                .SelectMany(x => x.Sets)
+                .Count(x => x.Status == "COMPLETED");
+
+            session.TotalVolume = session.Exercises
+                .SelectMany(x => x.Sets)
+                .Where(x => x.Status == "COMPLETED")
+                .Sum(x => (x.Weight ?? 0) * (x.Reps ?? 0));
+
+            foreach (var exercise in session.Exercises)
+            {
+                if (exercise.Sets.Any(x => x.Status == "COMPLETED"))
+                {
+                    exercise.Status = "COMPLETED";
+                }
+            }
+
+            session.MuscleExpGains = await ApplyMuscleExpAsync(session);
+            session.TotalExpGained = session.MuscleExpGains.Sum(x => x.ExpGained);
+
+            // Snapshot the user's current scheduled days so streak survives future plan changes
+            var plans = await _workoutPlanRepository.GetByUserIdAsync(session.UserId);
+            session.ScheduledDaysOfWeek = GetScheduledDaysOfWeek(plans)
+                .Select(d => d.ToString())
+                .ToList();
+
+            await _sessionLogRepository.UpdateAsync(session.Id, session);
+
+            return session;
         }
-
-        session.MuscleExpGains = await ApplyMuscleExpAsync(session);
-        session.TotalExpGained = session.MuscleExpGains.Sum(x => x.ExpGained);
-
-        // Snapshot the user's current scheduled days so streak survives future plan changes
-        var plans = await _workoutPlanRepository.GetByUserIdAsync(session.UserId);
-        session.ScheduledDaysOfWeek = GetScheduledDaysOfWeek(plans)
-            .Select(d => d.ToString())
-            .ToList();
-
-        await _sessionLogRepository.UpdateAsync(session.Id, session);
-
-        return session;
+        finally
+        {
+            sessionLock.Release();
+        }
     }
 
     public async Task<List<WorkoutSessionLog>> GetHistoryAsync(

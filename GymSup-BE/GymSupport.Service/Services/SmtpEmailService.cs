@@ -22,7 +22,7 @@ namespace GymSupport.Service.Services
         public async Task SendEmailVerificationAsync(string email, string verificationUrl)
         {
             var body = await BuildEmailBodyAsync(verificationUrl);
-            await SendAsync(email, "Verify your email", body);
+            await SendAsync(email, "Xác thực email của bạn", body);
         }
 
         public async Task SendPaymentReceiptAsync(string email, PaymentReceiptEmailDto receipt)
@@ -74,7 +74,7 @@ namespace GymSupport.Service.Services
                 return template.Replace("{{VERIFICATION_URL}}", verificationUrl, StringComparison.Ordinal);
             }
 
-            return $"<html><body><p>Welcome! Please verify your email by clicking the link below:</p><p><a href='{verificationUrl}'>Verify</a></p><p>This link is valid for 10 minutes.</p></body></html>";
+            return $"<html><body><p>Chào mừng bạn! Vui lòng xác thực email của bạn bằng cách nhấp vào liên kết bên dưới:</p><p><a href='{verificationUrl}'>Xác thực</a></p><p>Liên kết này có hiệu lực trong 10 phút.</p></body></html>";
         }
 
         private async Task<string> BuildReceiptBodyAsync(PaymentReceiptEmailDto receipt)

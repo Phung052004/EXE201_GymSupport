@@ -11,7 +11,7 @@ const FUNNEL_COLORS = [
 ]
 
 const FUNNEL_OPTIONS = [
-  { value: 'onboarding_to_workout', label: 'Onboarding → Workout' },
+  { value: 'onboarding_to_workout', label: 'Đăng ký → Bắt đầu tập luyện' },
 ]
 
 function FunnelStep({ step, index, maxCount, isLast }) {
@@ -35,7 +35,7 @@ function FunnelStep({ step, index, maxCount, isLast }) {
           <div className="flex flex-wrap items-center gap-4 text-right">
             <div>
               <p className="text-2xl font-black text-slate-900 tabular-nums">{step.count.toLocaleString()}</p>
-              <p className="text-xs font-medium text-slate-400">users</p>
+              <p className="text-xs font-medium text-slate-400">người dùng</p>
             </div>
             {index > 0 && (
               <>
@@ -67,7 +67,7 @@ function FunnelStep({ step, index, maxCount, isLast }) {
         {/* Drop-off */}
         {index > 0 && step.droppedFromPrevious > 0 && (
           <p className="mt-2 text-xs font-semibold text-rose-500">
-            − {step.droppedFromPrevious.toLocaleString()} users rớt khỏi bước này
+            − {step.droppedFromPrevious.toLocaleString()} người dùng rớt khỏi bước này
           </p>
         )}
       </div>
@@ -94,7 +94,7 @@ export default function FunnelPage() {
       const result = await adminApi.getFunnel(name)
       setData(result)
     } catch {
-      setError('Không thể tải dữ liệu funnel.')
+      setError('Không thể tải dữ liệu phễu chuyển đổi.')
     } finally {
       setLoading(false)
     }
@@ -113,7 +113,7 @@ export default function FunnelPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-black text-slate-900">Funnel Analytics</h2>
+          <h2 className="text-xl font-black text-slate-900">Phân tích phễu chuyển đổi</h2>
           <p className="mt-0.5 text-sm text-slate-500">
             Phân tích tỉ lệ chuyển đổi qua từng bước trong hành trình người dùng
           </p>
@@ -146,17 +146,17 @@ export default function FunnelPage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="stat-label">Tổng đầu vào</p>
             <p className="mt-2 text-2xl font-black text-slate-900">{maxCount.toLocaleString()}</p>
-            <p className="mt-1 text-xs text-slate-400">users đã đăng ký thành công</p>
+            <p className="mt-1 text-xs text-slate-400">người dùng đã đăng ký thành công</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="stat-label">Đầu ra</p>
             <p className="mt-2 text-2xl font-black text-slate-900">
               {(steps[steps.length - 1]?.count ?? 0).toLocaleString()}
             </p>
-            <p className="mt-1 text-xs text-slate-400">users hoàn thành toàn bộ funnel</p>
+            <p className="mt-1 text-xs text-slate-400">người dùng hoàn thành toàn bộ phễu</p>
           </div>
           <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-purple-50 p-5">
-            <p className="stat-label text-violet-600">Overall Conversion</p>
+            <p className="stat-label text-violet-600">Tỷ lệ chuyển đổi tổng</p>
             <p className="mt-2 text-3xl font-black text-violet-700">{overallConversion}%</p>
             <p className="mt-1 text-xs text-violet-400">từ bước 1 đến cuối funnel</p>
           </div>
@@ -165,13 +165,13 @@ export default function FunnelPage() {
 
       {/* Funnel Steps */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="section-title">Funnel: {data?.name ?? funnelName}</h3>
+        <h3 className="section-title">Phễu chuyển đổi: {data?.name ?? funnelName}</h3>
         <p className="section-subtitle">Click từng bước để xem chi tiết tỉ lệ chuyển đổi</p>
 
         <div className="mt-6">
           {loading ? (
             <div className="flex h-48 items-center justify-center text-sm font-medium text-slate-400">
-              Đang tải dữ liệu funnel...
+              Đang tải dữ liệu phễu chuyển đổi...
             </div>
           ) : steps.length === 0 ? (
             <div className="flex h-48 items-center justify-center text-sm font-medium text-slate-400">
@@ -204,7 +204,7 @@ export default function FunnelPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">#</th>
                 <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Bước</th>
-                <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Users</th>
+                <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Người dùng</th>
                 <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Từ bước trước</th>
                 <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Từ đầu</th>
                 <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Rớt</th>

@@ -29,16 +29,16 @@ export default function ReceiptsPage() {
     adminApi
       .getUserReceipts(row.userId)
       .then((data) => setReceipts(Array.isArray(data) ? data : []))
-      .catch(() => setDetailError('Không thể tải receipt. Vui lòng thử lại.'))
+      .catch(() => setDetailError('Không thể tải hóa đơn. Vui lòng thử lại.'))
       .finally(() => setDetailLoading(false))
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h2 className="text-xl font-black text-slate-900">Receipts</h2>
+        <h2 className="text-xl font-black text-slate-900">Hóa đơn thanh toán</h2>
         <p className="mt-0.5 text-sm text-slate-500">
-          Danh sách user từng thanh toán thành công và toàn bộ biên nhận của họ
+          Danh sách người dùng từng thanh toán thành công và toàn bộ biên nhận của họ
         </p>
       </div>
 
@@ -53,9 +53,9 @@ export default function ReceiptsPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Họ tên</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Email</th>
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Action</th>
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -74,7 +74,7 @@ export default function ReceiptsPage() {
                     <td className="px-4 py-3 text-slate-600">{row.email || '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <button className="btn-secondary" onClick={() => openDetail(row)}>
-                        Xem receipt ({row.receiptCount})
+                        Xem hóa đơn ({row.receiptCount})
                       </button>
                     </td>
                   </tr>
@@ -87,7 +87,7 @@ export default function ReceiptsPage() {
 
       <Modal
         open={!!detailUser}
-        title={detailUser ? `Receipts — ${detailUser.name || detailUser.email}` : ''}
+        title={detailUser ? `Hóa đơn — ${detailUser.name || detailUser.email}` : ''}
         onClose={() => setDetailUser(null)}
       >
         <ReceiptList loading={detailLoading} error={detailError} receipts={receipts} />

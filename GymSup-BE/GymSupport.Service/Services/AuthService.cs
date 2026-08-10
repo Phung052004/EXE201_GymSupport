@@ -42,7 +42,7 @@ namespace GymSupport.Service.Services
             if (existing != null)
             {
                 if (existing.IsEmailVerified)
-                    throw new InvalidOperationException("Email already in use.");
+                    throw new InvalidOperationException("Email đã được sử dụng.");
 
                 await RefreshVerificationTokenAsync(existing);
                 await SendVerificationEmailAsync(existing);
@@ -82,7 +82,7 @@ namespace GymSupport.Service.Services
             if (existing != null)
             {
                 if (existing.IsEmailVerified)
-                    throw new InvalidOperationException("Email already in use.");
+                    throw new InvalidOperationException("Email đã được sử dụng.");
 
                 await RefreshVerificationTokenAsync(existing);
                 await SendVerificationEmailAsync(existing);
@@ -116,7 +116,7 @@ namespace GymSupport.Service.Services
                 throw new UnauthorizedAccessException();
 
             if (!user.IsEmailVerified)
-                throw new InvalidOperationException("Email address has not been verified.");
+                throw new InvalidOperationException("Địa chỉ email chưa được xác thực.");
 
             var token = _tokenService.CreateToken(user);
             return new AuthResponse
@@ -131,19 +131,19 @@ namespace GymSupport.Service.Services
         {
             var user = await _repo.GetByIdAsync(userId);
             if (user == null)
-                throw new InvalidOperationException("Invalid verification request.");
+                throw new InvalidOperationException("Yêu cầu xác thực không hợp lệ.");
 
             if (user.IsEmailVerified)
-                throw new InvalidOperationException("Email already verified.");
+                throw new InvalidOperationException("Email đã được xác thực.");
 
             if (string.IsNullOrEmpty(user.EmailVerificationToken) || user.EmailVerificationTokenExpiresAt == null)
-                throw new InvalidOperationException("Invalid verification token.");
+                throw new InvalidOperationException("Mã xác thực không hợp lệ.");
 
             if (!string.Equals(user.EmailVerificationToken, token, StringComparison.Ordinal))
-                throw new InvalidOperationException("Invalid verification token.");
+                throw new InvalidOperationException("Mã xác thực không hợp lệ.");
 
             if (user.EmailVerificationTokenExpiresAt.Value < DateTime.UtcNow)
-                throw new InvalidOperationException("Verification token has expired.");
+                throw new InvalidOperationException("Mã xác thực đã hết hạn.");
 
             user.IsEmailVerified = true;
             user.VerifiedAt = DateTime.UtcNow;
@@ -173,10 +173,10 @@ namespace GymSupport.Service.Services
         {
             var user = await _repo.GetByEmailAsync(email);
             if (user == null)
-                throw new InvalidOperationException("Email not found.");
+                throw new InvalidOperationException("Không tìm thấy email.");
 
             if (user.IsEmailVerified)
-                throw new InvalidOperationException("Email already verified.");
+                throw new InvalidOperationException("Email đã được xác thực.");
 
             await RefreshVerificationTokenAsync(user);
             await SendVerificationEmailAsync(user);
@@ -207,7 +207,7 @@ namespace GymSupport.Service.Services
         private async Task SendVerificationEmailAsync(User user)
         {
             if (string.IsNullOrEmpty(user.EmailVerificationToken))
-                throw new InvalidOperationException("Verification token is missing.");
+                throw new InvalidOperationException("Thiếu mã xác thực.");
 
             var verificationUrl = BuildVerificationUrl(user.Id, user.EmailVerificationToken);
             await _emailService.SendEmailVerificationAsync(user.Email, verificationUrl);

@@ -49,7 +49,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Workout History', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Lịch sử tập luyện', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -114,11 +114,11 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                item['planSessionName']?.toString() ?? 'Workout Session',
+                item['planSessionName']?.toString() ?? 'Buổi tập luyện',
                 style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               Text(
-                status,
+                _statusLabel(status),
                 style: TextStyle(
                   color: status == 'COMPLETED' ? const Color(0xFF12E67F) : Colors.orange,
                   fontSize: 10,
@@ -132,9 +132,9 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
             children: [
               _buildSmallInfo(PhosphorIconsBold.calendarCheck, dateDisplay),
               const SizedBox(width: 16),
-              _buildSmallInfo(PhosphorIconsBold.timer, '$minutes mins'),
+              _buildSmallInfo(PhosphorIconsBold.timer, '$minutes phút'),
               const SizedBox(width: 16),
-              _buildSmallInfo(PhosphorIconsBold.barbell, '$exercises exercises'),
+              _buildSmallInfo(PhosphorIconsBold.barbell, '$exercises bài tập'),
             ],
           ),
           const SizedBox(height: 16),
@@ -144,12 +144,25 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
               onPressed: () {
                 // View detail
               },
-              child: const Text('View Detail', style: TextStyle(color: AppColors.primary)),
+              child: const Text('Xem chi tiết', style: TextStyle(color: AppColors.primary)),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'COMPLETED':
+        return 'ĐÃ HOÀN THÀNH';
+      case 'IN_PROGRESS':
+        return 'ĐANG TẬP';
+      case 'SKIPPED':
+        return 'ĐÃ BỎ QUA';
+      default:
+        return status;
+    }
   }
 
   Widget _buildSmallInfo(IconData icon, String text) {

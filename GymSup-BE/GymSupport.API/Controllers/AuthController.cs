@@ -28,7 +28,7 @@ namespace GymSupport.API.Controllers
                 if (isNewRegistration)
                     return CreatedAtAction(nameof(RegisterCustomer), new { id = userId }, new { id = userId });
 
-                return Ok(new { message = "Email already registered but not verified. Verification email resent.", id = userId });
+                return Ok(new { message = "Email đã được đăng ký nhưng chưa xác thực. Email xác thực đã được gửi lại.", id = userId });
             }
             catch (InvalidOperationException ex)
             {
@@ -45,7 +45,7 @@ namespace GymSupport.API.Controllers
                 if (isNewRegistration)
                     return CreatedAtAction(nameof(RegisterManager), new { id = userId }, new { id = userId });
 
-                return Ok(new { message = "Email already registered but not verified. Verification email resent.", id = userId });
+                return Ok(new { message = "Email đã được đăng ký nhưng chưa xác thực. Email xác thực đã được gửi lại.", id = userId });
             }
             catch (InvalidOperationException ex)
             {
@@ -63,7 +63,7 @@ namespace GymSupport.API.Controllers
             }
             catch (UnauthorizedAccessException)
             {
-                return Unauthorized(new { message = "Invalid credentials." });
+                return Unauthorized(new { message = "Thông tin đăng nhập không chính xác." });
             }
             catch (InvalidOperationException ex)
             {
@@ -77,7 +77,7 @@ namespace GymSupport.API.Controllers
             try
             {
                 await _authService.ResendVerificationEmailAsync(request.Email);
-                return Ok(new { message = "Verification email resent." });
+                return Ok(new { message = "Email xác thực đã được gửi lại." });
             }
             catch (InvalidOperationException ex)
             {

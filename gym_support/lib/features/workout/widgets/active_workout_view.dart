@@ -113,7 +113,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
           WorkoutProgressCard(progress: progress),
           const SizedBox(height: 24),
           Text(
-            '${widget.dayLabel.toUpperCase()} EXERCISES',
+            'BÀI TẬP ${widget.dayLabel.toUpperCase()}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 14,
@@ -172,7 +172,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
                         const SizedBox(width: 10),
                       ],
                       Text(
-                        isFinishing ? 'Finishing...' : 'Finish Workout',
+                        isFinishing ? 'Đang hoàn thành...' : 'Hoàn thành buổi tập',
                         style: TextStyle(
                           color: AppColors.textDark,
                           fontSize: 16,
@@ -239,26 +239,26 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Update Sets/Reps'),
+          title: const Text('Cập nhật Hiệp/Lần'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: setsController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Sets'),
+                decoration: const InputDecoration(labelText: 'Hiệp'),
               ),
               TextField(
                 controller: repsController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Reps'),
+                decoration: const InputDecoration(labelText: 'Lần'),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text('Hủy'),
             ),
             TextButton(
               onPressed: () {
@@ -268,7 +268,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
                 Navigator.pop(context);
                 widget.onUpdateExercise(exercise.id, sets, reps);
               },
-              child: const Text('Save'),
+              child: const Text('Lưu'),
             ),
           ],
         );
@@ -321,7 +321,7 @@ class ActiveWorkoutHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Active Workout',
+                'Buổi Tập Đang Diễn Ra',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 25,
@@ -361,7 +361,7 @@ class ActiveWorkoutHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '$formattedTime elapsed',
+                    '$formattedTime đã trôi qua',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 13,
@@ -422,7 +422,7 @@ class WorkoutProgressCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'PROGRESS',
+                'TIẾN ĐỘ',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.42),
                   fontSize: 12,

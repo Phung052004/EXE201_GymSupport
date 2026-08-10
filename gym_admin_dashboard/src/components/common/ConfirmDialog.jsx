@@ -1,6 +1,6 @@
 import Modal from './Modal.jsx'
 
-export default function ConfirmDialog({ open, title, message, onCancel, onConfirm, confirmText = 'Confirm' }) {
+export default function ConfirmDialog({ open, title, message, onCancel, onConfirm, confirmText = 'Xác nhận' }) {
   return (
     <Modal
       open={open}
@@ -8,7 +8,7 @@ export default function ConfirmDialog({ open, title, message, onCancel, onConfir
       onClose={onCancel}
       footer={
         <div className="flex justify-end gap-3">
-          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="btn-secondary" onClick={onCancel}>Hủy</button>
           <button className="btn-danger" onClick={onConfirm}>{confirmText}</button>
         </div>
       }

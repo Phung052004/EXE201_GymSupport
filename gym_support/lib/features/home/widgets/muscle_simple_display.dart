@@ -114,7 +114,7 @@ class _MuscleSimpleDisplayState extends State<MuscleSimpleDisplay> {
         children: [
           // Rank assets grid (top 6 muscles)
           Text(
-            'Rank Assets',
+            'Huy hiệu cấp bậc',
             style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 13,

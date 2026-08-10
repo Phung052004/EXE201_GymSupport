@@ -89,7 +89,7 @@ class _AdminUserSubscriptionsScreenState
                       ),
                       const SizedBox(width: 8),
                       _SummaryChip(
-                        label: 'Active',
+                        label: 'Đang hoạt động',
                         count: activeCount,
                         selected: _filter == 'active',
                         color: AppColors.success,
@@ -97,7 +97,7 @@ class _AdminUserSubscriptionsScreenState
                       ),
                       const SizedBox(width: 8),
                       _SummaryChip(
-                        label: 'Expired',
+                        label: 'Hết hạn',
                         count: expiredCount,
                         selected: _filter == 'expired',
                         color: AppColors.textTertiary,
@@ -237,7 +237,7 @@ class _SubCard extends StatelessWidget {
     }
 
     final statusLabel = status == 'active'
-        ? 'Active'
+        ? 'Đang hoạt động'
         : status == 'expired'
             ? 'Hết hạn'
             : status == 'cancelled'

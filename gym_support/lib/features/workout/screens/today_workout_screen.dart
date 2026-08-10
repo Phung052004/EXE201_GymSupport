@@ -143,8 +143,8 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
       MaterialPageRoute(
         builder: (_) => WorkoutSessionScreen(
           logId: log['id']?.toString() ?? '',
-          planName: log['name']?.toString() ?? 'Unfinished Workout',
-          dayName: 'Continue',
+          planName: log['name']?.toString() ?? 'Buổi tập chưa hoàn tất',
+          dayName: 'Tiếp tục',
           focus: log['focus']?.toString() ?? '',
           exercises: parsed.exercises,
           initialCompletedSets: parsed.completedSets,
@@ -316,7 +316,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                 children: [
                   _StatPill(label: 'Bài tập', value: '${parsed.exercises.length}'),
                   const SizedBox(width: 10),
-                  _StatPill(label: 'Đã xong', value: '$completedSets/$totalSets sets'),
+                  _StatPill(label: 'Đã xong', value: '$completedSets/$totalSets hiệp'),
                 ],
               ),
               const SizedBox(height: 18),
@@ -343,7 +343,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                       children: [
                         Icon(PhosphorIconsBold.play, size: 22),
                         SizedBox(width: 8),
-                        Text('Tiếp tục Workout', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                        Text('Tiếp tục buổi tập', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                       ],
                     ),
                   ),
@@ -400,7 +400,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                   ),
                 ),
                 Text(
-                  '$done/$total sets',
+                  '$done/$total hiệp',
                   style: TextStyle(
                     color: isDone ? AppColors.success : AppColors.textSecondary,
                     fontSize: 12,
@@ -476,7 +476,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                   border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  _activePlan!.goal.isEmpty ? 'Custom' : _activePlan!.goal,
+                  _activePlan!.goal.isEmpty ? 'Tuỳ chỉnh' : _activePlan!.goal,
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: 12,
@@ -723,7 +723,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
 
       exercises.add(WorkoutExercise(
         exerciseId: exerciseId,
-        exerciseName: item['exerciseName']?.toString() ?? 'Exercise',
+        exerciseName: item['exerciseName']?.toString() ?? 'Bài tập',
         sets: setCount,
         reps: defaultReps,
         restTime: 60,

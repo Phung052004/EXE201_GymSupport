@@ -27,7 +27,7 @@ class LogoutButton extends StatelessWidget {
               Icon(PhosphorIconsBold.signOut, color: Color(0xFFFF4D6D), size: 19),
               SizedBox(width: 8),
               Text(
-                'Log Out',
+                'Đăng xuất',
                 style: TextStyle(
                   color: Color(0xFFFF4D6D),
                   fontSize: 15,

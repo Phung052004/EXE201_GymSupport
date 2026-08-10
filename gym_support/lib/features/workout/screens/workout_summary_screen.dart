@@ -116,7 +116,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                       icon: PhosphorIconsBold.repeat,
                       iconColor: AppColors.orange,
                       value: totalSets,
-                      label: 'Tổng sets',
+                      label: 'Tổng hiệp',
                     ),
                     const SizedBox(width: 10),
                     _StatTile(
@@ -416,7 +416,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                                 border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
                               ),
                               child: const Text(
-                                '⬆ LEVEL UP',
+                                '⬆ THĂNG CẤP',
                                 style: TextStyle(
                                   color: AppColors.gold,
                                   fontSize: 9,
@@ -507,7 +507,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                               color: AppColors.success, size: 16),
                           const SizedBox(width: 6),
                           Text(
-                            '$sets sets',
+                            '$sets hiệp',
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,

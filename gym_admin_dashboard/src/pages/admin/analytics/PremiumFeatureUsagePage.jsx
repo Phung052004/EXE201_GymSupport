@@ -96,9 +96,9 @@ export default function PremiumFeatureUsagePage() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-black text-slate-900">Premium Users</h2>
+        <h2 className="text-xl font-black text-slate-900">Người dùng Premium</h2>
         <p className="mt-0.5 text-sm text-slate-500">
-          Danh sách user đã từng mua Premium (kể cả đã hết hạn) và số lần dùng từng tính năng AI
+          Danh sách người dùng đã từng mua Premium (kể cả đã hết hạn) và số lần dùng từng tính năng AI
         </p>
       </div>
 
@@ -113,14 +113,14 @@ export default function PremiumFeatureUsagePage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Họ tên</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Email</th>
                 {FEATURES.map((f) => (
                   <th key={f.feature} className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
                     {f.label}
                   </th>
                 ))}
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Action</th>
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -130,7 +130,7 @@ export default function PremiumFeatureUsagePage() {
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">Chưa có user Premium nào</td>
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">Chưa có người dùng Premium nào</td>
                 </tr>
               ) : (
                 rows.map((row) => (
@@ -153,7 +153,7 @@ export default function PremiumFeatureUsagePage() {
                           className="btn-secondary"
                           onClick={() => setOpenDropdownFor(openDropdownFor === row.userId ? null : row.userId)}
                         >
-                          Detail <ChevronDown size={14} />
+                          Chi tiết <ChevronDown size={14} />
                         </button>
                         {openDropdownFor === row.userId && (
                           <div className="absolute right-0 z-10 mt-1 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
@@ -197,7 +197,7 @@ export default function PremiumFeatureUsagePage() {
                 <p className="mb-2 text-xs font-bold text-slate-400">{fmtDateTime(item.createdAt)}</p>
                 {item.requestSnapshot && (
                   <div className="mb-2">
-                    <p className="mb-1 text-xs font-bold uppercase text-slate-500">Input người dùng</p>
+                    <p className="mb-1 text-xs font-bold uppercase text-slate-500">Dữ liệu đầu vào</p>
                     <RequestSnapshotView json={item.requestSnapshot} />
                   </div>
                 )}

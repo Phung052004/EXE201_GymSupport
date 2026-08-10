@@ -92,7 +92,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         setState(() {
           _subscription = subscription;
           _loading = false;
-          _error = 'Store Billing chỉ khả dụng trên Android hoặc iOS.';
+          _error = 'Thanh toán qua cửa hàng ứng dụng chỉ khả dụng trên Android hoặc iOS.';
         });
         return;
       }
@@ -103,7 +103,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       if (response.error != null) throw Exception(response.error!.message);
       if (response.productDetails.isEmpty) {
         throw Exception(
-          'Không tìm thấy product $_productId. Hãy kích hoạt subscription trong Store Console.',
+          'Không tìm thấy sản phẩm $_productId. Hãy kích hoạt gói đăng ký trong Store Console.',
         );
       }
 

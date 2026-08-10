@@ -15,6 +15,7 @@ public class WorkoutEvaluationMetricsDto
     public int TotalReps { get; set; }
     public double TotalVolumeKg { get; set; }
     public int EstimatedCalories { get; set; }
+    public string ComparisonSummary { get; set; } = "";
     public List<string> Highlights { get; set; } = new();
     public List<string> Improvements { get; set; } = new();
     public List<string> MuscleRecoverySummary { get; set; } = new();

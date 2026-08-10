@@ -106,7 +106,7 @@ class ExerciseListItem extends StatelessWidget {
                         onPressed: () =>
                             showExerciseDetailSheet(context, exercise),
                         icon: const Icon(PhosphorIconsBold.eye, size: 16),
-                        label: const Text('View Detail'),
+                        label: const Text('Xem chi tiết'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.textPrimary,
                           side: BorderSide(

@@ -33,7 +33,7 @@ namespace GymSupport.API.Controllers
 
             var customer = await _customerRepository.GetByUserIdAsync(userId);
             if (customer == null)
-                return NotFound(new { message = "Customer profile not found" });
+                return NotFound(new { message = "Không tìm thấy hồ sơ khách hàng" });
 
             var user = await _userRepository.GetByIdAsync(userId);
 
@@ -70,7 +70,7 @@ namespace GymSupport.API.Controllers
 
             var existing = await _customerRepository.GetByUserIdAsync(request.UserId);
             if (existing != null)
-                return Conflict(new { message = "Customer record already exists for this user." });
+                return Conflict(new { message = "Hồ sơ khách hàng cho người dùng này đã tồn tại." });
 
             var customer = new Customer
             {

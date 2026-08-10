@@ -35,7 +35,7 @@ const RetentionBar = ({ label, rate, retained, eligible, color }) => (
       />
     </div>
     <p className="mt-2 text-xs font-medium text-slate-400">
-      {retained} / {eligible} users
+      {retained} / {eligible} người dùng
     </p>
   </div>
 )
@@ -72,9 +72,9 @@ export default function RetentionPage() {
   useEffect(() => { load(range) }, [])
 
   const chartData = [
-    { name: 'Day 1', rate: data?.day1Retention ?? 0, color: '#10b981' },
-    { name: 'Day 7', rate: data?.day7Retention ?? 0, color: '#6366f1' },
-    { name: 'Day 30', rate: data?.day30Retention ?? 0, color: '#f59e0b' },
+    { name: 'Ngày 1', rate: data?.day1Retention ?? 0, color: '#10b981' },
+    { name: 'Ngày 7', rate: data?.day7Retention ?? 0, color: '#6366f1' },
+    { name: 'Ngày 30', rate: data?.day30Retention ?? 0, color: '#f59e0b' },
   ]
 
   return (
@@ -82,9 +82,9 @@ export default function RetentionPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-black text-slate-900">Retention Analytics</h2>
+          <h2 className="text-xl font-black text-slate-900">Phân tích tỷ lệ giữ chân</h2>
           <p className="mt-0.5 text-sm text-slate-500">
-            Tỉ lệ user quay lại sau khi đăng ký — cohort theo ngày xác thực email
+            Tỉ lệ người dùng quay lại sau khi đăng ký — cohort theo ngày xác thực email
           </p>
         </div>
         <DateRangePicker from={range.from} to={range.to} onChange={setRange} onApply={load} />
@@ -100,16 +100,16 @@ export default function RetentionPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard
           icon={Users}
-          label="Cohort Size"
+          label="Số lượng cohort"
           value={loading ? '—' : (data?.cohortSize ?? 0)}
           helper={`Đăng ký trong ${data?.from ?? ''} → ${data?.to ?? ''}`}
           color="indigo"
         />
         <StatCard
           icon={Target}
-          label="Day 1 Retained"
+          label="Giữ chân ngày 1"
           value={loading ? '—' : `${data?.day1Retention ?? 0}%`}
-          helper={`${data?.day1RetainedUsers ?? 0} / ${data?.cohortSize ?? 0} users`}
+          helper={`${data?.day1RetainedUsers ?? 0} / ${data?.cohortSize ?? 0} người dùng`}
           color="emerald"
         />
       </div>
@@ -117,21 +117,21 @@ export default function RetentionPage() {
       {/* Retention bars */}
       <div className="grid gap-4 sm:grid-cols-3">
         <RetentionBar
-          label="Day 1 Retention"
+          label="Tỷ lệ giữ chân ngày 1"
           rate={loading ? 0 : (data?.day1Retention ?? 0)}
           retained={data?.day1RetainedUsers ?? 0}
           eligible={data?.cohortSize ?? 0}
           color="#10b981"
         />
         <RetentionBar
-          label="Day 7 Retention"
+          label="Tỷ lệ giữ chân ngày 7"
           rate={loading ? 0 : (data?.day7Retention ?? 0)}
           retained={data?.day7RetainedUsers ?? 0}
           eligible={data?.day7EligibleUsers ?? 0}
           color="#6366f1"
         />
         <RetentionBar
-          label="Day 30 Retention"
+          label="Tỷ lệ giữ chân ngày 30"
           rate={loading ? 0 : (data?.day30Retention ?? 0)}
           retained={data?.day30RetainedUsers ?? 0}
           eligible={data?.day30EligibleUsers ?? 0}
@@ -141,8 +141,8 @@ export default function RetentionPage() {
 
       {/* Chart */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="section-title">So sánh tỉ lệ Retention</h3>
-        <p className="section-subtitle">Day 1 / Day 7 / Day 30 — cohort đăng ký trong khoảng đã chọn</p>
+        <h3 className="section-title">So sánh tỷ lệ giữ chân</h3>
+        <p className="section-subtitle">Ngày 1 / Ngày 7 / Ngày 30 — cohort đăng ký trong khoảng đã chọn</p>
         <div className="mt-6 h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
@@ -168,12 +168,12 @@ export default function RetentionPage() {
 
       {/* Info box */}
       <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
-        <h4 className="text-sm font-bold text-blue-800">Cách tính Retention</h4>
+        <h4 className="text-sm font-bold text-blue-800">Cách tính tỷ lệ giữ chân</h4>
         <ul className="mt-2 space-y-1 text-xs text-blue-700">
-          <li>• <strong>Day 1</strong>: User có buổi tập trong cửa sổ ngày 1–2 sau đăng ký</li>
-          <li>• <strong>Day 7</strong>: User có buổi tập trong cửa sổ ngày 6–9 (chỉ tính user đăng ký ≥7 ngày trước)</li>
-          <li>• <strong>Day 30</strong>: User có buổi tập trong cửa sổ ngày 28–33 (chỉ tính user đăng ký ≥30 ngày trước)</li>
-          <li>• <strong>Eligible</strong>: Số user đủ thời gian để được tính vào tỉ lệ</li>
+          <li>• <strong>Ngày 1</strong>: Người dùng có buổi tập trong cửa sổ ngày 1–2 sau đăng ký</li>
+          <li>• <strong>Ngày 7</strong>: Người dùng có buổi tập trong cửa sổ ngày 6–9 (chỉ tính người dùng đăng ký ≥7 ngày trước)</li>
+          <li>• <strong>Ngày 30</strong>: Người dùng có buổi tập trong cửa sổ ngày 28–33 (chỉ tính người dùng đăng ký ≥30 ngày trước)</li>
+          <li>• <strong>Đủ điều kiện</strong>: Số người dùng đủ thời gian để được tính vào tỷ lệ</li>
         </ul>
       </div>
     </div>

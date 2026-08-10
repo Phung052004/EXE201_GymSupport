@@ -4,19 +4,21 @@ import DataTable from '../../components/common/DataTable.jsx'
 import { adminApi } from '../../services/adminApi.js'
 
 const STATUS_FILTERS = ['All', 'Active', 'Expired', 'Cancelled']
+// Nhãn hiển thị tiếng Việt cho các giá trị lọc ở trên (giá trị dùng để so sánh giữ nguyên).
+const STATUS_FILTER_LABELS = { All: 'Tất cả', Active: 'Hoạt động', Expired: 'Hết hạn', Cancelled: 'Đã hủy' }
 
 const fmtDate = (raw) => {
-  if (!raw) return 'N/A'
+  if (!raw) return 'Chưa có'
   try {
     const d = new Date(raw)
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
   } catch {
-    return 'N/A'
+    return 'Chưa có'
   }
 }
 
 const fmtPrice = (price) =>
-  price != null ? Number(price).toLocaleString('vi-VN') + ' đ' : 'N/A'
+  price != null ? Number(price).toLocaleString('vi-VN') + ' đ' : 'Chưa có'
 
 const statusBadge = (status) => {
   const map = { active: 'Active', expired: 'Hidden', cancelled: 'Blocked' }
@@ -125,7 +127,7 @@ export default function UserSubscriptionsPage() {
                 : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
             }`}
           >
-            {f}
+            {STATUS_FILTER_LABELS[f] ?? f}
             <span
               className={`ml-2 rounded-full px-1.5 py-0.5 text-xs font-bold ${
                 filter === f ? 'bg-cyan-100 text-cyan-700' : 'bg-slate-100 text-slate-500'

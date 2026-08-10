@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Dumbbell, Sparkles, Menu, X } from 'lucide-react'
+import { Sparkles, Menu, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext.jsx'
 import UpgradeModal from '../UpgradeModal.jsx'
 
@@ -23,7 +23,7 @@ export default function Header() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-brand-ink">
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-primary">
-              <Dumbbell className="h-4 w-4 text-white" />
+              <img src="/brand-icon.png" alt="" className="h-5 w-5" />
             </span>
             GymSup
           </Link>

@@ -170,7 +170,7 @@ class _OnboardingNameScreenState extends State<OnboardingNameScreen> {
                     const SizedBox(height: 8),
                     AppTextField(
                       controller: nameController,
-                      hintText: 'Alex',
+                      hintText: 'Minh',
                       prefixIcon: PhosphorIconsRegular.user,
                     ),
                   ] else ...[

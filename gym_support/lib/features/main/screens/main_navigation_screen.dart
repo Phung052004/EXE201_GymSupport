@@ -45,7 +45,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late String _goal;
   late String _schedule;
   late String _bmi;
-  String _workoutDayLabel = 'Today';
+  String _workoutDayLabel = 'Hôm nay';
   String _workoutFocus = '';
 
   @override
@@ -94,7 +94,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         _selectedExercises
           ..clear()
           ..addAll(mapped);
-        _workoutDayLabel = session['day']?.toString() ?? 'Today';
+        _workoutDayLabel = session['day']?.toString() ?? 'Hôm nay';
         _workoutFocus = session['focus']?.toString() ?? '';
       });
     } catch (_) {
@@ -108,8 +108,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   Exercise _exerciseFromSession(Map<String, dynamic> item) {
     final id = item['exerciseId']?.toString() ?? item['name']?.toString() ?? '';
-    final name = item['name']?.toString() ?? 'Exercise';
-    final muscle = item['muscleGroup']?.toString() ?? 'Unknown';
+    final name = item['name']?.toString() ?? 'Bài tập';
+    final muscle = item['muscleGroup']?.toString() ?? 'Chưa xác định';
     final sets = item['sets']?.toString() ?? '3';
     final reps = item['reps']?.toString() ?? '10';
     return Exercise.fromJson({

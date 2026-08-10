@@ -37,31 +37,31 @@ class _OnboardingGoalScreenState extends State<OnboardingGoalScreen> {
   final List<FitnessGoal> goals = const [
     FitnessGoal(
       title: 'Tăng Cơ Bắp',
-      subtitle: 'Build Muscle',
+      subtitle: 'Xây dựng cơ bắp',
       icon: PhosphorIconsBold.barbell,
       color: AppColors.primary,
     ),
     FitnessGoal(
       title: 'Giảm Cân',
-      subtitle: 'Lose Weight',
+      subtitle: 'Giảm cân',
       icon: PhosphorIconsBold.fire,
       color: Color(0xFFFFB545),
     ),
     FitnessGoal(
       title: 'Tăng Sức Mạnh',
-      subtitle: 'Increase Strength',
+      subtitle: 'Tăng sức mạnh',
       icon: PhosphorIconsBold.lightning,
       color: Color(0xFF8B5CF6),
     ),
     FitnessGoal(
       title: 'Tăng Sức Bền',
-      subtitle: 'Boost Endurance',
+      subtitle: 'Tăng sức bền',
       icon: PhosphorIconsBold.chartLine,
       color: Color(0xFF06B6D4),
     ),
     FitnessGoal(
       title: 'Giữ Sức Khỏe',
-      subtitle: 'Stay Healthy',
+      subtitle: 'Giữ sức khỏe',
       icon: PhosphorIconsBold.heart,
       color: Color(0xFFFF5C8A),
     ),

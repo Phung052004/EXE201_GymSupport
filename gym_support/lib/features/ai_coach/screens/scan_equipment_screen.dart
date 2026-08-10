@@ -153,7 +153,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'AI Analysis',
+          'Phân tích AI',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -195,17 +195,17 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
       child: Row(
         children: [
           _ModeTab(
-            label: 'Body',
+            label: 'Cơ thể',
             isActive: _currentMode == 'body_check',
             onTap: () => setState(() => _currentMode = 'body_check'),
           ),
           _ModeTab(
-            label: 'Form',
+            label: 'Form tập',
             isActive: _currentMode == 'form_check',
             onTap: () => setState(() => _currentMode = 'form_check'),
           ),
           _ModeTab(
-            label: 'Equipment',
+            label: 'Dụng cụ',
             isActive: _currentMode == 'equipment_info',
             onTap: () => setState(() => _currentMode = 'equipment_info'),
           ),
@@ -415,7 +415,7 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
                     )
                   : const Icon(PhosphorIconsBold.sparkle, size: 20),
               label: Text(
-                isLoading ? 'Đang phân tích...' : 'Bắt đầu Analyze',
+                isLoading ? 'Đang phân tích...' : 'Bắt đầu phân tích',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -472,15 +472,15 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
     switch (_currentMode) {
       case 'body_check':
         msg =
-            'Bạn chưa phân tích vóc dáng.\nHãy chọn ảnh cơ thể rõ ràng rồi bấm Analyze.';
+            'Bạn chưa phân tích vóc dáng.\nHãy chọn ảnh cơ thể rõ ràng rồi bấm Bắt đầu phân tích.';
         break;
       case 'form_check':
         msg =
-            'Bạn chưa kiểm tra form tập.\nHãy chọn video động tác rồi bấm Analyze.';
+            'Bạn chưa kiểm tra form tập.\nHãy chọn video động tác rồi bấm Bắt đầu phân tích.';
         break;
       case 'equipment_info':
         msg =
-            'Bạn chưa phân tích máy tập.\nHãy chọn ảnh máy tập hoặc dụng cụ rồi bấm Analyze.';
+            'Bạn chưa phân tích máy tập.\nHãy chọn ảnh máy tập hoặc dụng cụ rồi bấm Bắt đầu phân tích.';
         break;
     }
     return Center(
@@ -781,20 +781,20 @@ class _ScanEquipmentScreenState extends State<ScanEquipmentScreen> {
 
   String _buildChatSummaryMessage(Map<String, dynamic> data) {
     final buffer = StringBuffer();
-    String prefix = 'Analyze Result';
-    if (_currentMode == 'form_check') prefix = 'Form Check';
-    if (_currentMode == 'body_check') prefix = 'Body Analysis';
-    if (_currentMode == 'equipment_info') prefix = 'Equipment Scan';
+    String prefix = 'Kết quả phân tích';
+    if (_currentMode == 'form_check') prefix = 'Kiểm tra form';
+    if (_currentMode == 'body_check') prefix = 'Phân tích cơ thể';
+    if (_currentMode == 'equipment_info') prefix = 'Quét dụng cụ';
 
     buffer.writeln('[$prefix]');
-    buffer.writeln('Title: ${data['title'] ?? 'N/A'}');
-    buffer.writeln('Summary: ${data['summary'] ?? ''}');
+    buffer.writeln('Tiêu đề: ${data['title'] ?? 'Không có'}');
+    buffer.writeln('Tóm tắt: ${data['summary'] ?? ''}');
 
     // Add a few highlights based on mode
     if (_currentMode == 'form_check') {
-      buffer.writeln('Exercise: ${data['detectedExercise'] ?? 'N/A'}');
-      buffer.writeln('Verdict: ${data['overallVerdict'] ?? ''}');
-      buffer.writeln('Risk: ${data['riskLevel'] ?? 'N/A'}');
+      buffer.writeln('Bài tập: ${data['detectedExercise'] ?? 'Không có'}');
+      buffer.writeln('Đánh giá: ${data['overallVerdict'] ?? ''}');
+      buffer.writeln('Mức độ rủi ro: ${data['riskLevel'] ?? 'Không có'}');
     }
 
     return buffer.toString().trim();

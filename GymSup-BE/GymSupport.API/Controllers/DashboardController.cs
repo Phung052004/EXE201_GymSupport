@@ -39,7 +39,7 @@ public class DashboardController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving dashboard summary", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy dữ liệu tổng quan dashboard", error = ex.Message });
         }
     }
 
@@ -58,14 +58,14 @@ public class DashboardController : ControllerBase
         try
         {
             if (year < 2000 || year > DateTime.UtcNow.Year + 10)
-                return BadRequest(new { message = "Invalid year" });
+                return BadRequest(new { message = "Năm không hợp lệ" });
 
             var growth = await _dashboardService.GetUserGrowthAsync(year);
             return Ok(growth);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving user growth data", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy dữ liệu tăng trưởng người dùng", error = ex.Message });
         }
     }
 
@@ -84,14 +84,14 @@ public class DashboardController : ControllerBase
         try
         {
             if (year < 2000 || year > DateTime.UtcNow.Year + 10)
-                return BadRequest(new { message = "Invalid year" });
+                return BadRequest(new { message = "Năm không hợp lệ" });
 
             var revenue = await _dashboardService.GetRevenueMonthlyAsync(year);
             return Ok(revenue);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving monthly revenue data", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy dữ liệu doanh thu theo tháng", error = ex.Message });
         }
     }
 
@@ -110,14 +110,14 @@ public class DashboardController : ControllerBase
         try
         {
             if (year < 2000 || year > DateTime.UtcNow.Year + 10)
-                return BadRequest(new { message = "Invalid year" });
+                return BadRequest(new { message = "Năm không hợp lệ" });
 
             var revenue = await _dashboardService.GetRevenueByPlanAsync(year);
             return Ok(revenue);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving revenue by plan data", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy dữ liệu doanh thu theo gói", error = ex.Message });
         }
     }
 
@@ -139,7 +139,7 @@ public class DashboardController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving users by subscription data", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy dữ liệu người dùng theo gói đăng ký", error = ex.Message });
         }
     }
 }

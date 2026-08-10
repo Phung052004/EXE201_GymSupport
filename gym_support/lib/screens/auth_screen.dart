@@ -245,7 +245,7 @@ class _AuthScreenState extends State<AuthScreen>
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Your AI-powered fitness companion',
+                    'Người bạn đồng hành tập luyện với sức mạnh AI',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.textPrimary,

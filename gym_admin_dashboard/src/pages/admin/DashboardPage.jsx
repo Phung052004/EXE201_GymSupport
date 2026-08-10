@@ -135,7 +135,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="section-title">Biểu đồ theo năm</h2>
-            <p className="section-subtitle">Tăng trưởng user và doanh thu theo tháng</p>
+            <p className="section-subtitle">Tăng trưởng người dùng và doanh thu theo tháng</p>
           </div>
           <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
             Năm
@@ -153,8 +153,8 @@ export default function DashboardPage() {
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
           <div className="rounded-xl border border-slate-100 p-4">
-            <h3 className="text-sm font-black text-slate-700">Tăng trưởng User</h3>
-            <p className="mt-0.5 text-xs text-slate-400">User mới và tổng user theo tháng</p>
+            <h3 className="text-sm font-black text-slate-700">Tăng trưởng người dùng</h3>
+            <p className="mt-0.5 text-xs text-slate-400">Người dùng mới và tổng người dùng theo tháng</p>
             <div className="mt-4 h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={growthData}>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
       {/* Pie charts */}
       <section className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="section-title">User theo gói đăng ký</h3>
+          <h3 className="section-title">Người dùng theo gói đăng ký</h3>
           <p className="section-subtitle">Phân phối subscription hiện tại</p>
           <div className="mt-4 h-72">
             {subscriptionData.length === 0 ? (
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                       <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v) => [v, 'Users']} />
+                  <Tooltip formatter={(v) => [v, 'Người dùng']} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>

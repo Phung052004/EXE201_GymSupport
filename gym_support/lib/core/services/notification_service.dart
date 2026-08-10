@@ -100,7 +100,7 @@ class NotificationService {
     );
     await _plugin.show(
       0,
-      '🏆 New Personal Record!',
+      '🏆 Kỷ lục cá nhân mới!',
       '$exerciseName — $value',
       const NotificationDetails(
         android: androidDetails,

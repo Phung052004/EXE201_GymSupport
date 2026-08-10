@@ -195,7 +195,7 @@ public class AIController : ControllerBase
         return Ok(new
         {
             success = true,
-            message = "Applied successfully"
+            message = "Áp dụng thành công"
         });
     }
 

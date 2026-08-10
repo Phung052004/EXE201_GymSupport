@@ -1,10 +1,10 @@
 import { AlertCircle } from 'lucide-react'
 
-export default function DataTable({ columns, data, loading, error, emptyText = 'No records found' }) {
+export default function DataTable({ columns, data, loading, error, emptyText = 'Không tìm thấy dữ liệu' }) {
   if (loading) {
     return (
       <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
-        Loading data...
+        Đang tải dữ liệu...
       </div>
     )
   }

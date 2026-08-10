@@ -9,7 +9,7 @@ import { adminApi } from '../../services/adminApi.js'
 const EMPTY_FORM = { name: '', price: '', durationMonths: '1', isActive: true }
 
 const fmtPrice = (price) => {
-  if (!price && price !== 0) return 'N/A'
+  if (!price && price !== 0) return 'Chưa có'
   return Number(price).toLocaleString('vi-VN') + ' đ'
 }
 
@@ -141,7 +141,7 @@ export default function SubscriptionPlansPage() {
       {/* Header */}
       <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <div>
-          <h2 className="text-lg font-black text-slate-950">Gói Subscription</h2>
+          <h2 className="text-lg font-black text-slate-950">Gói dịch vụ</h2>
           <p className="mt-1 text-sm text-slate-500">Tạo, chỉnh sửa và quản lý các gói dịch vụ.</p>
         </div>
         <button className="btn-primary flex items-center gap-2" onClick={openCreate}>

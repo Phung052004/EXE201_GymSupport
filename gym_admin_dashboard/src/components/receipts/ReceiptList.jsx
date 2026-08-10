@@ -18,7 +18,7 @@ const EMAIL_STATUS_LABEL = { Sent: 'Đã gửi mail', Failed: 'Gửi mail lỗi'
 export default function ReceiptList({ loading, error, receipts }) {
   if (loading) return <p className="py-8 text-center text-sm text-slate-400">Đang tải...</p>
   if (error) return <p className="py-8 text-center text-sm text-rose-600">{error}</p>
-  if (!receipts?.length) return <p className="py-8 text-center text-sm text-slate-400">Chưa có receipt nào</p>
+  if (!receipts?.length) return <p className="py-8 text-center text-sm text-slate-400">Chưa có hóa đơn nào</p>
 
   return (
     <div className="space-y-3">

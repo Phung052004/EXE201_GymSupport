@@ -40,18 +40,18 @@ export default function FeedbacksPage() {
   }
 
   const columns = [
-    { key: 'user', header: 'User', render: (row) => <span className="font-black text-slate-950">{row.user}</span> },
-    { key: 'type', header: 'Type' },
-    { key: 'relatedFeature', header: 'Feature' },
-    { key: 'status', header: 'Status', render: (row) => <Badge>{row.status}</Badge> },
-    { key: 'createdDate', header: 'Created' },
+    { key: 'user', header: 'Người dùng', render: (row) => <span className="font-black text-slate-950">{row.user}</span> },
+    { key: 'type', header: 'Loại' },
+    { key: 'relatedFeature', header: 'Tính năng' },
+    { key: 'status', header: 'Trạng thái', render: (row) => <Badge>{row.status}</Badge> },
+    { key: 'createdDate', header: 'Ngày tạo' },
     {
       key: 'actions',
-      header: 'Actions',
+      header: 'Thao tác',
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary" onClick={() => setDetail(row)}><Eye size={15} /> View</button>
-          <button className="btn-secondary" onClick={() => setDeleteTarget(row)}><Trash2 size={15} /> Delete</button>
+          <button className="btn-secondary" onClick={() => setDetail(row)}><Eye size={15} /> Xem</button>
+          <button className="btn-secondary" onClick={() => setDeleteTarget(row)}><Trash2 size={15} /> Xóa</button>
         </div>
       ),
     },
@@ -61,55 +61,55 @@ export default function FeedbacksPage() {
     <div className="space-y-4">
       <div className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-[1fr_220px] lg:items-end">
         <div>
-          <h2 className="text-lg font-black text-slate-950">Feedbacks</h2>
-          <p className="text-sm text-slate-500">Track app issues, AI reports and content corrections from users.</p>
+          <h2 className="text-lg font-black text-slate-950">Phản hồi</h2>
+          <p className="text-sm text-slate-500">Theo dõi lỗi ứng dụng, báo cáo AI và các phản ánh nội dung từ người dùng.</p>
         </div>
-        <FormInput label="Status Filter" as="select" value={statusFilter} options={['All', 'Pending', 'In Progress', 'Resolved']} onChange={(event) => setStatusFilter(event.target.value)} />
+        <FormInput label="Lọc theo trạng thái" as="select" value={statusFilter} options={[{ value: 'All', label: 'Tất cả' }, { value: 'Pending', label: 'Đang chờ' }, { value: 'In Progress', label: 'Đang xử lý' }, { value: 'Resolved', label: 'Đã xử lý' }]} onChange={(event) => setStatusFilter(event.target.value)} />
       </div>
 
       <DataTable columns={columns} data={filteredRows} loading={loading} />
 
-      <Modal open={!!detail} title="Feedback Detail" onClose={() => setDetail(null)}>
+      <Modal open={!!detail} title="Chi tiết phản hồi" onClose={() => setDetail(null)}>
         {detail ? (
           <div className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs font-bold uppercase text-slate-500">User</p>
+                <p className="text-xs font-bold uppercase text-slate-500">Người dùng</p>
                 <p className="mt-1 font-black text-slate-950">{detail.user}</p>
               </div>
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs font-bold uppercase text-slate-500">Type</p>
+                <p className="text-xs font-bold uppercase text-slate-500">Loại</p>
                 <p className="mt-1 font-black text-slate-950">{detail.type}</p>
               </div>
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs font-bold uppercase text-slate-500">Feature</p>
+                <p className="text-xs font-bold uppercase text-slate-500">Tính năng</p>
                 <p className="mt-1 font-black text-slate-950">{detail.relatedFeature}</p>
               </div>
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs font-bold uppercase text-slate-500">Status</p>
+                <p className="text-xs font-bold uppercase text-slate-500">Trạng thái</p>
                 <div className="mt-1"><Badge>{detail.status}</Badge></div>
               </div>
             </div>
 
             <div>
-              <h3 className="text-sm font-black text-slate-950">Message</h3>
+              <h3 className="text-sm font-black text-slate-950">Nội dung</h3>
               <p className="mt-2 rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-600">{detail.message}</p>
             </div>
             <div>
-              <h3 className="text-sm font-black text-slate-950">Reply Note</h3>
-              <p className="mt-2 rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-600">{detail.replyNote || 'No reply note yet.'}</p>
+              <h3 className="text-sm font-black text-slate-950">Ghi chú phản hồi</h3>
+              <p className="mt-2 rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-600">{detail.replyNote || 'Chưa có ghi chú phản hồi.'}</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div className="w-full sm:max-w-xs">
-                <FormInput label="Update Status" as="select" value={detail.status} options={['Pending', 'In Progress', 'Resolved']} onChange={(event) => updateStatus(detail, event.target.value)} />
+                <FormInput label="Cập nhật trạng thái" as="select" value={detail.status} options={[{ value: 'Pending', label: 'Đang chờ' }, { value: 'In Progress', label: 'Đang xử lý' }, { value: 'Resolved', label: 'Đã xử lý' }]} onChange={(event) => updateStatus(detail, event.target.value)} />
               </div>
-              <button className="btn-danger" onClick={() => setDeleteTarget(detail)}><Trash2 size={16} /> Delete Feedback</button>
+              <button className="btn-danger" onClick={() => setDeleteTarget(detail)}><Trash2 size={16} /> Xóa phản hồi</button>
             </div>
           </div>
         ) : null}
       </Modal>
 
-      <ConfirmDialog open={!!deleteTarget} title="Delete feedback" message={`Delete feedback from ${deleteTarget?.user}?`} onCancel={() => setDeleteTarget(null)} onConfirm={remove} confirmText="Delete" />
+      <ConfirmDialog open={!!deleteTarget} title="Xóa phản hồi" message={`Xóa phản hồi từ ${deleteTarget?.user}?`} onCancel={() => setDeleteTarget(null)} onConfirm={remove} confirmText="Xóa" />
     </div>
   )
 }

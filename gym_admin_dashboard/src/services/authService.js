@@ -36,7 +36,7 @@ function extractUser(payload) {
 
 export async function login(email, password) {
   if (!email || !password) {
-    throw new Error('Email and password are required.')
+    throw new Error('Vui lòng nhập đầy đủ email và mật khẩu.')
   }
 
   let lastError
@@ -47,7 +47,7 @@ export async function login(email, password) {
       const token = extractToken(payload)
 
       if (!token) {
-        throw new Error('Login response did not contain a valid JWT token.')
+        throw new Error('Phản hồi đăng nhập không chứa token hợp lệ.')
       }
 
       localStorage.setItem('token', token)
@@ -71,7 +71,7 @@ export async function login(email, password) {
     }
   }
 
-  throw lastError || new Error('Login request failed.')
+  throw lastError || new Error('Yêu cầu đăng nhập thất bại.')
 }
 
 export function logout() {

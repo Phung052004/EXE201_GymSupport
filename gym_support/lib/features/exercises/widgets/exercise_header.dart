@@ -21,7 +21,7 @@ class ExerciseHeader extends StatelessWidget {
       children: [
         const Expanded(
           child: Text(
-            'Exercises',
+            'Bài tập',
             style: TextStyle(
               color: Colors.white,
               fontSize: 28,

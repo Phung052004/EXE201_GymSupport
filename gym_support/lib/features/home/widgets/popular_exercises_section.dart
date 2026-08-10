@@ -62,7 +62,7 @@ class _ExerciseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = item['exerciseName']?.toString() ??
         item['name']?.toString() ??
-        'Exercise';
+        'Bài tập';
     final count = item['sessionCount'] ?? item['count'] ?? item['weekCount'] ?? 0;
     final imageUrl = item['imageUrl']?.toString() ?? '';
     final muscle = item['muscleName']?.toString() ?? item['muscleGroup']?.toString() ?? '';

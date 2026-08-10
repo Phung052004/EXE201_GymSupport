@@ -5,9 +5,9 @@ import { getCurrentUser, logout } from '../../services/authService.js'
 export default function Header({ title, onMenuClick }) {
   const navigate = useNavigate()
   const user = getCurrentUser()
-  const displayName = user?.fullName || user?.email || 'Admin'
+  const displayName = user?.fullName || user?.email || 'Quản trị viên'
   const initial = (displayName[0] || 'A').toUpperCase()
-  const roleLabel = user?.role || 'Admin'
+  const roleLabel = user?.role || 'Quản trị viên'
 
   const handleLogout = () => {
     logout()

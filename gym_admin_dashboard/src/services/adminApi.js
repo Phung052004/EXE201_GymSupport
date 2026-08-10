@@ -50,14 +50,14 @@ async function request(path, { method = 'GET', body, optional = false, emptyValu
 
 const asArray = (value) => (Array.isArray(value) ? value : [])
 const formatDate = (value) => {
-  if (!value) return 'N/A'
+  if (!value) return 'Chưa có'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'N/A'
+  if (Number.isNaN(date.getTime())) return 'Chưa có'
   return date.toISOString().slice(0, 10)
 }
 const statusFromActive = (isActive) => (isActive === false ? 'Blocked' : 'Active')
 const activeFromStatus = (status) => status !== 'Hidden' && status !== 'Blocked'
-const fallback = (value) => value ?? 'N/A'
+const fallback = (value) => value ?? 'Chưa có'
 
 const normalizeCustomer = (customer) => customer ?? {}
 
@@ -72,10 +72,10 @@ const normalizeUser = (user, customer, plans = [], aiHistory = []) => {
     email: user.email,
     role: user.role,
     gender: fallback(profile.gender),
-    age: profile.age || 'N/A',
-    height: profile.heightCm || 'N/A',
-    weight: profile.weightKg || 'N/A',
-    bmi: profile.bmi || 'N/A',
+    age: profile.age || 'Chưa có',
+    height: profile.heightCm || 'Chưa có',
+    weight: profile.weightKg || 'Chưa có',
+    bmi: profile.bmi || 'Chưa có',
     goal: fallback(profile.goal),
     experienceLevel: fallback(profile.experienceLevel),
     injuryNotes: fallback(profile.injuryNotes),
@@ -124,7 +124,7 @@ const normalizeExercise = (exercise, muscleLookup = { byId: {}, byName: {} }) =>
     difficulty: exercise.difficulty,
     imageUrl: exercise.imageUrl,
     videoUrl: exercise.videoUrl,
-    mainMuscleGroup: impacts[0]?.muscle || 'N/A',
+    mainMuscleGroup: impacts[0]?.muscle || 'Chưa có',
     secondaryMuscleGroups: impacts.slice(1).map((impact) => impact.muscle),
     muscleImpacts: impacts,
     description: exercise.description || '',
@@ -132,9 +132,9 @@ const normalizeExercise = (exercise, muscleLookup = { byId: {}, byName: {} }) =>
     safetyNotes: exercise.safetyNotes || '',
     commonMistakes: exercise.commonMistakes || '',
     tips: exercise.tips || '',
-    defaultSets: exercise.defaultSets ?? 'N/A',
-    defaultReps: exercise.defaultReps || 'N/A',
-    restTime: exercise.restTimeSeconds ? `${exercise.restTimeSeconds}` : 'N/A',
+    defaultSets: exercise.defaultSets ?? 'Chưa có',
+    defaultReps: exercise.defaultReps || 'Chưa có',
+    restTime: exercise.restTimeSeconds ? `${exercise.restTimeSeconds}` : 'Chưa có',
     status: 'Active',
   }
 }
@@ -189,7 +189,7 @@ const normalizeWorkoutTemplate = (plan) => ({
   userId: plan.userId,
   name: plan.name,
   goal: plan.goal,
-  experienceLevel: 'N/A',
+  experienceLevel: 'Chưa có',
   daysPerWeek: plan.daysPerWeek,
   description: '',
   status: plan.isActive ? 'Active' : 'Hidden',
@@ -202,7 +202,7 @@ const normalizeWorkoutTemplate = (plan) => ({
       exercise: exercise.exerciseName || exercise.exerciseId,
       sets: exercise.sets,
       reps: exercise.reps,
-      restTime: 'N/A',
+      restTime: 'Chưa có',
       notes: exercise.notes || '',
     })),
   })),

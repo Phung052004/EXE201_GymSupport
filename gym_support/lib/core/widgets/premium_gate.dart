@@ -55,7 +55,7 @@ class _PremiumSheet extends StatelessWidget {
   const _PremiumSheet();
 
   static const _features = [
-    (PhosphorIconsBold.robot,      AppColors.primary,  'AI Coach Chat',          'Trò chuyện không giới hạn với AI Coach'),
+    (PhosphorIconsBold.robot,      AppColors.primary,  'Trò chuyện AI Coach',    'Trò chuyện không giới hạn với AI Coach'),
     (PhosphorIconsBold.sparkle,    AppColors.violet,   'Tạo lịch tập AI',        'AI tự động tạo lịch tập cá nhân hóa'),
     (PhosphorIconsBold.chartLine,  AppColors.blue,     'Phân tích tiến trình',   'Báo cáo chuyên sâu về cơ bắp & sức mạnh'),
     (PhosphorIconsBold.camera,     AppColors.orange,   'Scan thiết bị',          'Nhận diện thiết bị bằng camera AI'),

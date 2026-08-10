@@ -110,7 +110,7 @@ class _ActiveWorkoutExerciseCardState extends State<ActiveWorkoutExerciseCard> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'TARGET: ${widget.exercise.muscleGroup.toUpperCase()}',
+                        'MỤC TIÊU: ${widget.exercise.muscleGroup.toUpperCase()}',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.36),
                           fontSize: 10,
@@ -147,9 +147,9 @@ class _ActiveWorkoutExerciseCardState extends State<ActiveWorkoutExerciseCard> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         children: [
-          Text('SET ${index + 1}', style: TextStyle(color: isDone ? AppColors.primary : Colors.white24, fontSize: 11, fontWeight: FontWeight.w900)),
+          Text('HIỆP ${index + 1}', style: TextStyle(color: isDone ? AppColors.primary : Colors.white24, fontSize: 11, fontWeight: FontWeight.w900)),
           const Spacer(),
-          _buildInputBox(repsControllers[index], 'REPS', isDone),
+          _buildInputBox(repsControllers[index], 'LẦN', isDone),
           const SizedBox(width: 10),
           _buildInputBox(weightControllers[index], 'KG', isDone),
           const SizedBox(width: 10),

@@ -37,12 +37,12 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
   final TextEditingController _healthController = TextEditingController();
   late Future<Map<String, dynamic>?> _profileFuture;
 
-  String _goal = 'AI Decide';
-  String _experience = 'AI Decide';
+  String _goal = 'AI tự chọn';
+  String _experience = 'AI tự chọn';
   int? _daysPerWeek;
   final Set<String> _trainingDays = {};
-  String _intensity = 'AI Decide';
-  String _condition = 'AI Decide';
+  String _intensity = 'AI tự chọn';
+  String _condition = 'AI tự chọn';
 
   bool _loading = false;
   bool _applying = false;
@@ -50,7 +50,7 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
   Map<String, dynamic>? _result;
   List<Map<String, dynamic>> _suggestions = const [];
 
-  static const _aiDecide = 'AI Decide';
+  static const _aiDecide = 'AI tự chọn';
   static const _goals = [
     _aiDecide,
     'Tăng cơ',
@@ -314,7 +314,7 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'AI Workout Plan',
+                'Kế hoạch tập AI',
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 22,

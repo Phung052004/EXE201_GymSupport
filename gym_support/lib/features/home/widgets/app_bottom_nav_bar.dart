@@ -13,11 +13,11 @@ class AppBottomNavBar extends StatelessWidget {
   });
 
   static const _items = [
-    _NavItem(active: PhosphorIconsBold.house,         inactive: PhosphorIconsRegular.house,         label: 'Home'),
+    _NavItem(active: PhosphorIconsBold.house,         inactive: PhosphorIconsRegular.house,         label: 'Trang chủ'),
     _NavItem(active: PhosphorIconsBold.sparkle,       inactive: PhosphorIconsRegular.sparkle,       label: 'AI Coach'),
-    _NavItem(active: PhosphorIconsBold.barbell,       inactive: PhosphorIconsRegular.barbell,       label: 'Workout'),
-    _NavItem(active: PhosphorIconsBold.calendarCheck, inactive: PhosphorIconsRegular.calendarCheck, label: 'Routine'),
-    _NavItem(active: PhosphorIconsBold.user,          inactive: PhosphorIconsRegular.user,          label: 'Profile'),
+    _NavItem(active: PhosphorIconsBold.barbell,       inactive: PhosphorIconsRegular.barbell,       label: 'Tập luyện'),
+    _NavItem(active: PhosphorIconsBold.calendarCheck, inactive: PhosphorIconsRegular.calendarCheck, label: 'Lịch tập'),
+    _NavItem(active: PhosphorIconsBold.user,          inactive: PhosphorIconsRegular.user,          label: 'Hồ sơ'),
   ];
 
   @override

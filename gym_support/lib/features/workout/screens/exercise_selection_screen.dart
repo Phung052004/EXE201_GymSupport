@@ -94,7 +94,7 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Select Exercises',
+          'Chọn bài tập',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -125,7 +125,7 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
             onChanged: (val) => setState(() => _searchQuery = val),
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Search Exercise',
+              hintText: 'Tìm kiếm bài tập',
               hintStyle: const TextStyle(color: Colors.white38),
               prefixIcon: const Icon(Icons.search, color: Colors.white38),
               filled: true,
@@ -141,7 +141,7 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
             children: [
               Expanded(
                 child: _buildDropdown(
-                  hint: 'Category',
+                  hint: 'Danh mục',
                   value: _selectedCategory,
                   items: _categories
                       .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -152,7 +152,7 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildDropdown(
-                  hint: 'Muscle',
+                  hint: 'Nhóm cơ',
                   value: _selectedMuscleId,
                   items: _muscles
                       .map(
@@ -221,7 +221,7 @@ class _ExerciseSelectionScreenState extends State<ExerciseSelectionScreen> {
         final exercise = filtered[index];
         return ExercisePickerCard(
           exercise: exercise,
-          actionLabel: 'Select',
+          actionLabel: 'Chọn',
           actionIcon: Icons.check_rounded,
           onAction: () => Navigator.pop(context, exercise),
         );

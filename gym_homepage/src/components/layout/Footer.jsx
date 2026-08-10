@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { Dumbbell } from 'lucide-react'
 
 const COLUMNS = [
   {
@@ -29,7 +28,7 @@ export default function Footer() {
           <div>
             <div className="mb-3 flex items-center gap-2 text-base font-bold text-brand-ink">
               <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-primary">
-                <Dumbbell className="h-3.5 w-3.5 text-white" />
+                <img src="/brand-icon.png" alt="" className="h-4 w-4" />
               </span>
               GymSup
             </div>

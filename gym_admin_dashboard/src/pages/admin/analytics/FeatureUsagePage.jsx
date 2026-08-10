@@ -87,7 +87,7 @@ export default function FeatureUsagePage() {
   const barData = features.map((f) => ({
     name: f.feature,
     'Lượt dùng': f.usageCount,
-    'User duy nhất': f.uniqueUsers,
+    'Người dùng duy nhất': f.uniqueUsers,
     color: FEATURE_CONFIG[f.feature]?.color ?? '#94a3b8',
   }))
   const pieData = features.filter((f) => f.usageCount > 0).map((f) => ({
@@ -105,9 +105,9 @@ export default function FeatureUsagePage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-black text-slate-900">Feature Usage</h2>
+          <h2 className="text-xl font-black text-slate-900">Mức sử dụng tính năng</h2>
           <p className="mt-0.5 text-sm text-slate-500">
-            Thống kê lượt sử dụng và số user cho từng tính năng
+            Thống kê lượt sử dụng và số người dùng cho từng tính năng
           </p>
         </div>
         <DateRangePicker from={range.from} to={range.to} onChange={setRange} onApply={load} />
@@ -127,7 +127,7 @@ export default function FeatureUsagePage() {
           <p className="mt-1 text-xs text-slate-400">tất cả tính năng</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="stat-label">Tổng user tham gia</p>
+          <p className="stat-label">Tổng người dùng tham gia</p>
           <p className="mt-2 text-2xl font-black text-slate-900">{loading ? '—' : totalUsers.toLocaleString()}</p>
           <p className="mt-1 text-xs text-slate-400">không loại trùng qua tính năng</p>
         </div>
@@ -142,8 +142,8 @@ export default function FeatureUsagePage() {
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Bar chart */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="section-title">Lượt dùng & User duy nhất</h3>
-          <p className="section-subtitle">So sánh tổng lượt dùng và số user unique cho từng tính năng</p>
+          <h3 className="section-title">Lượt dùng & Người dùng duy nhất</h3>
+          <p className="section-subtitle">So sánh tổng lượt dùng và số người dùng duy nhất cho từng tính năng</p>
           {loading ? (
             <div className="mt-6 flex h-64 items-center justify-center text-sm text-slate-400">Đang tải...</div>
           ) : (
@@ -160,7 +160,7 @@ export default function FeatureUsagePage() {
                       <Cell key={entry.name} fill={entry.color} />
                     ))}
                   </Bar>
-                  <Bar dataKey="User duy nhất" radius={[4, 4, 0, 0]} fill="#e2e8f0" maxBarSize={32} />
+                  <Bar dataKey="Người dùng duy nhất" radius={[4, 4, 0, 0]} fill="#e2e8f0" maxBarSize={32} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -220,7 +220,7 @@ export default function FeatureUsagePage() {
                   Lượt dùng
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                  User duy nhất
+                  Người dùng duy nhất
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
                   % tổng

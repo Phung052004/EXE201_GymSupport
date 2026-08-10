@@ -136,7 +136,7 @@ public class HomeController : ControllerBase
         {
             exerciseMap.TryGetValue(item.ExerciseId, out var exercise);
 
-            var muscleName = "Unknown";
+            var muscleName = "Không xác định";
             var firstImpact = exercise?.MuscleImpacts.FirstOrDefault();
             if (firstImpact != null && muscleMap.TryGetValue(firstImpact.MuscleId, out var muscle))
                 muscleName = string.IsNullOrWhiteSpace(muscle.Name) ? muscle.Category : muscle.Name;
@@ -145,7 +145,7 @@ public class HomeController : ControllerBase
             {
                 id = item.ExerciseId,
                 name = string.IsNullOrWhiteSpace(item.ExerciseName)
-                    ? exercise?.Name ?? "Exercise"
+                    ? exercise?.Name ?? "Bài tập"
                     : item.ExerciseName,
                 muscle = muscleName,
                 imageUrl = exercise?.ImageUrl ?? "",
@@ -180,10 +180,10 @@ public class HomeController : ControllerBase
     private static string DisplayDay(string? day)
     {
         if (string.IsNullOrWhiteSpace(day))
-            return "Today";
+            return "Hôm nay";
 
         if (string.Equals(day, "Today", StringComparison.OrdinalIgnoreCase))
-            return "Today";
+            return "Hôm nay";
 
         return $"{EnglishDayToVietnamese(day)} - {day}";
     }

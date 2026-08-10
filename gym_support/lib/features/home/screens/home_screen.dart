@@ -125,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final data = Map<String, dynamic>.from(item);
       return MuscleProgressData(
         id: data['muscleId']?.toString() ?? data['id']?.toString() ?? '',
-        name: data['name']?.toString() ?? 'Unknown',
+        name: data['name']?.toString() ?? 'Không xác định',
         category: data['category']?.toString() ?? '',
         level: int.tryParse(
               data['level']?.toString().replaceAll('Lv', '').trim() ?? '',
@@ -421,7 +421,7 @@ class _HomeHeader extends StatelessWidget {
                       icon: PhosphorIconsBold.fire,
                       iconColor: const Color(0xFFFF6B35),
                       value: '$streak',
-                      label: 'Streak',
+                      label: 'Chuỗi ngày',
                     ),
                     const SizedBox(width: 10),
                     _MiniStatCard(

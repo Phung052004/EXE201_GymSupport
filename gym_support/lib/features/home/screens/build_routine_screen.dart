@@ -1095,9 +1095,9 @@ class _DayExerciseCard extends StatelessWidget {
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
-                                        _Badge('${ex.sets} sets', AppColors.primary),
+                                        _Badge('${ex.sets} hiệp', AppColors.primary),
                                         const SizedBox(width: 6),
-                                        _Badge('${ex.reps} reps', AppColors.orange),
+                                        _Badge('${ex.reps} lần', AppColors.orange),
                                       ],
                                     ),
                                   ],

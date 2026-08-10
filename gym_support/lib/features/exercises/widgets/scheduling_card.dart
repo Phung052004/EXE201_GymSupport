@@ -24,7 +24,7 @@ class SchedulingCard extends StatelessWidget {
           ),
           const SizedBox(width: 9),
           Text(
-            'Scheduling for: ',
+            'Lên lịch cho: ',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.48),
               fontSize: 13,
@@ -32,7 +32,7 @@ class SchedulingCard extends StatelessWidget {
             ),
           ),
           const Text(
-            'Today',
+            'Hôm nay',
             style: TextStyle(
               color: AppColors.primary,
               fontSize: 13,

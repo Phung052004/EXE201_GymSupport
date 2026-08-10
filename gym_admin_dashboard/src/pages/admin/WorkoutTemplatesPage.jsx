@@ -27,19 +27,19 @@ export default function WorkoutTemplatesPage() {
   }
 
   const columns = [
-    { key: 'name', header: 'Template Name', render: (row) => <span className="font-black text-slate-950">{row.name}</span> },
-    { key: 'goal', header: 'Goal' },
-    { key: 'experienceLevel', header: 'Experience Level' },
-    { key: 'daysPerWeek', header: 'Days / Week' },
-    { key: 'status', header: 'Status', render: (row) => <Badge>{row.status}</Badge> },
+    { key: 'name', header: 'Tên chương trình', render: (row) => <span className="font-black text-slate-950">{row.name}</span> },
+    { key: 'goal', header: 'Mục tiêu' },
+    { key: 'experienceLevel', header: 'Trình độ' },
+    { key: 'daysPerWeek', header: 'Số buổi/tuần' },
+    { key: 'status', header: 'Trạng thái', render: (row) => <Badge>{row.status}</Badge> },
     {
       key: 'actions',
-      header: 'Actions',
+      header: 'Thao tác',
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary" onClick={() => setDetail(row)}><Eye size={15} /> View</button>
-          <Link className="btn-secondary" to={`/admin/workout-templates/${row.id}`}><Edit size={15} /> Edit</Link>
-          <button className="btn-secondary" onClick={() => setDeleteTarget(row)}><Trash2 size={15} /> Hide</button>
+          <button className="btn-secondary" onClick={() => setDetail(row)}><Eye size={15} /> Xem</button>
+          <Link className="btn-secondary" to={`/admin/workout-templates/${row.id}`}><Edit size={15} /> Sửa</Link>
+          <button className="btn-secondary" onClick={() => setDeleteTarget(row)}><Trash2 size={15} /> Ẩn</button>
         </div>
       ),
     },
@@ -49,10 +49,10 @@ export default function WorkoutTemplatesPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-lg font-black text-slate-950">Workout Templates</h2>
-          <p className="text-sm text-slate-500">Manage reusable plans for goals, levels and weekly splits.</p>
+          <h2 className="text-lg font-black text-slate-950">Chương trình tập mẫu</h2>
+          <p className="text-sm text-slate-500">Quản lý các chương trình tập dùng chung theo mục tiêu, trình độ và lịch tập trong tuần.</p>
         </div>
-        <Link className="btn-primary" to="/admin/workout-templates/new"><Plus size={16} /> Create Template</Link>
+        <Link className="btn-primary" to="/admin/workout-templates/new"><Plus size={16} /> Tạo chương trình</Link>
       </div>
       <DataTable columns={columns} data={rows} loading={loading} />
 
@@ -68,7 +68,7 @@ export default function WorkoutTemplatesPage() {
                   {day.exercises.map((exercise) => (
                     <div key={`${day.dayName}-${exercise.exercise}`} className="rounded-md bg-slate-50 px-3 py-2 text-sm">
                       <span className="font-bold text-slate-900">{exercise.exercise}</span>
-                      <span className="text-slate-500"> - {exercise.sets} sets x {exercise.reps}, rest {exercise.restTime}</span>
+                      <span className="text-slate-500"> - {exercise.sets} hiệp x {exercise.reps}, nghỉ {exercise.restTime}</span>
                     </div>
                   ))}
                 </div>
@@ -78,7 +78,7 @@ export default function WorkoutTemplatesPage() {
         ) : null}
       </Modal>
 
-      <ConfirmDialog open={!!deleteTarget} title="Hide template" message={`Hide ${deleteTarget?.name}?`} onCancel={() => setDeleteTarget(null)} onConfirm={remove} confirmText="Hide" />
+      <ConfirmDialog open={!!deleteTarget} title="Ẩn chương trình" message={`Ẩn ${deleteTarget?.name}?`} onCancel={() => setDeleteTarget(null)} onConfirm={remove} confirmText="Ẩn" />
     </div>
   )
 }

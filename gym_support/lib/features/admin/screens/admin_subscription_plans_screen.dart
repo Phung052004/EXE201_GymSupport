@@ -202,7 +202,7 @@ class _AdminSubscriptionPlansScreenState
       appBar: widget.embedded
           ? null
           : AppBar(
-              title: const Text('Gói Subscription',
+              title: const Text('Gói đăng ký',
                   style: TextStyle(fontWeight: FontWeight.w800)),
               backgroundColor: AppColors.background,
               foregroundColor: AppColors.textPrimary,
@@ -271,7 +271,7 @@ class _AdminSubscriptionPlansScreenState
                                               BorderRadius.circular(50),
                                         ),
                                         child: Text(
-                                          active ? 'Active' : 'Inactive',
+                                          active ? 'Đang hoạt động' : 'Ngừng hoạt động',
                                           style: TextStyle(
                                             color: active
                                                 ? AppColors.success

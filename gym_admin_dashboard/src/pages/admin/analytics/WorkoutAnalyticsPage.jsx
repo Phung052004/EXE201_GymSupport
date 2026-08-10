@@ -66,9 +66,9 @@ export default function WorkoutAnalyticsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-black text-slate-900">Workout Analytics</h2>
+          <h2 className="text-xl font-black text-slate-900">Phân tích tập luyện</h2>
           <p className="mt-0.5 text-sm text-slate-500">
-            Hành vi tập luyện — bài tập phổ biến, nhóm cơ, user chăm chỉ
+            Hành vi tập luyện — bài tập phổ biến, nhóm cơ, người dùng chăm chỉ
           </p>
         </div>
         <DateRangePicker from={range.from} to={range.to} onChange={setRange} onApply={load} />
@@ -100,7 +100,7 @@ export default function WorkoutAnalyticsPage() {
           icon={Flame}
           label="Tỉ lệ hoàn thành"
           value={loading ? '—' : `${data?.completionRate ?? 0}%`}
-          helper="completed / started"
+          helper="hoàn thành / bắt đầu"
           color="orange"
         />
         <StatCard
@@ -219,7 +219,7 @@ export default function WorkoutAnalyticsPage() {
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center gap-2 border-b border-slate-100 px-6 py-4">
           <Medal size={16} className="text-amber-500" />
-          <h3 className="section-title">Top 10 User chăm chỉ nhất</h3>
+          <h3 className="section-title">Top 10 người dùng chăm chỉ nhất</h3>
         </div>
         {loading ? (
           <div className="flex h-32 items-center justify-center text-sm text-slate-400">Đang tải...</div>
@@ -230,7 +230,7 @@ export default function WorkoutAnalyticsPage() {
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">#</th>
-                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">User</th>
+                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Người dùng</th>
                 <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Buổi tập</th>
                 <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Hoàn thành</th>
                 <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Tỉ lệ</th>
@@ -251,7 +251,7 @@ export default function WorkoutAnalyticsPage() {
                           {(u.userName || 'U')[0].toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-700">{u.userName || 'Unknown'}</p>
+                          <p className="font-semibold text-slate-700">{u.userName || 'Không xác định'}</p>
                           <p className="text-[10px] text-slate-400 font-mono">{u.userId.slice(-8)}</p>
                         </div>
                       </div>

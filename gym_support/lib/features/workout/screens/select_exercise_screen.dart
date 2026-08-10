@@ -187,9 +187,9 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(child: _buildInputField('SETS', setsController, TextInputType.number)),
+                Expanded(child: _buildInputField('SỐ HIỆP', setsController, TextInputType.number)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildInputField('REPS', repsController, TextInputType.text)),
+                Expanded(child: _buildInputField('SỐ LẦN', repsController, TextInputType.text)),
                 const SizedBox(width: 12),
                 Expanded(child: _buildInputField('NGHỈ (s)', restController, TextInputType.number)),
               ],
@@ -206,7 +206,7 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
                   final reps = repsController.text.trim();
                   if (sets <= 0 || reps.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Vui lòng nhập sets và reps hợp lệ')),
+                      const SnackBar(content: Text('Vui lòng nhập số hiệp và số lần hợp lệ')),
                     );
                     return;
                   }
@@ -293,7 +293,7 @@ class _SelectExerciseScreenState extends State<SelectExerciseScreen> {
                 setState(() { _searchQuery = ''; });
                 _onCategoryChanged(null);
               },
-              child: const Text('Reset', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+              child: const Text('Đặt lại', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
             ),
         ],
       ),

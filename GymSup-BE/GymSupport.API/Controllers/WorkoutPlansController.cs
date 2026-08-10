@@ -31,7 +31,7 @@ public class WorkoutPlansController : ControllerBase
         var plan = await _repository.GetByIdAsync(id);
 
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         return Ok(plan);
     }
@@ -49,7 +49,7 @@ public class WorkoutPlansController : ControllerBase
         var plan = await _repository.GetActiveByUserIdAsync(userId);
 
         if (plan == null)
-            return NotFound("No active workout plan found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện đang hoạt động");
 
         return Ok(plan);
     }
@@ -58,7 +58,7 @@ public class WorkoutPlansController : ControllerBase
     public async Task<IActionResult> Create([FromBody] WorkoutPlan plan)
     {
         if (string.IsNullOrWhiteSpace(plan.UserId))
-            return BadRequest("UserId is required");
+            return BadRequest("UserId là bắt buộc");
 
         await _repository.DeactivateAllByUserIdAsync(plan.UserId);
 
@@ -73,7 +73,7 @@ public class WorkoutPlansController : ControllerBase
     public async Task<IActionResult> CreateRoutine([FromBody] CreateRoutineDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.UserId))
-            return BadRequest("UserId is required");
+            return BadRequest("UserId là bắt buộc");
 
         // Deactivate all previous plans
         await _repository.DeactivateAllByUserIdAsync(dto.UserId);
@@ -115,7 +115,7 @@ public class WorkoutPlansController : ControllerBase
         var plan = await _repository.GetByIdAsync(id);
 
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         request.Id = id;
 
@@ -129,7 +129,7 @@ public class WorkoutPlansController : ControllerBase
     {
         var plan = await _repository.GetByIdAsync(id);
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         var session = new WorkoutSession
         {
@@ -150,11 +150,11 @@ public class WorkoutPlansController : ControllerBase
     {
         var plan = await _repository.GetByIdAsync(id);
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         var session = plan.Sessions.FirstOrDefault(x => x.Id == sessionId);
         if (session == null)
-            return NotFound("Workout session not found");
+            return NotFound("Không tìm thấy buổi tập");
 
         session.DayOfWeek = dto.DayOfWeek;
         session.Focus = dto.Focus;
@@ -168,11 +168,11 @@ public class WorkoutPlansController : ControllerBase
     {
         var plan = await _repository.GetByIdAsync(id);
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         var session = plan.Sessions.FirstOrDefault(x => x.Id == sessionId);
         if (session == null)
-            return NotFound("Workout session not found");
+            return NotFound("Không tìm thấy buổi tập");
 
         plan.Sessions.Remove(session);
         await _repository.UpdateAsync(plan);
@@ -185,11 +185,11 @@ public class WorkoutPlansController : ControllerBase
     {
         var plan = await _repository.GetByIdAsync(id);
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         var session = plan.Sessions.FirstOrDefault(x => x.Id == sessionId);
         if (session == null)
-            return NotFound("Workout session not found");
+            return NotFound("Không tìm thấy buổi tập");
 
         var exercise = new ExerciseInSession
         {
@@ -211,15 +211,15 @@ public class WorkoutPlansController : ControllerBase
     {
         var plan = await _repository.GetByIdAsync(id);
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         var session = plan.Sessions.FirstOrDefault(x => x.Id == sessionId);
         if (session == null)
-            return NotFound("Workout session not found");
+            return NotFound("Không tìm thấy buổi tập");
 
         var exercise = session.Exercises.FirstOrDefault(x => x.ExerciseId == exerciseId);
         if (exercise == null)
-            return NotFound("Exercise not found in session");
+            return NotFound("Không tìm thấy bài tập trong buổi tập");
 
         exercise.Sets = dto.Sets;
         exercise.Reps = dto.Reps;
@@ -234,15 +234,15 @@ public class WorkoutPlansController : ControllerBase
     {
         var plan = await _repository.GetByIdAsync(id);
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         var session = plan.Sessions.FirstOrDefault(x => x.Id == sessionId);
         if (session == null)
-            return NotFound("Workout session not found");
+            return NotFound("Không tìm thấy buổi tập");
 
         var exercise = session.Exercises.FirstOrDefault(x => x.ExerciseId == exerciseId);
         if (exercise == null)
-            return NotFound("Exercise not found in session");
+            return NotFound("Không tìm thấy bài tập trong buổi tập");
 
         session.Exercises.Remove(exercise);
         await _repository.UpdateAsync(plan);
@@ -256,10 +256,10 @@ public class WorkoutPlansController : ControllerBase
         var plan = await _repository.GetByIdAsync(id);
 
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         if (string.IsNullOrWhiteSpace(plan.UserId))
-            return BadRequest("Workout plan has no user owner");
+            return BadRequest("Kế hoạch tập luyện không có chủ sở hữu");
 
         await _repository.DeactivateAllByUserIdAsync(plan.UserId);
 
@@ -276,7 +276,7 @@ public class WorkoutPlansController : ControllerBase
         var plan = await _repository.GetByIdAsync(id);
 
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         plan.IsActive = false;
 
@@ -291,7 +291,7 @@ public class WorkoutPlansController : ControllerBase
         var plan = await _repository.GetByIdAsync(id);
 
         if (plan == null)
-            return NotFound("Workout plan not found");
+            return NotFound("Không tìm thấy kế hoạch tập luyện");
 
         await _repository.DeleteAsync(id);
 

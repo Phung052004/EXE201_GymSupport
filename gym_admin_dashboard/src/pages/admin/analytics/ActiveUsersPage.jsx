@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xl">
       <p className="mb-1 text-xs font-bold text-slate-500">{label}</p>
-      <p className="text-sm font-black text-cyan-600">{payload[0]?.value ?? 0} users</p>
+      <p className="text-sm font-black text-cyan-600">{payload[0]?.value ?? 0} người dùng</p>
     </div>
   )
 }
@@ -63,7 +63,7 @@ export default function ActiveUsersPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-black text-slate-900">Active Users</h2>
+          <h2 className="text-xl font-black text-slate-900">Người dùng hoạt động</h2>
           <p className="mt-0.5 text-sm text-slate-500">
             DAU · WAU · MAU — đo qua số lần bắt đầu buổi tập
           </p>
@@ -86,21 +86,21 @@ export default function ActiveUsersPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           icon={TrendingUp}
-          label="Daily Active Users (DAU)"
+          label="Người dùng hoạt động hàng ngày (DAU)"
           value={loading ? '—' : (data?.dau ?? 0)}
-          helper="Trung bình user/ngày"
+          helper="Trung bình người dùng/ngày"
           color="cyan"
         />
         <StatCard
           icon={Activity}
-          label="Weekly Active Users (WAU)"
+          label="Người dùng hoạt động hàng tuần (WAU)"
           value={loading ? '—' : (data?.wau ?? 0)}
-          helper="Trung bình user/tuần"
+          helper="Trung bình người dùng/tuần"
           color="blue"
         />
         <StatCard
           icon={Users}
-          label="Monthly Active Users (MAU)"
+          label="Người dùng hoạt động hàng tháng (MAU)"
           value={loading ? '—' : (data?.mau ?? 0)}
           helper={`${data?.from ?? ''} → ${data?.to ?? ''}`}
           color="violet"
@@ -109,8 +109,8 @@ export default function ActiveUsersPage() {
 
       {/* Chart */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="section-title">Daily Active Users</h3>
-        <p className="section-subtitle">Số user hoạt động mỗi ngày trong khoảng thời gian đã chọn</p>
+        <h3 className="section-title">Người dùng hoạt động hàng ngày</h3>
+        <p className="section-subtitle">Số người dùng hoạt động mỗi ngày trong khoảng thời gian đã chọn</p>
 
         {loading ? (
           <div className="mt-6 flex h-72 items-center justify-center text-sm font-medium text-slate-400">
@@ -173,7 +173,7 @@ export default function ActiveUsersPage() {
                     Ngày
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Active Users
+                    Người dùng hoạt động
                   </th>
                 </tr>
               </thead>

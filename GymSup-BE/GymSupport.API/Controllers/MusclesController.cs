@@ -29,7 +29,7 @@ public class MusclesController : ControllerBase
         var muscle = await _repository.GetByIdAsync(id);
 
         if (muscle == null)
-            return NotFound("Muscle not found");
+            return NotFound("Không tìm thấy nhóm cơ");
 
         return Ok(muscle);
     }
@@ -46,10 +46,10 @@ public class MusclesController : ControllerBase
     public async Task<IActionResult> Create([FromBody] Muscle muscle)
     {
         if (string.IsNullOrWhiteSpace(muscle.Name))
-            return BadRequest("Muscle name is required");
+            return BadRequest("Tên nhóm cơ là bắt buộc");
 
         if (string.IsNullOrWhiteSpace(muscle.Category))
-            return BadRequest("Muscle category is required");
+            return BadRequest("Danh mục nhóm cơ là bắt buộc");
 
         await _repository.CreateAsync(muscle);
 
@@ -62,7 +62,7 @@ public class MusclesController : ControllerBase
         var muscle = await _repository.GetByIdAsync(id);
 
         if (muscle == null)
-            return NotFound("Muscle not found");
+            return NotFound("Không tìm thấy nhóm cơ");
 
         muscle.Name = request.Name;
         muscle.Category = request.Category;
@@ -78,7 +78,7 @@ public class MusclesController : ControllerBase
         var muscle = await _repository.GetByIdAsync(id);
 
         if (muscle == null)
-            return NotFound("Muscle not found");
+            return NotFound("Không tìm thấy nhóm cơ");
 
         await _repository.DeleteAsync(id);
 
@@ -90,7 +90,7 @@ public class MusclesController : ControllerBase
     public async Task<IActionResult> GetByCategoryQuery([FromQuery] string category)
     {
         if (string.IsNullOrWhiteSpace(category))
-            return BadRequest("Category is required");
+            return BadRequest("Danh mục là bắt buộc");
 
         var muscles = await _repository.GetByCategoryAsync(category);
 

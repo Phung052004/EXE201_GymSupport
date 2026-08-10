@@ -16,7 +16,7 @@ export default function LoginPage() {
     setError('')
 
     if (!email.trim() || !password) {
-      setError('Please enter both email and password.')
+      setError('Vui lòng nhập đầy đủ email và mật khẩu.')
       return
     }
 
@@ -26,7 +26,7 @@ export default function LoginPage() {
       await login(email.trim(), password)
       navigate(from, { replace: true })
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Login failed. Please try again.')
+      setError(err?.response?.data?.message || err?.message || 'Đăng nhập thất bại. Vui lòng thử lại.')
     } finally {
       setLoading(false)
     }
@@ -36,8 +36,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.22),transparent_36%),linear-gradient(180deg,#f8fdff_0%,#e8f7f8_100%)] p-4">
       <div className="w-full max-w-md rounded-3xl border border-cyan-100 bg-white/95 p-8 shadow-soft backdrop-blur">
         <div className="space-y-3 text-center">
-          <h1 className="text-3xl font-black text-slate-950">Admin Login</h1>
-          <p className="text-sm text-slate-500">Enter your admin credentials to access the dashboard.</p>
+          <h1 className="text-3xl font-black text-slate-950">Đăng nhập quản trị</h1>
+          <p className="text-sm text-slate-500">Nhập thông tin tài khoản quản trị để truy cập bảng điều khiển.</p>
         </div>
 
         {error ? (
@@ -57,7 +57,7 @@ export default function LoginPage() {
           </label>
 
           <label className="block text-sm font-semibold text-slate-700">
-            Password
+            Mật khẩu
             <input
               type="password"
               value={password}
@@ -72,7 +72,7 @@ export default function LoginPage() {
             disabled={loading}
             className="inline-flex w-full items-center justify-center rounded-2xl bg-gym-600 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-cyan-900/10 transition hover:bg-gym-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
       </div>

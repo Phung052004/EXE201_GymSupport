@@ -38,7 +38,7 @@ class EmptyWorkoutView extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Ready to sweat?',
+              'Sẵn sàng đổ mồ hôi chưa?',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
@@ -48,7 +48,7 @@ class EmptyWorkoutView extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Your workout queue is currently empty.\nBuild a routine to plan your training days.',
+              'Danh sách bài tập của bạn hiện đang trống.\nHãy tạo lịch tập để lên kế hoạch cho các ngày luyện tập.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.42),
@@ -76,7 +76,7 @@ class EmptyWorkoutView extends StatelessWidget {
                 ),
                 child: const Center(
                   child: Text(
-                    'Build Routine',
+                    'Tạo lịch tập',
                     style: TextStyle(
                       color: AppColors.textDark,
                       fontSize: 15,

@@ -242,7 +242,7 @@ class TodayPlanCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      focus.isEmpty ? 'Workout hôm nay' : focus,
+                      focus.isEmpty ? 'Buổi tập hôm nay' : focus,
                       style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 24,
@@ -315,7 +315,7 @@ class TodayPlanCard extends StatelessWidget {
                   Icon(PhosphorIconsBold.play, size: 22),
                   SizedBox(width: 8),
                   Text(
-                    'Bắt đầu Workout',
+                    'Bắt đầu buổi tập',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                   ),
                 ],
@@ -334,7 +334,7 @@ class _ExerciseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = exercise['name']?.toString() ?? 'Exercise';
+    final name = exercise['name']?.toString() ?? 'Bài tập';
     final sets = exercise['sets']?.toString() ?? '3';
     final reps = exercise['reps']?.toString() ?? '10';
 

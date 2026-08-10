@@ -214,7 +214,7 @@ public class OpenAIService : IAIService
         var apiKey = _configuration["OpenAI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            throw new Exception("OpenAI API key is missing.");
+            throw new Exception("Thiếu khóa API của OpenAI.");
         }
 
         _httpClient.DefaultRequestHeaders.Authorization =
@@ -373,7 +373,7 @@ VALID_EXERCISES:
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"OpenAI Error: {error}");
+            throw new Exception($"Lỗi OpenAI: {error}");
         }
 
         var result = await response.Content.ReadAsStringAsync();
@@ -427,7 +427,7 @@ VALID_EXERCISES:
         var apiKey = _configuration["OpenAI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            throw new Exception("OpenAI API key is missing.");
+            throw new Exception("Thiếu khóa API của OpenAI.");
         }
 
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
@@ -712,7 +712,7 @@ QUY TẮC CẤU TRÚC JSON CHO TỪNG HÀNH ĐỘNG (BẮT BUỘC TUÂN THỦ):
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"OpenAI Error: {error}");
+            throw new Exception($"Lỗi OpenAI: {error}");
         }
 
         var result = await response.Content.ReadAsStringAsync();
@@ -778,7 +778,7 @@ QUY TẮC CẤU TRÚC JSON CHO TỪNG HÀNH ĐỘNG (BẮT BUỘC TUÂN THỦ):
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            throw new Exception("OpenAI API key is missing.");
+            throw new Exception("Thiếu khóa API của OpenAI.");
         }
 
         _httpClient.DefaultRequestHeaders.Authorization =
@@ -1025,7 +1025,7 @@ Trả về JSON đúng schema.
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"OpenAI Vision Error: {error}");
+            throw new Exception($"Lỗi OpenAI Vision: {error}");
         }
 
         var result = await response.Content.ReadAsStringAsync();
@@ -1116,7 +1116,7 @@ Trả về JSON đúng schema.
 
             if (process.ExitCode != 0)
             {
-                throw new Exception($"FFmpeg error: {ffmpegError}");
+                throw new Exception($"Lỗi FFmpeg: {ffmpegError}");
             }
 
             var frameFiles = Directory.GetFiles(tempDir, "frame_*.jpg")
@@ -1147,7 +1147,7 @@ Trả về JSON đúng schema.
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            throw new Exception("OpenAI API key is missing.");
+            throw new Exception("Thiếu khóa API của OpenAI.");
         }
 
         _httpClient.DefaultRequestHeaders.Authorization =
@@ -1359,7 +1359,7 @@ Trả về JSON đúng schema.
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"OpenAI Video Form Check Error: {error}");
+            throw new Exception($"Lỗi kiểm tra form video OpenAI: {error}");
         }
 
         var result = await response.Content.ReadAsStringAsync();
@@ -1495,7 +1495,7 @@ Trả về JSON đúng schema.
         var apiKey = _configuration["OpenAI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            throw new Exception("OpenAI API key is missing.");
+            throw new Exception("Thiếu khóa API của OpenAI.");
         }
 
         _httpClient.DefaultRequestHeaders.Authorization =
@@ -1518,7 +1518,7 @@ Bạn là AI Coach viết nhận xét ngắn gọn cho báo cáo buổi tập. T
 ĐÃ được tính toán chính xác sẵn - TUYỆT ĐỐI không tự tính lại, không bịa thêm số liệu mới.
 Nhiệm vụ của bạn CHỈ là viết 4 đoạn văn ngắn, tự nhiên, cá nhân hoá dựa đúng trên
 các số liệu được cung cấp:
-- narrativeSummary: 2-3 câu tóm tắt buổi tập, nêu bật điểm số/hạng và 1-2 điểm nổi bật thật.
+- narrativeSummary: 2-3 câu tóm tắt buổi tập, nêu bật điểm số/hạng và PHẢI nhắc tới nội dung trong comparisonSummary (so với lần trước tập cùng buổi) một cách tự nhiên.
 - mealSuggestion: 1 câu gợi ý bữa ăn phục hồi cụ thể (món ăn thật, không chung chung), dựa trên lượng protein/nước đã tính.
 - suggestedNextWorkout: 1 câu gợi ý buổi tập tiếp theo, ưu tiên dùng gợi ý buổi kế hoạch nếu có, hoặc dựa vào tình trạng phục hồi nhóm cơ.
 - motivationalMessage: 1-2 câu động viên chân thành, nhắc tới số liệu thật (streak, điểm số...) thay vì lời khen chung chung.
@@ -1570,7 +1570,7 @@ Không chẩn đoán y tế. Trả lời bằng tiếng Việt, giọng văn ấ
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"OpenAI Error: {error}");
+            throw new Exception($"Lỗi OpenAI: {error}");
         }
 
         var result = await response.Content.ReadAsStringAsync();

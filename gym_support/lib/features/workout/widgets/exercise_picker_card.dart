@@ -94,13 +94,13 @@ class ExercisePickerCard extends StatelessWidget {
                     _InfoChip(
                       icon: PhosphorIconsBold.barbell,
                       label: exercise.equipment.isEmpty
-                          ? 'Equipment N/A'
+                          ? 'Chưa rõ dụng cụ'
                           : exercise.equipment,
                     ),
                     _InfoChip(
                       icon: PhosphorIconsBold.gauge,
                       label: exercise.difficulty.isEmpty
-                          ? 'Level N/A'
+                          ? 'Chưa rõ mức độ'
                           : exercise.difficulty,
                     ),
                     _InfoChip(
@@ -122,7 +122,7 @@ class ExercisePickerCard extends StatelessWidget {
                           actionLabel: actionLabel,
                         ),
                         icon: const Icon(Icons.visibility_rounded, size: 18),
-                        label: const Text('View Detail'),
+                        label: const Text('Xem chi tiết'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.textPrimary,
                           side: BorderSide(
@@ -164,7 +164,7 @@ Future<void> showExerciseDetailSheet(
   BuildContext context,
   Exercise exercise, {
   VoidCallback? onAdd,
-  String actionLabel = 'Add',
+  String actionLabel = 'Thêm',
 }) async {
   await Navigator.of(context).push(
     MaterialPageRoute(
@@ -272,27 +272,27 @@ Future<void> showExerciseDetailSheetLegacy(
                       _MetricRow(exercise: exercise),
                       const SizedBox(height: 22),
                       _DetailSection(
-                        title: 'Description',
+                        title: 'Mô tả',
                         text: exercise.description,
                         fallback: 'Chưa có mô tả cho bài tập này.',
                       ),
                       _DetailSection(
-                        title: 'Instruction',
+                        title: 'Hướng dẫn',
                         text: exercise.instruction,
                         fallback: 'Chưa có hướng dẫn thực hiện.',
                       ),
                       _DetailSection(
-                        title: 'Safety Notes',
+                        title: 'Lưu ý an toàn',
                         text: exercise.safetyNotes,
                         fallback: 'Không có lưu ý an toàn đặc biệt.',
                       ),
                       _DetailSection(
-                        title: 'Common Mistakes',
+                        title: 'Lỗi thường gặp',
                         text: exercise.commonMistakes,
                         fallback: 'Chưa có lỗi thường gặp.',
                       ),
                       _DetailSection(
-                        title: 'Tips',
+                        title: 'Mẹo tập luyện',
                         text: exercise.tips,
                         fallback: 'Chưa có mẹo tập luyện.',
                       ),
@@ -347,7 +347,7 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safeLabel = label.trim().isEmpty ? 'N/A' : label.trim();
+    final safeLabel = label.trim().isEmpty ? 'Chưa có' : label.trim();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -387,18 +387,18 @@ class _MetricRow extends StatelessWidget {
       children: [
         Expanded(
           child: _MetricTile(
-            label: 'Sets',
+            label: 'Hiệp',
             value: exercise.defaultSets.toString(),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _MetricTile(label: 'Reps', value: exercise.defaultReps),
+          child: _MetricTile(label: 'Lần', value: exercise.defaultReps),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _MetricTile(
-            label: 'Rest',
+            label: 'Nghỉ',
             value: '${exercise.restTimeSeconds}s',
           ),
         ),
@@ -520,7 +520,7 @@ class _VideoGuide extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Video Guide',
+                  'Video hướng dẫn',
                   style: TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w900,

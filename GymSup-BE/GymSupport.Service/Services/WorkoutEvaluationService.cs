@@ -100,8 +100,11 @@ public class WorkoutEvaluationService : IWorkoutEvaluationService
 
         var highlights = BuildHighlights(session, history, completionRatio, volumeRatio);
         var improvements = BuildImprovements(session, paceRatio, varietyRatio);
+        improvements.AddRange(BuildWeightSelectionNotes(session));
+        improvements.AddRange(BuildBalanceNotes(session, history, muscles));
         var recovery = BuildRecovery(session, muscles);
         var nutrition = BuildNutrition(session, weightKg, summary.DurationMinutes);
+        var comparison = BuildComparison(session, history, weightKg);
         var streak = WorkoutSessionLogService.CalculateScheduleAwareStreak(
             history.Append(session).ToList());
         var nextPlanned = await FindNextPlannedSessionAsync(session);
@@ -117,6 +120,7 @@ public class WorkoutEvaluationService : IWorkoutEvaluationService
             TotalReps = summary.TotalReps,
             TotalVolumeKg = summary.TotalVolumeKg,
             EstimatedCalories = summary.EstimatedCalories,
+            ComparisonSummary = BuildComparisonSummaryText(comparison),
             Highlights = highlights,
             Improvements = improvements,
             MuscleRecoverySummary = recovery
@@ -139,6 +143,7 @@ public class WorkoutEvaluationService : IWorkoutEvaluationService
             Score = score,
             Grade = grade,
             Summary = summary,
+            Comparison = comparison,
             Highlights = highlights,
             Improvements = improvements,
             Recovery = recovery,
@@ -208,6 +213,89 @@ public class WorkoutEvaluationService : IWorkoutEvaluationService
 
         var baseline = comparable.Average(h => h.TotalVolume);
         return session.TotalVolume / baseline;
+    }
+
+    /// So sánh trực tiếp với LẦN GẦN NHẤT tập cùng buổi (không phải trung bình nhiều lần
+    /// như CalculateVolumeRatio dùng để chấm điểm) - phục vụ hiển thị "so với lần trước".
+    private static WorkoutSessionComparison BuildComparison(
+        WorkoutSessionLog session,
+        List<WorkoutSessionLog> history,
+        int weightKg)
+    {
+        var previous = (string.IsNullOrEmpty(session.PlanSessionId)
+                ? history.Where(h => h.Name == session.Name)
+                : history.Where(h => h.PlanSessionId == session.PlanSessionId))
+            .FirstOrDefault();
+
+        if (previous == null)
+        {
+            return new WorkoutSessionComparison { HasPrevious = false };
+        }
+
+        var volumeDeltaPercent = previous.TotalVolume > 0
+            ? Math.Round((session.TotalVolume - previous.TotalVolume) / previous.TotalVolume * 100, 1)
+            : 0;
+
+        var currentReps = session.Exercises.SelectMany(e => e.Sets)
+            .Where(s => s.Status == "COMPLETED").Sum(s => s.Reps ?? 0);
+        var previousReps = previous.Exercises.SelectMany(e => e.Sets)
+            .Where(s => s.Status == "COMPLETED").Sum(s => s.Reps ?? 0);
+
+        var currentExercisesCompleted = session.Exercises.Count(e => e.Sets.Any(s => s.Status == "COMPLETED"));
+        var previousExercisesCompleted = previous.Exercises.Count(e => e.Sets.Any(s => s.Status == "COMPLETED"));
+
+        var currentAvgWeight = currentReps > 0 ? session.TotalVolume / currentReps : 0;
+        var previousAvgWeight = previousReps > 0 ? previous.TotalVolume / previousReps : 0;
+
+        var currentDurationMin = Math.Max(1, session.TotalDurationSeconds / 60);
+        var previousDurationMin = Math.Max(1, previous.TotalDurationSeconds / 60);
+        var currentDensity = session.TotalVolume / currentDurationMin;
+        var previousDensity = previous.TotalVolume / previousDurationMin;
+
+        // Cùng công thức MET dùng ở BuildSummary, áp cho cả 2 buổi để so sánh calo nhất quán.
+        const double resistanceTrainingMet = 6.0;
+        var currentCalories = (int)Math.Round(resistanceTrainingMet * weightKg * (currentDurationMin / 60.0));
+        var previousCalories = (int)Math.Round(resistanceTrainingMet * weightKg * (previousDurationMin / 60.0));
+
+        return new WorkoutSessionComparison
+        {
+            HasPrevious = true,
+            PreviousDate = previous.EndTime ?? previous.StartTime,
+            PreviousVolumeKg = Math.Round(previous.TotalVolume, 1),
+            VolumeDeltaPercent = volumeDeltaPercent,
+            PreviousSets = previous.TotalSets,
+            SetsDelta = session.TotalSets - previous.TotalSets,
+            PreviousDurationMinutes = previous.TotalDurationSeconds / 60,
+            DurationDeltaMinutes = (session.TotalDurationSeconds - previous.TotalDurationSeconds) / 60,
+            RepsDelta = currentReps - previousReps,
+            ExercisesCompletedDelta = currentExercisesCompleted - previousExercisesCompleted,
+            AvgWeightDeltaKg = Math.Round(currentAvgWeight - previousAvgWeight, 1),
+            DensityDeltaKgPerMin = Math.Round(currentDensity - previousDensity, 1),
+            CaloriesDelta = currentCalories - previousCalories,
+        };
+    }
+
+    private static string BuildComparisonSummaryText(WorkoutSessionComparison comparison)
+    {
+        if (!comparison.HasPrevious)
+        {
+            return "Đây là lần đầu tiên tập buổi này, chưa có dữ liệu để so sánh.";
+        }
+
+        var direction = comparison.VolumeDeltaPercent > 0
+            ? "tăng"
+            : comparison.VolumeDeltaPercent < 0
+                ? "giảm"
+                : "giữ nguyên";
+
+        return $"So với lần tập buổi này gần nhất ({comparison.PreviousDate:dd/MM}): " +
+               $"khối lượng {direction} {Math.Abs(comparison.VolumeDeltaPercent)}%, " +
+               $"sets {(comparison.SetsDelta >= 0 ? "+" : "")}{comparison.SetsDelta}, " +
+               $"reps {(comparison.RepsDelta >= 0 ? "+" : "")}{comparison.RepsDelta}, " +
+               $"mức tạ trung bình {(comparison.AvgWeightDeltaKg >= 0 ? "+" : "")}{comparison.AvgWeightDeltaKg}kg/rep, " +
+               $"mật độ tập {(comparison.DensityDeltaKgPerMin >= 0 ? "+" : "")}{comparison.DensityDeltaKgPerMin}kg/phút, " +
+               $"thời gian {(comparison.DurationDeltaMinutes >= 0 ? "+" : "")}{comparison.DurationDeltaMinutes} phút, " +
+               $"calo {(comparison.CaloriesDelta >= 0 ? "+" : "")}{comparison.CaloriesDelta}.";
     }
 
     private static double CalculatePaceRatio(WorkoutSessionLog session)
@@ -335,6 +423,104 @@ public class WorkoutEvaluationService : IWorkoutEvaluationService
         }
 
         return improvements;
+    }
+
+    /// Phân tích mức tạ theo từng bài dựa trên xu hướng reps qua các set:
+    /// reps giảm mạnh liên tục -> tạ có thể quá nặng; vượt trần rep mục tiêu ở
+    /// mọi set -> tạ có thể quá nhẹ. Chỉ xét bài có từ 3 set hoàn thành trở lên
+    /// để tránh kết luận vội trên dữ liệu quá ít.
+    private static List<string> BuildWeightSelectionNotes(WorkoutSessionLog session)
+    {
+        var notes = new List<string>();
+
+        foreach (var exercise in session.Exercises)
+        {
+            var completedSets = exercise.Sets
+                .Where(s => s.Status == "COMPLETED" && s.Reps.HasValue)
+                .OrderBy(s => s.SetNumber)
+                .ToList();
+
+            if (completedSets.Count < 3) continue;
+
+            var repsSequence = completedSets.Select(s => s.Reps!.Value).ToList();
+            var firstReps = repsSequence.First();
+            var lastReps = repsSequence.Last();
+
+            var isConsistentlyDeclining = true;
+            for (var i = 1; i < repsSequence.Count; i++)
+            {
+                if (repsSequence[i] > repsSequence[i - 1])
+                {
+                    isConsistentlyDeclining = false;
+                    break;
+                }
+            }
+
+            if (isConsistentlyDeclining && firstReps > 0 &&
+                (firstReps - lastReps) / (double)firstReps >= 0.4)
+            {
+                notes.Add(
+                    $"{exercise.ExerciseName}: reps giảm mạnh qua các set ({string.Join("-", repsSequence)}) " +
+                    "- mức tạ có thể đang hơi nặng, cân nhắc giảm nhẹ để giữ form tốt hơn.");
+                continue;
+            }
+
+            var range = ParseRepRange(exercise.PlannedReps);
+            if (range.HasValue && repsSequence.All(r => r > range.Value.max))
+            {
+                notes.Add(
+                    $"{exercise.ExerciseName}: hoàn thành vượt mức reps mục tiêu " +
+                    $"({range.Value.min}-{range.Value.max}) ở mọi set - có thể tăng nhẹ mức tạ để tối ưu hiệu quả.");
+            }
+        }
+
+        return notes;
+    }
+
+    private static (int min, int max)? ParseRepRange(string plannedReps)
+    {
+        var numbers = System.Text.RegularExpressions.Regex.Matches(plannedReps ?? "", @"\d+")
+            .Select(m => int.Parse(m.Value))
+            .ToList();
+        if (numbers.Count == 0) return null;
+        return (numbers.Min(), numbers.Max());
+    }
+
+    /// Phát hiện nhóm cơ bị "bỏ quên": từng xuất hiện đều đặn trong khoảng 10 buổi
+    /// tập trước đó nhưng không có mặt trong 4 buổi gần nhất (kể cả buổi hôm nay).
+    /// Cần đủ lịch sử (>=3 buổi cũ) mới cảnh báo, tránh báo sai với tài khoản mới.
+    private static List<string> BuildBalanceNotes(
+        WorkoutSessionLog session,
+        List<WorkoutSessionLog> history,
+        Dictionary<string, Muscle> muscles)
+    {
+        string CategoryOf(string muscleId) =>
+            muscles.TryGetValue(muscleId, out var m) && !string.IsNullOrWhiteSpace(m.Category)
+                ? m.Category
+                : "Khác";
+
+        var recentCategories = history.Take(4)
+            .Append(session)
+            .SelectMany(s => s.MuscleExpGains.Select(g => CategoryOf(g.MuscleId)))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var olderSessions = history.Skip(4).Take(10).ToList();
+        var olderCategories = olderSessions
+            .SelectMany(s => s.MuscleExpGains.Select(g => CategoryOf(g.MuscleId)))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var neglected = olderCategories.Where(c => !recentCategories.Contains(c)).ToList();
+
+        if (neglected.Count == 0 || olderSessions.Count < 3)
+        {
+            return new List<string>();
+        }
+
+        return new List<string>
+        {
+            $"Đã khá lâu chưa tập nhóm cơ: {string.Join(", ", neglected)} - cân nhắc bổ sung vào lịch tập sắp tới để cơ thể phát triển cân bằng.",
+        };
     }
 
     private static List<MuscleRecoveryStatus> BuildRecovery(

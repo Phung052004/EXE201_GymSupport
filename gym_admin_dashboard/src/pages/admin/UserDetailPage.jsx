@@ -49,54 +49,54 @@ export default function UserDetailPage() {
     adminApi
       .getUserReceipts(id)
       .then((data) => setReceipts(Array.isArray(data) ? data : []))
-      .catch(() => setReceiptsError('Không thể tải receipt. Vui lòng thử lại.'))
+      .catch(() => setReceiptsError('Không thể tải hóa đơn. Vui lòng thử lại.'))
       .finally(() => setReceiptsLoading(false))
   }, [id])
 
-  if (!user) return <div className="rounded-lg bg-white p-8 text-slate-500">Loading user detail...</div>
+  if (!user) return <div className="rounded-lg bg-white p-8 text-slate-500">Đang tải chi tiết người dùng...</div>
 
   return (
     <div className="space-y-5">
-      <Link to="/admin/users" className="btn-secondary"><ArrowLeft size={16} /> Back to users</Link>
+      <Link to="/admin/users" className="btn-secondary"><ArrowLeft size={16} /> Quay lại danh sách người dùng</Link>
 
-      <Section title="Basic Info">
+      <Section title="Thông tin cơ bản">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-black text-slate-950">{user.fullName}</h1>
           <Badge>{user.status}</Badge>
         </div>
         <InfoGrid
           items={[
-            { label: 'Full Name', value: user.fullName },
+            { label: 'Họ tên', value: user.fullName },
             { label: 'Email', value: user.email },
-            { label: 'Gender', value: user.gender },
-            { label: 'Age', value: user.age },
-            { label: 'Created', value: user.createdDate },
-            { label: 'Status', value: user.status },
+            { label: 'Giới tính', value: user.gender },
+            { label: 'Tuổi', value: user.age },
+            { label: 'Ngày tạo', value: user.createdDate },
+            { label: 'Trạng thái', value: <Badge>{user.status}</Badge> },
           ]}
         />
       </Section>
 
-      <Section title="Body Profile">
+      <Section title="Hồ sơ thể chất">
         <InfoGrid
           items={[
-            { label: 'Height', value: `${user.height} cm` },
-            { label: 'Weight', value: `${user.weight} kg` },
+            { label: 'Chiều cao', value: `${user.height} cm` },
+            { label: 'Cân nặng', value: `${user.weight} kg` },
             { label: 'BMI', value: user.bmi },
-            { label: 'Injury Notes', value: user.injuryNotes },
+            { label: 'Ghi chú chấn thương', value: user.injuryNotes },
           ]}
         />
       </Section>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <Section title="Fitness Goal">
-          <InfoGrid items={[{ label: 'Goal', value: user.goal }, { label: 'Experience Level', value: user.experienceLevel }]} />
+        <Section title="Mục tiêu tập luyện">
+          <InfoGrid items={[{ label: 'Mục tiêu', value: user.goal }, { label: 'Trình độ', value: user.experienceLevel }]} />
         </Section>
-        <Section title="Workout History"><ListBlock items={user.workoutHistory} /></Section>
-        <Section title="Body Check History"><ListBlock items={user.bodyCheckHistory} /></Section>
-        <Section title="AI Recommendation History"><ListBlock items={user.aiRecommendationHistory} /></Section>
+        <Section title="Lịch sử tập luyện"><ListBlock items={user.workoutHistory} /></Section>
+        <Section title="Lịch sử kiểm tra vóc dáng"><ListBlock items={user.bodyCheckHistory} /></Section>
+        <Section title="Lịch sử đề xuất AI"><ListBlock items={user.aiRecommendationHistory} /></Section>
       </div>
 
-      <Section title="Receipts">
+      <Section title="Hóa đơn thanh toán">
         <ReceiptList loading={receiptsLoading} error={receiptsError} receipts={receipts} />
       </Section>
     </div>

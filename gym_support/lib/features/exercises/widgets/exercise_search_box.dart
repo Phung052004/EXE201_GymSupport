@@ -40,7 +40,7 @@ class ExerciseSearchBox extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
               decoration: InputDecoration(
-                hintText: 'Search exercises...',
+                hintText: 'Tìm kiếm bài tập...',
                 hintStyle: TextStyle(
                   color: Colors.white.withValues(alpha: 0.28),
                   fontSize: 14,

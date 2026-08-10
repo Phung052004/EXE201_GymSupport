@@ -42,17 +42,17 @@ export default function MuscleGroupsPage() {
   }
 
   const columns = [
-    { key: 'name', header: 'Muscle Group Name', render: (row) => <span className="font-black text-slate-950">{row.name}</span> },
-    { key: 'description', header: 'Description' },
-    { key: 'status', header: 'Status', render: (row) => <Badge>{row.status}</Badge> },
+    { key: 'name', header: 'Tên nhóm cơ', render: (row) => <span className="font-black text-slate-950">{row.name}</span> },
+    { key: 'description', header: 'Mô tả' },
+    { key: 'status', header: 'Trạng thái', render: (row) => <Badge>{row.status}</Badge> },
     {
       key: 'actions',
-      header: 'Actions',
+      header: 'Thao tác',
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary" onClick={() => setDetail(row)}><Eye size={15} /> View</button>
-          <button className="btn-secondary" onClick={() => openForm(row)}><Edit size={15} /> Edit</button>
-          <button className="btn-secondary" onClick={() => setDeleteTarget(row)}><Trash2 size={15} /> Delete</button>
+          <button className="btn-secondary" onClick={() => setDetail(row)}><Eye size={15} /> Xem</button>
+          <button className="btn-secondary" onClick={() => openForm(row)}><Edit size={15} /> Sửa</button>
+          <button className="btn-secondary" onClick={() => setDeleteTarget(row)}><Trash2 size={15} /> Xóa</button>
         </div>
       ),
     },
@@ -62,19 +62,19 @@ export default function MuscleGroupsPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-black text-slate-950">Muscle Groups</h2>
-          <p className="text-sm text-slate-500">Manage muscle taxonomy used by exercises and AI body checks.</p>
+          <h2 className="text-lg font-black text-slate-950">Nhóm cơ</h2>
+          <p className="text-sm text-slate-500">Quản lý danh mục nhóm cơ được dùng cho bài tập và kiểm tra vóc dáng bằng AI.</p>
         </div>
-        <button className="btn-primary" onClick={() => openForm()}><Plus size={16} /> Add Muscle Group</button>
+        <button className="btn-primary" onClick={() => openForm()}><Plus size={16} /> Thêm nhóm cơ</button>
       </div>
       <DataTable columns={columns} data={rows} loading={loading} />
 
-      <Modal open={formOpen} title={form.id ? 'Edit Muscle Group' : 'Add Muscle Group'} onClose={() => setFormOpen(false)} footer={<div className="flex justify-end"><button className="btn-primary" onClick={save}>Save</button></div>}>
+      <Modal open={formOpen} title={form.id ? 'Sửa nhóm cơ' : 'Thêm nhóm cơ'} onClose={() => setFormOpen(false)} footer={<div className="flex justify-end"><button className="btn-primary" onClick={save}>Lưu</button></div>}>
         <div className="grid gap-4">
-          <FormInput label="Muscle Group Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <FormInput label="Image URL" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} />
-          <FormInput label="Status" as="select" value={form.status} options={['Active', 'Hidden']} onChange={(e) => setForm({ ...form, status: e.target.value })} />
-          <FormInput label="Category" value={form.category || form.description} onChange={(e) => setForm({ ...form, category: e.target.value, description: e.target.value })} />
+          <FormInput label="Tên nhóm cơ" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <FormInput label="URL hình ảnh" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} />
+          <FormInput label="Trạng thái" as="select" value={form.status} options={[{ value: 'Active', label: 'Hoạt động' }, { value: 'Hidden', label: 'Đã ẩn' }]} onChange={(e) => setForm({ ...form, status: e.target.value })} />
+          <FormInput label="Danh mục" value={form.category || form.description} onChange={(e) => setForm({ ...form, category: e.target.value, description: e.target.value })} />
         </div>
       </Modal>
 
@@ -90,7 +90,7 @@ export default function MuscleGroupsPage() {
         ) : null}
       </Modal>
 
-      <ConfirmDialog open={!!deleteTarget} title="Delete muscle group" message={`Delete ${deleteTarget?.name}?`} onCancel={() => setDeleteTarget(null)} onConfirm={remove} confirmText="Delete" />
+      <ConfirmDialog open={!!deleteTarget} title="Xóa nhóm cơ" message={`Xóa ${deleteTarget?.name}?`} onCancel={() => setDeleteTarget(null)} onConfirm={remove} confirmText="Xóa" />
     </div>
   )
 }

@@ -19,6 +19,8 @@ public class WorkoutEvaluation
 
     public WorkoutEvaluationSummary Summary { get; set; } = new();
 
+    public WorkoutSessionComparison Comparison { get; set; } = new();
+
     public List<string> Highlights { get; set; } = new();
 
     public List<string> Improvements { get; set; } = new();
@@ -44,6 +46,25 @@ public class WorkoutEvaluationSummary
     public int TotalReps { get; set; }
     public double TotalVolumeKg { get; set; }
     public int EstimatedCalories { get; set; }
+}
+
+/// <summary>So sánh buổi tập này với lần gần nhất tập cùng buổi (cùng PlanSessionId,
+/// hoặc cùng tên buổi nếu tập tự do không theo plan).</summary>
+public class WorkoutSessionComparison
+{
+    public bool HasPrevious { get; set; }
+    public DateTime? PreviousDate { get; set; }
+    public double PreviousVolumeKg { get; set; }
+    public double VolumeDeltaPercent { get; set; }
+    public int PreviousSets { get; set; }
+    public int SetsDelta { get; set; }
+    public int PreviousDurationMinutes { get; set; }
+    public int DurationDeltaMinutes { get; set; }
+    public int RepsDelta { get; set; }
+    public int ExercisesCompletedDelta { get; set; }
+    public double AvgWeightDeltaKg { get; set; }
+    public double DensityDeltaKgPerMin { get; set; }
+    public int CaloriesDelta { get; set; }
 }
 
 public class MuscleRecoveryStatus

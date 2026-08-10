@@ -31,7 +31,7 @@ public class SubscriptionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving subscription plans", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy danh sách gói đăng ký", error = ex.Message });
         }
     }
 
@@ -49,7 +49,7 @@ public class SubscriptionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving active subscription plans", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy danh sách gói đăng ký đang hoạt động", error = ex.Message });
         }
     }
 
@@ -64,13 +64,13 @@ public class SubscriptionsController : ControllerBase
         {
             var plan = await _subscriptionService.GetSubscriptionPlanAsync(id);
             if (plan == null)
-                return NotFound(new { message = "Subscription plan not found" });
+                return NotFound(new { message = "Không tìm thấy gói đăng ký" });
 
             return Ok(plan);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving subscription plan", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy gói đăng ký", error = ex.Message });
         }
     }
 
@@ -84,20 +84,20 @@ public class SubscriptionsController : ControllerBase
         try
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
-                return BadRequest(new { message = "Plan name is required" });
+                return BadRequest(new { message = "Tên gói đăng ký là bắt buộc" });
 
             if (dto.DurationMonths <= 0)
-                return BadRequest(new { message = "Duration must be greater than 0" });
+                return BadRequest(new { message = "Thời hạn phải lớn hơn 0" });
 
             if (dto.Price < 0)
-                return BadRequest(new { message = "Price cannot be negative" });
+                return BadRequest(new { message = "Giá không được là số âm" });
 
             await _subscriptionService.CreateSubscriptionPlanAsync(dto);
-            return Created("", new { message = "Subscription plan created successfully" });
+            return Created("", new { message = "Tạo gói đăng ký thành công" });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error creating subscription plan", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi tạo gói đăng ký", error = ex.Message });
         }
     }
 
@@ -111,12 +111,12 @@ public class SubscriptionsController : ControllerBase
         try
         {
             await _subscriptionService.UpdateSubscriptionPlanAsync(id, dto.IsActive);
-            var status = dto.IsActive ? "activated" : "deactivated";
-            return Ok(new { message = $"Subscription plan {status} successfully" });
+            var status = dto.IsActive ? "kích hoạt" : "vô hiệu hóa";
+            return Ok(new { message = $"Đã {status} gói đăng ký thành công" });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error updating subscription plan", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi cập nhật gói đăng ký", error = ex.Message });
         }
     }
 
@@ -130,20 +130,20 @@ public class SubscriptionsController : ControllerBase
         try
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
-                return BadRequest(new { message = "Plan name is required" });
+                return BadRequest(new { message = "Tên gói đăng ký là bắt buộc" });
 
             if (dto.DurationMonths <= 0)
-                return BadRequest(new { message = "Duration must be greater than 0" });
+                return BadRequest(new { message = "Thời hạn phải lớn hơn 0" });
 
             if (dto.Price < 0)
-                return BadRequest(new { message = "Price cannot be negative" });
+                return BadRequest(new { message = "Giá không được là số âm" });
 
             await _subscriptionService.UpdateSubscriptionPlanFullAsync(id, dto);
-            return Ok(new { message = "Subscription plan updated successfully" });
+            return Ok(new { message = "Cập nhật gói đăng ký thành công" });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error updating subscription plan", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi cập nhật gói đăng ký", error = ex.Message });
         }
     }
 
@@ -158,14 +158,14 @@ public class SubscriptionsController : ControllerBase
         {
             var plan = await _subscriptionService.GetSubscriptionPlanAsync(id);
             if (plan == null)
-                return NotFound(new { message = "Subscription plan not found" });
+                return NotFound(new { message = "Không tìm thấy gói đăng ký" });
 
             await _subscriptionService.DeleteSubscriptionPlanAsync(id);
-            return Ok(new { message = "Subscription plan deleted successfully" });
+            return Ok(new { message = "Xóa gói đăng ký thành công" });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error deleting subscription plan", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi xóa gói đăng ký", error = ex.Message });
         }
     }
 
@@ -183,7 +183,7 @@ public class SubscriptionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving user subscriptions", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy danh sách đăng ký của người dùng", error = ex.Message });
         }
     }
 
@@ -200,17 +200,17 @@ public class SubscriptionsController : ControllerBase
                 ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
 
             if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized(new { message = "User ID not found in token" });
+                return Unauthorized(new { message = "Không tìm thấy User ID trong token" });
 
             var subscription = await _subscriptionService.GetUserCurrentSubscriptionAsync(userId);
             if (subscription == null)
-                return Ok(new { message = "No active subscription" });
+                return Ok(new { message = "Không có gói đăng ký nào đang hoạt động" });
 
             return Ok(subscription);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving user subscription", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi lấy gói đăng ký của người dùng", error = ex.Message });
         }
     }
 
@@ -226,14 +226,14 @@ public class SubscriptionsController : ControllerBase
                 ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
 
             if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized(new { message = "User ID not found in token" });
+                return Unauthorized(new { message = "Không tìm thấy User ID trong token" });
 
             await _subscriptionService.CancelUserSubscriptionAsync(userId);
-            return Ok(new { message = "Subscription cancelled successfully" });
+            return Ok(new { message = "Hủy gói đăng ký thành công" });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error cancelling subscription", error = ex.Message });
+            return StatusCode(500, new { message = "Lỗi khi hủy gói đăng ký", error = ex.Message });
         }
     }
 }

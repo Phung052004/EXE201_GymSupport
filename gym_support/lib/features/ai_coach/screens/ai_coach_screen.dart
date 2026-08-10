@@ -381,7 +381,7 @@ class _AiCoachScreenState extends State<AiCoachScreen>
                       children: [
                         Text('AI Coach', style: AppTheme.headlineMedium),
                         Text(
-                          'Powered by GymSupport AI',
+                          'Được vận hành bởi GymSupport AI',
                           style: TextStyle(
                             color: AppColors.primary, fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -456,7 +456,7 @@ class _AiCoachScreenState extends State<AiCoachScreen>
                     fontWeight: FontWeight.w600, fontSize: 13),
                   unselectedLabelColor: AppColors.textSecondary,
                   tabs: const [
-                    Tab(text: 'Chat'),
+                    Tab(text: 'Trò chuyện'),
                     Tab(text: 'Tạo lịch AI'),
                   ],
                 ),

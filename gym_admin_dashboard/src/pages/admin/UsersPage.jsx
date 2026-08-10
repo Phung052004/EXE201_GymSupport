@@ -24,21 +24,21 @@ export default function UsersPage() {
   }
 
   const columns = [
-    { key: 'fullName', header: 'Name', render: (row) => <span className="font-bold text-slate-950">{row.fullName}</span> },
+    { key: 'fullName', header: 'Họ tên', render: (row) => <span className="font-bold text-slate-950">{row.fullName}</span> },
     { key: 'email', header: 'Email' },
-    { key: 'goal', header: 'Goal' },
-    { key: 'experienceLevel', header: 'Experience Level' },
-    { key: 'status', header: 'Status', render: (row) => <Badge>{row.status}</Badge> },
-    { key: 'createdDate', header: 'Created Date' },
+    { key: 'goal', header: 'Mục tiêu' },
+    { key: 'experienceLevel', header: 'Trình độ' },
+    { key: 'status', header: 'Trạng thái', render: (row) => <Badge>{row.status}</Badge> },
+    { key: 'createdDate', header: 'Ngày tạo' },
     {
       key: 'actions',
-      header: 'Actions',
+      header: 'Thao tác',
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <Link className="btn-secondary" to={`/admin/users/${row.id}`}><Eye size={15} /> Detail</Link>
+          <Link className="btn-secondary" to={`/admin/users/${row.id}`}><Eye size={15} /> Chi tiết</Link>
           <button className="btn-secondary" onClick={() => updateStatus(row)}>
             {row.status === 'Blocked' ? <Unlock size={15} /> : <Lock size={15} />}
-            {row.status === 'Blocked' ? 'Unblock' : 'Block'}
+            {row.status === 'Blocked' ? 'Mở khóa' : 'Khóa'}
           </button>
         </div>
       ),
@@ -48,8 +48,8 @@ export default function UsersPage() {
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-black text-slate-950">User Management</h2>
-        <p className="mt-1 text-sm text-slate-500">Review user profiles, body data, goals and account status.</p>
+        <h2 className="text-lg font-black text-slate-950">Quản lý người dùng</h2>
+        <p className="mt-1 text-sm text-slate-500">Xem hồ sơ người dùng, dữ liệu cơ thể, mục tiêu và trạng thái tài khoản.</p>
       </div>
       <DataTable columns={columns} data={users} loading={loading} />
     </div>

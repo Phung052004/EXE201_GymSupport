@@ -31,13 +31,13 @@ class NutritionPlanCard extends StatelessWidget {
               _NutritionItem(
                 icon: PhosphorIconsBold.fire,
                 iconColor: const Color(0xFFFF6B35),
-                label: 'Calories',
+                label: 'Calo',
                 value: calories,
               ),
               _NutritionItem(
                 icon: PhosphorIconsBold.egg,
                 iconColor: AppColors.violet,
-                label: 'Protein',
+                label: 'Đạm',
                 value: protein,
               ),
               _NutritionItem(

@@ -9,15 +9,15 @@ class HomeHeader extends StatelessWidget {
 
   String _greetingFor(DateTime now) {
     if (now.hour >= 5 && now.hour < 12) {
-      return 'Good Morning,';
+      return 'Chào buổi sáng,';
     }
     if (now.hour < 18) {
-      return 'Good Afternoon,';
+      return 'Chào buổi chiều,';
     }
     if (now.hour < 22) {
-      return 'Good Evening,';
+      return 'Chào buổi tối,';
     }
-    return 'Good Night,';
+    return 'Đêm khuya rồi,';
   }
 
   @override

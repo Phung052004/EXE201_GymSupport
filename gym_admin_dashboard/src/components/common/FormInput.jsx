@@ -7,9 +7,12 @@ export default function FormInput({ label, as = 'input', options = [], error, ..
       <span className="text-sm font-bold text-slate-700">{label}</span>
       {as === 'select' ? (
         <select className={baseClass} {...props}>
-          {options.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
+          {options.map((option) => {
+            const opt = typeof option === 'object' && option !== null ? option : { value: option, label: option }
+            return (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            )
+          })}
         </select>
       ) : (
         <Field className={baseClass} {...props} />

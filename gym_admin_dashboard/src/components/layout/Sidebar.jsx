@@ -22,43 +22,43 @@ import { NavLink } from 'react-router-dom'
 
 const navGroups = [
   {
-    label: 'Main',
-    items: [{ label: 'Dashboard', path: '/admin', icon: Home, end: true }],
+    label: 'Chính',
+    items: [{ label: 'Tổng quan', path: '/admin', icon: Home, end: true }],
   },
   {
-    label: 'Analytics',
+    label: 'Phân tích',
     items: [
-      { label: 'Active Users', path: '/admin/analytics/active-users', icon: TrendingUp },
-      { label: 'Retention', path: '/admin/analytics/retention', icon: Target },
-      { label: 'Funnel', path: '/admin/analytics/funnel', icon: Zap },
-      { label: 'Feature Usage', path: '/admin/analytics/feature-usage', icon: BarChart2 },
-      { label: 'Premium Users', path: '/admin/analytics/premium-usage', icon: Crown },
-      { label: 'Workout Analytics', path: '/admin/analytics/workouts', icon: Flame },
+      { label: 'Người dùng hoạt động', path: '/admin/analytics/active-users', icon: TrendingUp },
+      { label: 'Tỷ lệ giữ chân', path: '/admin/analytics/retention', icon: Target },
+      { label: 'Phễu chuyển đổi', path: '/admin/analytics/funnel', icon: Zap },
+      { label: 'Mức sử dụng tính năng', path: '/admin/analytics/feature-usage', icon: BarChart2 },
+      { label: 'Người dùng Premium', path: '/admin/analytics/premium-usage', icon: Crown },
+      { label: 'Phân tích tập luyện', path: '/admin/analytics/workouts', icon: Flame },
     ],
   },
   {
-    label: 'Content',
+    label: 'Nội dung',
     items: [
-      { label: 'Exercises', path: '/admin/exercises', icon: Dumbbell },
-      { label: 'Muscle Groups', path: '/admin/muscle-groups', icon: Activity },
-      { label: 'Workout Templates', path: '/admin/workout-templates', icon: FileText },
+      { label: 'Bài tập', path: '/admin/exercises', icon: Dumbbell },
+      { label: 'Nhóm cơ', path: '/admin/muscle-groups', icon: Activity },
+      { label: 'Chương trình tập mẫu', path: '/admin/workout-templates', icon: FileText },
     ],
   },
   {
-    label: 'Subscriptions',
+    label: 'Gói đăng ký',
     items: [
       { label: 'Gói dịch vụ', path: '/admin/subscriptions/plans', icon: CreditCard },
       { label: 'Đăng ký người dùng', path: '/admin/subscriptions/users', icon: Users },
-      { label: 'Receipts', path: '/admin/subscriptions/receipts', icon: Receipt },
+      { label: 'Hóa đơn', path: '/admin/subscriptions/receipts', icon: Receipt },
     ],
   },
   {
-    label: 'Community',
+    label: 'Cộng đồng',
     items: [
-      { label: 'Users', path: '/admin/users', icon: Users },
-      { label: 'AI Recommendations', path: '/admin/ai-recommendations', icon: Bot },
-      { label: 'Body Checks', path: '/admin/body-checks', icon: ScanFace },
-      { label: 'Feedbacks', path: '/admin/feedbacks', icon: MessageSquareWarning },
+      { label: 'Người dùng', path: '/admin/users', icon: Users },
+      { label: 'Đề xuất AI', path: '/admin/ai-recommendations', icon: Bot },
+      { label: 'Kiểm tra vóc dáng', path: '/admin/body-checks', icon: ScanFace },
+      { label: 'Phản hồi', path: '/admin/feedbacks', icon: MessageSquareWarning },
     ],
   },
 ]
@@ -84,7 +84,7 @@ export default function Sidebar({ open, onClose }) {
             <div>
               <p className="text-sm font-black text-white tracking-tight">GymSupport</p>
               <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">
-                Admin Console
+                Bảng quản trị
               </p>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function Sidebar({ open, onClose }) {
         <div className="shrink-0 border-t border-slate-700/50 p-3">
           <div className="rounded-lg border border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 p-3">
             <p className="text-xs font-bold text-slate-300">GymSupport v1.0</p>
-            <p className="mt-0.5 text-[10px] text-slate-500">Management Console</p>
+            <p className="mt-0.5 text-[10px] text-slate-500">Hệ thống quản lý</p>
           </div>
         </div>
       </aside>

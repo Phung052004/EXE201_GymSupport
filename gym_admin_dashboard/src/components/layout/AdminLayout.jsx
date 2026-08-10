@@ -4,21 +4,21 @@ import Header from './Header.jsx'
 import Sidebar from './Sidebar.jsx'
 
 const titles = {
-  '/admin': 'Dashboard Overview',
-  '/admin/users': 'User Management',
-  '/admin/exercises': 'Exercise Management',
-  '/admin/exercises/new': 'Create Exercise',
-  '/admin/muscle-groups': 'Muscle Group Management',
-  '/admin/workout-templates': 'Workout Template Management',
-  '/admin/workout-templates/new': 'Create Workout Template',
-  '/admin/ai-recommendations': 'AI Recommendation Management',
-  '/admin/body-checks': 'Body Check Management',
-  '/admin/feedbacks': 'Feedback / Report Management',
-  '/admin/analytics/active-users': 'Active Users Analytics',
-  '/admin/analytics/retention': 'Retention Analytics',
-  '/admin/analytics/funnel': 'Funnel Analytics',
-  '/admin/analytics/feature-usage': 'Feature Usage Analytics',
-  '/admin/analytics/workouts': 'Workout Behavior Analytics',
+  '/admin': 'Tổng quan bảng điều khiển',
+  '/admin/users': 'Quản lý người dùng',
+  '/admin/exercises': 'Quản lý bài tập',
+  '/admin/exercises/new': 'Thêm bài tập',
+  '/admin/muscle-groups': 'Quản lý nhóm cơ',
+  '/admin/workout-templates': 'Quản lý chương trình tập mẫu',
+  '/admin/workout-templates/new': 'Thêm chương trình tập mẫu',
+  '/admin/ai-recommendations': 'Quản lý đề xuất AI',
+  '/admin/body-checks': 'Quản lý kiểm tra vóc dáng',
+  '/admin/feedbacks': 'Quản lý phản hồi / báo cáo',
+  '/admin/analytics/active-users': 'Phân tích người dùng hoạt động',
+  '/admin/analytics/retention': 'Phân tích tỷ lệ giữ chân',
+  '/admin/analytics/funnel': 'Phân tích phễu chuyển đổi',
+  '/admin/analytics/feature-usage': 'Phân tích mức sử dụng tính năng',
+  '/admin/analytics/workouts': 'Phân tích hành vi tập luyện',
 }
 
 export default function AdminLayout() {
@@ -26,15 +26,15 @@ export default function AdminLayout() {
   const location = useLocation()
 
   const title = useMemo(() => {
-    if (location.pathname.startsWith('/admin/users/')) return 'User Detail'
+    if (location.pathname.startsWith('/admin/users/')) return 'Chi tiết người dùng'
     if (location.pathname.startsWith('/admin/exercises/') && location.pathname !== '/admin/exercises/new')
-      return 'Edit Exercise'
+      return 'Sửa bài tập'
     if (
       location.pathname.startsWith('/admin/workout-templates/') &&
       location.pathname !== '/admin/workout-templates/new'
     )
-      return 'Edit Workout Template'
-    return titles[location.pathname] ?? 'GymSupport Admin'
+      return 'Sửa chương trình tập mẫu'
+    return titles[location.pathname] ?? 'Quản trị GymSupport'
   }, [location.pathname])
 
   return (

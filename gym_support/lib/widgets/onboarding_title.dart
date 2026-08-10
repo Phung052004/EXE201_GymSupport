@@ -7,7 +7,7 @@ class OnboardingTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Text(
-      'Welcome to GymSupport',
+      'Chào mừng đến với GymSupport',
       textAlign: TextAlign.center,
       style: TextStyle(
         color: AppColors.textPrimary,
