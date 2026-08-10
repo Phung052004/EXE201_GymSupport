@@ -48,7 +48,8 @@ const navGroups = [
     label: 'Subscriptions',
     items: [
       { label: 'Gói dịch vụ', path: '/admin/subscriptions/plans', icon: CreditCard },
-      { label: 'Đăng ký người dùng', path: '/admin/subscriptions/users', icon: Receipt },
+      { label: 'Đăng ký người dùng', path: '/admin/subscriptions/users', icon: Users },
+      { label: 'Receipts', path: '/admin/subscriptions/receipts', icon: Receipt },
     ],
   },
   {

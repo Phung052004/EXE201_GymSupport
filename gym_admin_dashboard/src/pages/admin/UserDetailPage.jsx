@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Badge from '../../components/common/Badge.jsx'
+import ReceiptList from '../../components/receipts/ReceiptList.jsx'
 import { adminApi } from '../../services/adminApi.js'
 
 function Section({ title, children }) {
@@ -39,9 +40,17 @@ function ListBlock({ items }) {
 export default function UserDetailPage() {
   const { id } = useParams()
   const [user, setUser] = useState(null)
+  const [receipts, setReceipts] = useState([])
+  const [receiptsLoading, setReceiptsLoading] = useState(true)
+  const [receiptsError, setReceiptsError] = useState(null)
 
   useEffect(() => {
     adminApi.getUserById(id).then(setUser)
+    adminApi
+      .getUserReceipts(id)
+      .then((data) => setReceipts(Array.isArray(data) ? data : []))
+      .catch(() => setReceiptsError('Không thể tải receipt. Vui lòng thử lại.'))
+      .finally(() => setReceiptsLoading(false))
   }, [id])
 
   if (!user) return <div className="rounded-lg bg-white p-8 text-slate-500">Loading user detail...</div>
@@ -86,6 +95,10 @@ export default function UserDetailPage() {
         <Section title="Body Check History"><ListBlock items={user.bodyCheckHistory} /></Section>
         <Section title="AI Recommendation History"><ListBlock items={user.aiRecommendationHistory} /></Section>
       </div>
+
+      <Section title="Receipts">
+        <ReceiptList loading={receiptsLoading} error={receiptsError} receipts={receipts} />
+      </Section>
     </div>
   )
 }

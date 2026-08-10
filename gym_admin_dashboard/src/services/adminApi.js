@@ -381,4 +381,10 @@ export const adminApi = {
     request(`/admin/analytics/premium-users`, { emptyValue: [] }),
   getPremiumUserFeatureDetail: (userId, feature) =>
     request(`/admin/analytics/premium-users/${userId}/${feature}`, { emptyValue: [] }),
+
+  // ── Receipts APIs ────────────────────────────────────────────────────────
+  getReceiptUsers: () =>
+    request(`/admin/receipts`, { emptyValue: [] }),
+  getUserReceipts: (userId) =>
+    request(`/admin/receipts/user/${userId}`, { optional: true, emptyValue: [] }),
 }

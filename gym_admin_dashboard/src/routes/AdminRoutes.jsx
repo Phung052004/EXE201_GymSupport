@@ -6,6 +6,7 @@ import DashboardPage from '../pages/admin/DashboardPage.jsx'
 import ExerciseFormPage from '../pages/admin/ExerciseFormPage.jsx'
 import ExercisesPage from '../pages/admin/ExercisesPage.jsx'
 import FeedbacksPage from '../pages/admin/FeedbacksPage.jsx'
+import ReceiptsPage from '../pages/admin/ReceiptsPage.jsx'
 import LoginPage from '../pages/LoginPage.jsx'
 import MuscleGroupsPage from '../pages/admin/MuscleGroupsPage.jsx'
 import ProtectedRoute from './ProtectedRoute.jsx'
@@ -52,6 +53,7 @@ export default function AdminRoutes() {
         {/* Subscriptions */}
         <Route path="subscriptions/plans" element={<SubscriptionPlansPage />} />
         <Route path="subscriptions/users" element={<UserSubscriptionsPage />} />
+        <Route path="subscriptions/receipts" element={<ReceiptsPage />} />
         {/* Analytics */}
         <Route path="analytics/active-users" element={<ActiveUsersPage />} />
         <Route path="analytics/retention" element={<RetentionPage />} />
