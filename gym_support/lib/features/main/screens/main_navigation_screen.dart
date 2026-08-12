@@ -143,7 +143,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _homeRefreshSeed++;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Routine đã được chuyển sang Workout')),
+      const SnackBar(content: Text('Lịch tập đã được chuyển sang tab Tập luyện')),
     );
   }
 
@@ -338,7 +338,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Routine đã được chuyển sang Workout')),
+      const SnackBar(content: Text('Lịch tập đã được chuyển sang tab Tập luyện')),
     );
   }
 

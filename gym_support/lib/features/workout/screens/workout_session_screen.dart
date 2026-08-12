@@ -161,7 +161,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     final wStr = weight == weight.truncateToDouble()
         ? '${weight.toInt()}kg'
         : '${weight.toStringAsFixed(1)}kg';
-    final label = '$wStr × $reps lần';
+    final label = '$wStr × $reps reps';
 
     setState(() => _newPRs[ex.exerciseId] = {
       'exerciseName': ex.exerciseName,
@@ -353,7 +353,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                     ),
                     const SizedBox(width: 16),
                     _SessionStatMini(
-                      label: 'Hiệp xong',
+                      label: 'Sets xong',
                       value: '$_doneSets/$_totalSets',
                     ),
                   ],
@@ -377,7 +377,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           Row(
             children: [
               Text(
-                '$_doneSets / $_totalSets hiệp hoàn thành',
+                '$_doneSets / $_totalSets sets hoàn thành',
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 12,
@@ -501,7 +501,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                     Text(ex.exerciseName, style: AppTheme.headlineSmall),
                     const SizedBox(height: 2),
                     Text(
-                      '${ex.muscleGroup}  ·  ${sets.length} hiệp × ${ex.reps}',
+                      '${ex.muscleGroup}  ·  ${sets.length} sets × ${ex.reps}',
                       style: AppTheme.caption,
                     ),
                   ],
@@ -527,14 +527,14 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
             children: [
               SizedBox(
                 width: 36,
-                child: Text('HIỆP', style: TextStyle(
+                child: Text('SET', style: TextStyle(
                   color: AppColors.textTertiary, fontSize: 10,
                   fontWeight: FontWeight.w800, letterSpacing: 0.5)),
               ),
               Expanded(child: Center(child: Text('KG', style: TextStyle(
                 color: AppColors.textTertiary, fontSize: 10,
                 fontWeight: FontWeight.w800, letterSpacing: 0.5)))),
-              Expanded(child: Center(child: Text('SỐ LẦN', style: TextStyle(
+              Expanded(child: Center(child: Text('REPS', style: TextStyle(
                 color: AppColors.textTertiary, fontSize: 10,
                 fontWeight: FontWeight.w800, letterSpacing: 0.5)))),
               SizedBox(width: 52),
@@ -597,7 +597,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                         controller: repsCtrl[i],
                         enabled: !done,
                         hint: '0',
-                        suffix: 'lần',
+                        suffix: 'reps',
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -754,7 +754,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    'Hiệp ${s['setNumber']}: $wStr × $r',
+                    'Set ${s['setNumber']}: $wStr × $r',
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 11,

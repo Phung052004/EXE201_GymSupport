@@ -94,8 +94,8 @@ class PerfectWorkoutDialog extends StatelessWidget {
             const SizedBox(height: 18),
             Text(
               completionPercent == 100
-                  ? 'Buổi tập hoàn hảo!'
-                  : 'Đã hoàn thành buổi tập',
+                  ? 'Workout hoàn hảo!'
+                  : 'Đã hoàn thành Workout',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
@@ -141,7 +141,7 @@ class PerfectWorkoutDialog extends StatelessWidget {
                 Expanded(
                   child: DialogStatCard(
                     icon: Icons.format_list_numbered_rounded,
-                    label: 'HIỆP',
+                    label: 'SETS',
                     value: '$totalSets',
                     iconColor: const Color(0xFFFF7A30),
                   ),

@@ -387,13 +387,13 @@ class _MetricRow extends StatelessWidget {
       children: [
         Expanded(
           child: _MetricTile(
-            label: 'Hiệp',
+            label: 'Sets',
             value: exercise.defaultSets.toString(),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _MetricTile(label: 'Lần', value: exercise.defaultReps),
+          child: _MetricTile(label: 'Reps', value: exercise.defaultReps),
         ),
         const SizedBox(width: 10),
         Expanded(

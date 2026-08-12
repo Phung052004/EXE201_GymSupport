@@ -221,7 +221,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final currentPlan = isPremium
         ? ((_subscription['planName'] ?? _subscription['PlanName'])?.toString() ??
             'Premium')
-        : 'Free';
+        : 'Miễn phí';
 
     return Scaffold(
       backgroundColor: AppColors.background,

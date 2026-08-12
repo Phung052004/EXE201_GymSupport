@@ -1,11 +1,11 @@
 const TIERS = {
-  Iron: { color: '#6B7280', label: 'Sắt' },
-  Bronze: { color: '#B87333', label: 'Đồng' },
-  Silver: { color: '#9CA3AF', label: 'Bạc' },
-  Gold: { color: '#D4AF37', label: 'Vàng' },
-  Platinum: { color: '#5EEAD4', label: 'Bạch kim' },
-  Diamond: { color: '#38BDF8', label: 'Kim cương' },
-  Champion: { color: '#A855F7', label: 'Huyền thoại' },
+  Iron: { color: '#6B7280', label: 'Iron' },
+  Bronze: { color: '#B87333', label: 'Bronze' },
+  Silver: { color: '#9CA3AF', label: 'Silver' },
+  Gold: { color: '#D4AF37', label: 'Gold' },
+  Platinum: { color: '#5EEAD4', label: 'Platinum' },
+  Diamond: { color: '#38BDF8', label: 'Diamond' },
+  Champion: { color: '#A855F7', label: 'Champion' },
 }
 
 export function getTierMeta(tier) {

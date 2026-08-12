@@ -34,7 +34,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   final TextEditingController searchController = TextEditingController();
 
   String searchText = '';
-  String selectedFilter = 'All';
+  String selectedFilter = 'Tất cả';
   bool _loadingCatalog = false;
   String? _catalogError;
 
@@ -48,7 +48,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
             .toSet()
             .toList()
           ..sort();
-    return ['All', ...muscles];
+    return ['Tất cả', ...muscles];
   }
 
   @override
@@ -65,7 +65,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
       setState(() {
         selectedFilter = savedFilter?.trim().isNotEmpty == true
             ? savedFilter!
-            : 'All';
+            : 'Tất cả';
         searchText = savedSearch ?? '';
         searchController.text = searchText;
       });
@@ -98,7 +98,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
         if (catalog.isNotEmpty) {
           exercises = catalog;
           if (!filters.contains(selectedFilter)) {
-            selectedFilter = 'All';
+            selectedFilter = 'Tất cả';
             _saveFilterState();
           }
         }
@@ -120,7 +120,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   List<Exercise> get filteredExercises {
     return exercises.where((exercise) {
       final matchesFilter =
-          selectedFilter == 'All' || exercise.muscleGroup == selectedFilter;
+          selectedFilter == 'Tất cả' || exercise.muscleGroup == selectedFilter;
 
       final matchesSearch = exercise.name.toLowerCase().contains(
         searchText.toLowerCase(),

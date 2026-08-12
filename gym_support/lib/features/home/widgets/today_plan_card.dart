@@ -242,7 +242,7 @@ class TodayPlanCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      focus.isEmpty ? 'Buổi tập hôm nay' : focus,
+                      focus.isEmpty ? 'Workout hôm nay' : focus,
                       style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 24,
@@ -315,7 +315,7 @@ class TodayPlanCard extends StatelessWidget {
                   Icon(PhosphorIconsBold.play, size: 22),
                   SizedBox(width: 8),
                   Text(
-                    'Bắt đầu buổi tập',
+                    'Bắt đầu Workout',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                   ),
                 ],

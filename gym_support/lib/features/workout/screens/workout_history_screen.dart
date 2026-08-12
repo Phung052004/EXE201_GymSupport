@@ -49,7 +49,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Lịch sử tập luyện', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Lịch sử Workout', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -114,7 +114,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                item['planSessionName']?.toString() ?? 'Buổi tập luyện',
+                item['planSessionName']?.toString() ?? 'Buổi Workout',
                 style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               Text(

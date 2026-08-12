@@ -314,7 +314,7 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Kế hoạch tập AI',
+                'Kế hoạch Workout AI',
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 22,

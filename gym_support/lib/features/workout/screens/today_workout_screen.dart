@@ -143,7 +143,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
       MaterialPageRoute(
         builder: (_) => WorkoutSessionScreen(
           logId: log['id']?.toString() ?? '',
-          planName: log['name']?.toString() ?? 'Buổi tập chưa hoàn tất',
+          planName: log['name']?.toString() ?? 'Workout chưa hoàn tất',
           dayName: 'Tiếp tục',
           focus: log['focus']?.toString() ?? '',
           exercises: parsed.exercises,
@@ -316,7 +316,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                 children: [
                   _StatPill(label: 'Bài tập', value: '${parsed.exercises.length}'),
                   const SizedBox(width: 10),
-                  _StatPill(label: 'Đã xong', value: '$completedSets/$totalSets hiệp'),
+                  _StatPill(label: 'Đã xong', value: '$completedSets/$totalSets sets'),
                 ],
               ),
               const SizedBox(height: 18),
@@ -343,7 +343,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                       children: [
                         Icon(PhosphorIconsBold.play, size: 22),
                         SizedBox(width: 8),
-                        Text('Tiếp tục buổi tập', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                        Text('Tiếp tục Workout', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                       ],
                     ),
                   ),
@@ -400,7 +400,7 @@ class _TodayWorkoutScreenState extends State<TodayWorkoutScreen> {
                   ),
                 ),
                 Text(
-                  '$done/$total hiệp',
+                  '$done/$total sets',
                   style: TextStyle(
                     color: isDone ? AppColors.success : AppColors.textSecondary,
                     fontSize: 12,

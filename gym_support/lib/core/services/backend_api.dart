@@ -970,7 +970,7 @@ class BackendApi {
     for (var i = 0; i < safeDays; i += 1) {
       final dayExercises = normalizedDays[i];
       final focus = dayExercises.isEmpty
-          ? 'Recovery'
+          ? 'Phục hồi'
           : dayExercises.map((item) => item.muscleGroup).toSet().join(' / ');
       final updatedPlan = await addWorkoutPlanSession(
         planId: planId,
@@ -1182,7 +1182,7 @@ class BackendApi {
 
     final dayOfWeek = _value<String>(session, 'dayOfWeek') ?? '';
     return {
-      'day': dayOfWeek.isEmpty ? 'Today' : _displayDay(dayOfWeek),
+      'day': dayOfWeek.isEmpty ? 'Hôm nay' : _displayDay(dayOfWeek),
       'focus': _value<String>(session, 'focus') ?? '',
       'exercises': exercises,
     };
@@ -1204,7 +1204,7 @@ class BackendApi {
     final plan = await createWorkoutPlan({
       'userId': await currentUserId(),
       'name': 'Quick Workout',
-      'goal': 'Custom',
+      'goal': 'Tuỳ chỉnh',
       'daysPerWeek': 1,
     });
     final planId = _value<String>(plan, 'id') ?? '';
@@ -1966,7 +1966,7 @@ class BackendApi {
   }
 
   static String _displayDay(String day) {
-    if (day.toLowerCase() == 'today') return 'Today';
+    if (day.toLowerCase() == 'today') return 'Hôm nay';
     return '${_englishDayToVietnamese(day)} - $day';
   }
 

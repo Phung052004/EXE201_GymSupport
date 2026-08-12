@@ -116,7 +116,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                       icon: PhosphorIconsBold.repeat,
                       iconColor: AppColors.orange,
                       value: totalSets,
-                      label: 'Tổng hiệp',
+                      label: 'Tổng sets',
                     ),
                     const SizedBox(width: 10),
                     _StatTile(
@@ -507,7 +507,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                               color: AppColors.success, size: 16),
                           const SizedBox(width: 6),
                           Text(
-                            '$sets hiệp',
+                            '$sets sets',
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,

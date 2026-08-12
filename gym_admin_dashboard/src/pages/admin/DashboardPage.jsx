@@ -7,8 +7,6 @@ import {
   Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,9 +17,7 @@ import StatCard from '../../components/common/StatCard.jsx'
 import {
   getDashboardSummary,
   getMonthlyRevenue,
-  getRevenueByPlan,
   getUserGrowth,
-  getUsersBySubscription,
 } from '../../services/adminDashboardService.js'
 
 const currentYear = new Date().getFullYear()
@@ -56,26 +52,20 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState(null)
   const [userGrowth, setUserGrowth] = useState(null)
   const [monthlyRevenue, setMonthlyRevenue] = useState(null)
-  const [revenueByPlan, setRevenueByPlan] = useState(null)
-  const [usersBySubscription, setUsersBySubscription] = useState(null)
 
   useEffect(() => {
     async function loadAll() {
       setLoading(true)
       setError(null)
       try {
-        const [summaryData, subscriptionData, growthData, revenueData, planData] = await Promise.all([
+        const [summaryData, growthData, revenueData] = await Promise.all([
           getDashboardSummary(),
-          getUsersBySubscription(),
           getUserGrowth(selectedYear),
           getMonthlyRevenue(selectedYear),
-          getRevenueByPlan(selectedYear),
         ])
         setSummary(summaryData)
-        setUsersBySubscription(subscriptionData)
         setUserGrowth(growthData)
         setMonthlyRevenue(revenueData)
-        setRevenueByPlan(planData)
       } catch (err) {
         setError(err?.status === 401 || err?.status === 403 ? 'Không có quyền truy cập.' : 'Không thể tải dữ liệu dashboard.')
       } finally {
@@ -118,8 +108,6 @@ export default function DashboardPage() {
 
   const growthData = normalizeData(userGrowth?.data)
   const revenueData = normalizeData(monthlyRevenue?.data)
-  const planData = normalizeData(revenueByPlan?.data)
-  const subscriptionData = normalizeData(usersBySubscription?.data)
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -188,64 +176,6 @@ export default function DashboardPage() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pie charts */}
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="section-title">Người dùng theo gói đăng ký</h3>
-          <p className="section-subtitle">Phân phối subscription hiện tại</p>
-          <div className="mt-4 h-72">
-            {subscriptionData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm text-slate-400">Không có dữ liệu</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={subscriptionData}
-                    dataKey="count"
-                    nameKey="subscription"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    innerRadius={45}
-                    paddingAngle={3}
-                  >
-                    {subscriptionData.map((_, index) => (
-                      <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => [v, 'Người dùng']} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="section-title">Doanh thu theo gói</h3>
-          <p className="section-subtitle">So sánh doanh thu các gói subscription năm {selectedYear}</p>
-          <div className="mt-4 h-72">
-            {planData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm text-slate-400">Không có dữ liệu</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={planData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="planName" tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="revenue" name="Doanh thu" radius={[6, 6, 0, 0]} maxBarSize={48}>
-                    {planData.map((_, index) => (
-                      <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
           </div>
         </div>
       </section>

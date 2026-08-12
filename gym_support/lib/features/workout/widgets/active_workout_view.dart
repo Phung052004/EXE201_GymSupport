@@ -172,7 +172,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
                         const SizedBox(width: 10),
                       ],
                       Text(
-                        isFinishing ? 'Đang hoàn thành...' : 'Hoàn thành buổi tập',
+                        isFinishing ? 'Đang hoàn thành...' : 'Hoàn thành Workout',
                         style: TextStyle(
                           color: AppColors.textDark,
                           fontSize: 16,
@@ -239,19 +239,19 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Cập nhật Hiệp/Lần'),
+          title: const Text('Update Sets/Reps'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: setsController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Hiệp'),
+                decoration: const InputDecoration(labelText: 'Sets'),
               ),
               TextField(
                 controller: repsController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Lần'),
+                decoration: const InputDecoration(labelText: 'Reps'),
               ),
             ],
           ),
@@ -321,7 +321,7 @@ class ActiveWorkoutHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Buổi Tập Đang Diễn Ra',
+                'Workout Đang Diễn Ra',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 25,

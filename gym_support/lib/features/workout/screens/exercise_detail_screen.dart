@@ -202,14 +202,14 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
               _Metric(
                 icon: PhosphorIconsBold.stack,
                 color: AppColors.accent,
-                label: 'Hiệp',
+                label: 'Sets',
                 value: '${exercise.defaultSets}',
               ),
               const SizedBox(width: 10),
               _Metric(
                 icon: PhosphorIconsBold.repeat,
                 color: AppColors.violet,
-                label: 'Số lần',
+                label: 'Reps',
                 value: exercise.defaultReps,
               ),
               const SizedBox(width: 10),

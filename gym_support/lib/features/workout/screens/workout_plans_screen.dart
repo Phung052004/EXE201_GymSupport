@@ -143,7 +143,7 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
         child: AppEmptyState(
           icon: PhosphorIconsBold.notepad,
           title: 'Chưa có lịch tập',
-          message: 'Tạo lịch tập đầu tiên của bạn\ntrong tab Routine hoặc để AI tạo',
+          message: 'Tạo lịch tập đầu tiên của bạn\ntrong tab Lịch tập hoặc để AI tạo',
         ),
       );
     }
