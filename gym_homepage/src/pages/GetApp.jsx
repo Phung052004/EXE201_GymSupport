@@ -1,7 +1,10 @@
-import { GitBranch, Smartphone } from 'lucide-react'
+import { Download, GitBranch, Smartphone } from 'lucide-react'
 
-// TODO: gắn link GitHub thật khi repo sẵn sàng công khai.
-const GITHUB_URL = null
+// Luôn trỏ tới bản build mới nhất — GitHub tự redirect sang đúng file của
+// release mới nhất, không cần sửa link mỗi khi có bản build mới.
+const APK_DOWNLOAD_URL =
+  'https://github.com/Phung052004/EXE201_GymSupport/releases/latest/download/app-release.apk'
+const GITHUB_URL = 'https://github.com/Phung052004/EXE201_GymSupport'
 // TODO: gắn link CH Play (Google Play) thật khi ứng dụng được phát hành.
 const PLAY_STORE_URL = null
 
@@ -41,8 +44,19 @@ export default function GetApp() {
       <h1 className="mb-3 text-3xl font-bold tracking-tight text-brand-ink">
         Trải nghiệm GymSup trên điện thoại
       </h1>
-      <p className="mb-10 text-brand-inkMuted">
-        Ứng dụng GymSup hiện chạy trên di động. Chọn một trong hai cách bên dưới để bắt đầu.
+      <p className="mb-8 text-brand-inkMuted">
+        Ứng dụng GymSup hiện chạy trên di động. Tải file cài đặt Android bên dưới, hoặc chọn cách khác.
+      </p>
+
+      <a
+        href={APK_DOWNLOAD_URL}
+        className="mb-6 flex w-full items-center justify-center gap-3 rounded-lg bg-brand-primary py-4 font-semibold text-white shadow-sm transition-transform hover:scale-[1.01]"
+      >
+        <Download className="h-5 w-5" />
+        Tải file APK cho Android
+      </a>
+      <p className="mb-8 text-xs text-brand-inkFaint">
+        Luôn là bản build mới nhất từ GitHub Releases. Cần bật &quot;Cài từ nguồn không xác định&quot; trên điện thoại.
       </p>
 
       <div className="flex w-full flex-col gap-4 sm:flex-row">
