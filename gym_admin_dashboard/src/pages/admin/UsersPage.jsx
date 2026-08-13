@@ -13,7 +13,7 @@ export default function UsersPage() {
     adminApi.getUsers().then((data) => {
       setUsers(data)
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [])
 
   const updateStatus = async (user) => {

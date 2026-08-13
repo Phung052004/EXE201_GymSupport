@@ -21,7 +21,7 @@ export default function MuscleGroupsPage() {
     adminApi.getMuscleGroups().then((data) => {
       setRows(data)
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [])
 
   const openForm = (row = null) => {

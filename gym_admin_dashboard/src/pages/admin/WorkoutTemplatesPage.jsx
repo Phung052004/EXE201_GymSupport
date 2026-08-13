@@ -17,7 +17,7 @@ export default function WorkoutTemplatesPage() {
     adminApi.getWorkoutTemplates().then((data) => {
       setRows(data)
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [])
 
   const remove = async () => {

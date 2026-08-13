@@ -56,13 +56,8 @@ public class DashboardService : IDashboardService
         var allPaidPayments = (await _paymentRepository.GetPaidPaymentsAsync()).ToList();
         var totalRevenue = allPaidPayments.Sum(p => p.Amount);
 
-        // Completed workouts - count workouts with EndTime (completed) from all customers
-        int completedWorkouts = 0;
-        foreach (var customer in customers)
-        {
-            var logs = await _workoutSessionLogRepository.GetByUserIdAsync(customer.Id);
-            completedWorkouts += logs.Count(w => w.EndTime.HasValue);
-        }
+        // Completed workouts - count workouts with EndTime (completed) across all users
+        var completedWorkouts = await _workoutSessionLogRepository.CountCompletedAsync();
 
         return new DashboardSummaryDto
         {
@@ -71,7 +66,7 @@ public class DashboardService : IDashboardService
             ActiveSubscriptions = activeSubscriptions,
             RevenueThisMonth = revenueThisMonth,
             TotalRevenue = totalRevenue,
-            CompletedWorkouts = completedWorkouts
+            CompletedWorkouts = (int)completedWorkouts
         };
     }
 

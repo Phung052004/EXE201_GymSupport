@@ -21,7 +21,7 @@ export default function ExercisesPage() {
     adminApi.getExercises().then((data) => {
       setRows(data)
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [])
 
   const filtered = useMemo(() => {

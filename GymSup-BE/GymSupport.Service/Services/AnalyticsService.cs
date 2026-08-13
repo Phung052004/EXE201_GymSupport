@@ -125,10 +125,17 @@ public class AnalyticsService : IAnalyticsService
         int day1Retained = 0, day7Retained = 0, day30Retained = 0;
         int day7Eligible = 0, day30Eligible = 0;
 
+        // One batch query for the whole cohort instead of one query per user.
+        var cohortSessions = await _workoutSessionLogRepository.GetByUserIdsAsync(cohort.Select(u => u.Id));
+        var sessionsByUser = cohortSessions
+            .GroupBy(s => s.UserId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         foreach (var user in cohort)
         {
             var regDate = user.VerifiedAt!.Value.Date;
-            var sessions = await _workoutSessionLogRepository.GetByUserIdAsync(user.Id);
+            if (!sessionsByUser.TryGetValue(user.Id, out var sessions))
+                sessions = new List<Repository.Models.Entities.WorkoutSessionLog>();
 
             // Day 1: any workout session on day 1 after registration (24h–48h window)
             var d1Start = regDate.AddDays(1);

@@ -12,6 +12,11 @@ public class WorkoutSessionLogRepository : IWorkoutSessionLogRepository
     public WorkoutSessionLogRepository(MongoDbContext context)
     {
         _collection = context.GetCollection<WorkoutSessionLog>("WorkoutSessionLogs");
+
+        var userIdIndex = Builders<WorkoutSessionLog>.IndexKeys.Ascending(x => x.UserId);
+        var startTimeIndex = Builders<WorkoutSessionLog>.IndexKeys.Ascending(x => x.StartTime);
+        _collection.Indexes.CreateOne(new CreateIndexModel<WorkoutSessionLog>(userIdIndex));
+        _collection.Indexes.CreateOne(new CreateIndexModel<WorkoutSessionLog>(startTimeIndex));
     }
 
     public async Task<WorkoutSessionLog> CreateAsync(WorkoutSessionLog sessionLog)
@@ -44,6 +49,12 @@ public class WorkoutSessionLogRepository : IWorkoutSessionLogRepository
             .ToListAsync();
     }
 
+    public async Task<List<WorkoutSessionLog>> GetByUserIdsAsync(IEnumerable<string> userIds)
+    {
+        var filter = Builders<WorkoutSessionLog>.Filter.In(x => x.UserId, userIds);
+        return await _collection.Find(filter).ToListAsync();
+    }
+
     public async Task UpdateAsync(string id, WorkoutSessionLog sessionLog)
     {
         await _collection.ReplaceOneAsync(
@@ -64,5 +75,10 @@ public class WorkoutSessionLogRepository : IWorkoutSessionLogRepository
             .Find(x => x.StartTime >= from && x.StartTime < to)
             .SortBy(x => x.StartTime)
             .ToListAsync();
+    }
+
+    public async Task<long> CountCompletedAsync()
+    {
+        return await _collection.CountDocumentsAsync(x => x.EndTime != null);
     }
 }

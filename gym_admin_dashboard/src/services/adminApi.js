@@ -42,9 +42,9 @@ async function request(path, { method = 'GET', body, optional = false, emptyValu
 
     return payload
   } catch (error) {
-    if (optional) return emptyValue
     console.error(error)
-    return emptyValue
+    if (optional) return emptyValue
+    throw error
   }
 }
 

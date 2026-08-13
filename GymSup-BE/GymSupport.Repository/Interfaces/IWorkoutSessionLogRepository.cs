@@ -17,10 +17,14 @@ namespace GymSupport.Repository.Interfaces
 
         Task<List<WorkoutSessionLog>> GetByUserIdAsync(string userId);
 
+        Task<List<WorkoutSessionLog>> GetByUserIdsAsync(IEnumerable<string> userIds);
+
         Task UpdateAsync(string id, WorkoutSessionLog sessionLog);
 
         Task<List<WorkoutSessionLog>> GetAllAsync();
 
         Task<List<WorkoutSessionLog>> GetByDateRangeAsync(DateTime from, DateTime to);
+
+        Task<long> CountCompletedAsync();
     }
 }
