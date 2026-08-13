@@ -15,7 +15,7 @@ class GymSupportApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'GymSupport AI',
+      title: 'GS Fitness',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: 'Roboto',
