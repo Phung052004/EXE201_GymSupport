@@ -52,4 +52,25 @@ public class ReceiptsController : ControllerBase
         var receipts = await _receipts.GetByUserIdAsync(userId);
         return Ok(receipts.OrderByDescending(r => r.CreatedAt));
     }
+
+    /// <summary>
+    /// Thẻ tổng quan cho đầu trang Hóa đơn: tổng người đã thanh toán, số hóa đơn phát sinh
+    /// trong tháng hiện tại, và tổng doanh thu (tất cả thời gian, tính theo Receipt.Amount).
+    /// </summary>
+    [HttpGet("summary")]
+    public async Task<IActionResult> GetSummary()
+    {
+        var all = await _receipts.GetAllAsync();
+        var now = DateTime.UtcNow;
+        var monthStart = new DateTime(now.Year, now.Month, 1);
+
+        var summary = new
+        {
+            totalPayingUsers = all.Select(r => r.UserId).Distinct().Count(),
+            receiptsThisMonth = all.Count(r => r.CreatedAt >= monthStart),
+            totalRevenue = all.Sum(r => r.Amount)
+        };
+
+        return Ok(summary);
+    }
 }

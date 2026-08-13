@@ -387,4 +387,6 @@ export const adminApi = {
     request(`/admin/receipts`, { emptyValue: [] }),
   getUserReceipts: (userId) =>
     request(`/admin/receipts/user/${userId}`, { optional: true, emptyValue: [] }),
+  getReceiptsSummary: () =>
+    request(`/admin/receipts/summary`, { emptyValue: null }),
 }

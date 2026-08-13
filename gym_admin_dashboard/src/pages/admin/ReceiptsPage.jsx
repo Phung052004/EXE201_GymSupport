@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react'
+import { BadgeDollarSign, Receipt, Users } from 'lucide-react'
 import Modal from '../../components/common/Modal.jsx'
+import StatCard from '../../components/common/StatCard.jsx'
 import { adminApi } from '../../services/adminApi.js'
 import ReceiptList from '../../components/receipts/ReceiptList.jsx'
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value ?? 0)
 
 export default function ReceiptsPage() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const [summary, setSummary] = useState(null)
 
   const [detailUser, setDetailUser] = useState(null) // { userId, name, email }
   const [receipts, setReceipts] = useState([])
@@ -19,6 +26,8 @@ export default function ReceiptsPage() {
       .then((data) => setRows(Array.isArray(data) ? data : []))
       .catch(() => setError('Không thể tải dữ liệu. Vui lòng thử lại.'))
       .finally(() => setLoading(false))
+
+    adminApi.getReceiptsSummary().then(setSummary).catch(() => setSummary(null))
   }, [])
 
   const openDetail = (row) => {
@@ -47,6 +56,27 @@ export default function ReceiptsPage() {
           {error}
         </div>
       )}
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          icon={Users}
+          label="Tổng người đã thanh toán"
+          value={summary ? summary.totalPayingUsers.toLocaleString() : '—'}
+          color="blue"
+        />
+        <StatCard
+          icon={Receipt}
+          label="Hóa đơn tháng này"
+          value={summary ? summary.receiptsThisMonth.toLocaleString() : '—'}
+          color="cyan"
+        />
+        <StatCard
+          icon={BadgeDollarSign}
+          label="Tổng doanh thu"
+          value={summary ? formatCurrency(summary.totalRevenue) : '—'}
+          color="emerald"
+        />
+      </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">

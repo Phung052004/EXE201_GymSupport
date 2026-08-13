@@ -263,40 +263,46 @@ public class AnalyticsService : IAnalyticsService
         var fromDate = from.Date;
         var toExclusive = to.Date.AddDays(1);
 
+        // These six lookups are independent — fetch them concurrently instead of
+        // one round trip at a time (was the main reason wide date ranges were slow).
+        var sessionsTask = _workoutSessionLogRepository.GetByDateRangeAsync(fromDate, toExclusive);
+        var usageLogsTask = _featureUsageLogRepository.GetByDateRangeAsync(fromDate, toExclusive);
+        var chatMessagesTask = _chatRepository.GetByDateRangeAsync(fromDate, toExclusive);
+        var plansTask = _workoutPlanRepository.GetAllAsync();
+        var mealPlansTask = _mealPlanRepository.GetByDateRangeAsync(fromDate, toExclusive);
+        var subsTask = _userSubscriptionRepository.GetAllAsync();
+        await Task.WhenAll(sessionsTask, usageLogsTask, chatMessagesTask, plansTask, mealPlansTask, subsTask);
+
         // Workout sessions
-        var sessions = await _workoutSessionLogRepository.GetByDateRangeAsync(fromDate, toExclusive);
+        var sessions = sessionsTask.Result;
         int workoutCount = sessions.Count;
         int workoutUsers = sessions.Select(s => s.UserId).Distinct().Count();
 
         // Scan Equipment (equipment_info + body_check + form_check qua ảnh/video — xem GetPremiumFeatureUsageAsync)
         var scanFeatures = new[] { "EquipmentInfo", "BodyCheck", "FormCheckVideo" };
-        var allUsageLogs = await _featureUsageLogRepository.GetByDateRangeAsync(fromDate, toExclusive);
-        var scanLogs = allUsageLogs.Where(x => scanFeatures.Contains(x.Feature)).ToList();
+        var scanLogs = usageLogsTask.Result.Where(x => scanFeatures.Contains(x.Feature)).ToList();
         int scanCount = scanLogs.Count;
         int scanUsers = scanLogs.Select(x => x.UserId).Distinct().Count();
 
         // AI Coach (count user-sent messages only to avoid counting assistant replies)
-        var chatMessages = await _chatRepository.GetByDateRangeAsync(fromDate, toExclusive);
-        var userMessages = chatMessages.Where(m => m.Role == "user").ToList();
+        var userMessages = chatMessagesTask.Result.Where(m => m.Role == "user").ToList();
         int aiCoachCount = userMessages.Count;
         int aiCoachUsers = userMessages.Select(m => m.UserId).Distinct().Count();
 
         // Generate Plan (workout plans created)
-        var allPlans = (await _workoutPlanRepository.GetAllAsync()).ToList();
-        var plansInRange = allPlans
+        var plansInRange = plansTask.Result
             .Where(p => p.CreatedAt >= fromDate && p.CreatedAt < toExclusive)
             .ToList();
         int generatePlanCount = plansInRange.Count;
         int generatePlanUsers = plansInRange.Select(p => p.UserId).Distinct().Count();
 
         // Nutrition (meal plans logged)
-        var mealPlans = await _mealPlanRepository.GetByDateRangeAsync(fromDate, toExclusive);
+        var mealPlans = mealPlansTask.Result;
         int nutritionCount = mealPlans.Count;
         int nutritionUsers = mealPlans.Select(m => m.UserId).Distinct().Count();
 
         // Subscription (new subscriptions started)
-        var allSubs = (await _userSubscriptionRepository.GetAllAsync()).ToList();
-        var subsInRange = allSubs
+        var subsInRange = subsTask.Result
             .Where(s => s.StartedAt >= fromDate && s.StartedAt < toExclusive)
             .ToList();
         int subscriptionCount = subsInRange.Count;
