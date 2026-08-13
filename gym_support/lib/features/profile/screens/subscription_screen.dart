@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_theme.dart';
@@ -200,6 +201,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     } catch (error) {
       if (mounted) setState(() => _purchasePending = false);
       _showMessage('Không thể khôi phục giao dịch: $error');
+    }
+  }
+
+  static final Uri _websiteUri = Uri.parse('https://homepage.gsfitness.id.vn/');
+
+  Future<void> _openWebsite() async {
+    try {
+      final opened = await launchUrl(
+        _websiteUri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened) _showMessage('Không mở được website.');
+    } catch (error) {
+      _showMessage('Không mở được website: $error');
     }
   }
 
@@ -431,6 +446,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         product: _product!,
                         isPending: _purchasePending,
                         onBuy: _buy,
+                        onVisitWebsite: _openWebsite,
                       ),
                     ),
                   ),
@@ -539,11 +555,13 @@ class _ProductCard extends StatelessWidget {
   final ProductDetails product;
   final bool isPending;
   final VoidCallback onBuy;
+  final VoidCallback onVisitWebsite;
 
   const _ProductCard({
     required this.product,
     required this.isPending,
     required this.onBuy,
+    required this.onVisitWebsite,
   });
 
   @override
@@ -565,6 +583,27 @@ class _ProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onVisitWebsite,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+                side: BorderSide(
+                    color: AppColors.primary.withValues(alpha: 0.35)),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                ),
+              ),
+              icon: const Icon(PhosphorIconsBold.globe, size: 16),
+              label: const Text(
+                'Truy cập website của chúng tôi',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
